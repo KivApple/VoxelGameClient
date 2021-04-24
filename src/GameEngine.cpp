@@ -74,7 +74,7 @@ float GameEngine::viewportWidthOverHeight() const {
 void GameEngine::handleResize(int width, int height) {
 	m_viewportWidth = width;
 	m_viewportHeight = height;
-	log("Viewport set to %ix%i", width, height);
+	log("Viewport set to %i x %i", width, height);
 	
 	glViewport(0, 0, m_viewportWidth, m_viewportHeight);
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);

@@ -52,7 +52,7 @@ bool SDLGameEngine::platformInit() {
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 	m_glContext = SDL_GL_CreateContext(m_window);
 	if (m_glContext == nullptr) {
-		log("Failed to create ShaderProgram context: %s", SDL_GetError());
+		log("Failed to create OpenGL context: %s", SDL_GetError());
 		SDL_DestroyWindow(m_window);
 		m_window = nullptr;
 		return false;
