@@ -59,6 +59,11 @@ struct Voxel {
 		type.invokeBuildVertexData(*this, data);
 	}
 	
+	void setType(VoxelType &newType) {
+		type.invokeDestroy(*this);
+		newType.invokeInit(this);
+	}
+	
 };
 
 static const size_t VOXEL_DATA_SIZE = sizeof(Voxel) + 16;

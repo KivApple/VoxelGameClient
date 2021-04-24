@@ -11,10 +11,10 @@ void SharedVoxelChunk::setNeighbors(
 				SharedVoxelChunk *chunk = nullptr;
 				if (dx != 0 || dy != 0 || dz != 0) {
 					auto it = chunks.find({
-												  location().x + dx,
-												  location().y + dy,
-												  location().z + dz
-										  });
+						location().x + dx,
+						location().y + dy,
+						location().z + dz
+					});
 					if (it == chunks.end()) continue;
 					chunk = it->second.get();
 					chunk->m_neighbors[(-dx + 1) + (-dy + 1) * 3 + (-dz + 1) * 3 * 3] = this;
@@ -108,11 +108,15 @@ VoxelChunkExtendedRef::~VoxelChunkExtendedRef() {
 }
 
 void VoxelChunkExtendedRef::unlock() {
-	VoxelChunkRef::unlock();
 	for (auto neighbor : m_neighbors) {
 		if (neighbor == nullptr) continue;
 		neighbor->mutex().unlock_shared();
 	}
+	VoxelChunkRef::unlock();
+}
+
+bool VoxelChunkExtendedRef::hasNeighbor(int dx, int dy, int dz) const {
+	return m_neighbors[(dx + 1) + (dy + 1) * 3 + (dz + 1) * 3 * 3] != nullptr;
 }
 
 const Voxel &VoxelChunkExtendedRef::extendedAt(int x, int y, int z, VoxelLocation *outLocation) const {

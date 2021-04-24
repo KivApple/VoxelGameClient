@@ -66,6 +66,7 @@ public:
 	VoxelChunkExtendedRef &operator=(VoxelChunkExtendedRef &&ref) noexcept;
 	~VoxelChunkExtendedRef();
 	void unlock();
+	[[nodiscard]] bool hasNeighbor(int dx, int dy, int dz) const;
 	[[nodiscard]] const Voxel &extendedAt(
 			int x, int y, int z,
 			VoxelLocation *outLocation = nullptr

@@ -71,10 +71,10 @@ if (TARGET gtest)
 	add_executable(
 			VoxelGameClient_tst
 			tst/main.cpp
-			tst/VoxelLocation.cpp
+			tst/VoxelLocation.cpp tst/VoxelWorld.cpp
 			${SRC}
 	)
-	target_link_libraries(VoxelGameClient_tst glm::glm GLEW::GLEW gtest)
+	target_link_libraries(VoxelGameClient_tst glm::glm GLEW::GLEW gtest gmock)
 	
 	if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
 		target_link_libraries(VoxelGameClient_tst opengl32)
