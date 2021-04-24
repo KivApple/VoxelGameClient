@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>VoxelGame</title>
+    <style>
+        body {
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+        }
+
+        #canvas {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <script>
+        const base = "cmake-build-debug-js/";
+        const suffix = "?1";
+
+        var Module = {
+            locateFile: (path, prefix) => {
+                return base + path + suffix;
+            },
+            canvas: (() => {
+                const canvas = document.getElementById("canvas");
+                canvas.addEventListener("webglcontextlost", e => {
+                    alert("WebGL context lost. You will need to reload the page.");
+                    e.preventDefault();
+                }, false);
+                return canvas;
+            })()
+        };
+
+        const script = document.createElement("script");
+        script.src = base + "VoxelGameClient.js" + suffix;
+        document.body.appendChild(script);
+    </script>
+</body>
+</html>
