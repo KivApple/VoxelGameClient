@@ -3,8 +3,6 @@ project(VoxelGameClient)
 
 set(CMAKE_CXX_STANDARD 20)
 
-include(GoogleTest)
-
 set(glm_DIR lib/glm/cmake/glm)
 find_package(glm REQUIRED)
 
@@ -21,7 +19,11 @@ if("${CMAKE_SYSTEM_NAME}" STREQUAL "Emscripten")
 			CMAKE_EXE_LINKER_FLAGS
 			"${CMAKE_EXE_LINKER_FLAGS} --embed-file \"${CMAKE_CURRENT_LIST_DIR}/assets@assets\" --use-preload-plugins ${EMSCRIPTEN_FLAGS}"
 	)
-elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+else()
+	add_subdirectory(lib/googletest)
+endif()
+
+if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
 	message("Detected Windows")
 	
 	set(CMAKE_EXE_LINKER_FLAGS "-static -static-libgcc -static-libstdc++ -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive")
@@ -32,18 +34,38 @@ elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
 endif()
 
 include_directories(lib)
+include_directories(src)
 
-add_executable(
-		VoxelGameClient
-		src/main.cpp
-		src/GameEngine.cpp src/SDLGameEngine.cpp
+set(
+		SRC
+		src/GameEngine.cpp
 		src/OpenGL.cpp src/ShaderProgram.cpp src/TextRenderer.cpp src/world/Model.cpp
 		src/ui/UIBase.cpp src/ui/UIJoystick.cpp src/ui/UIRoot.cpp
 		src/world/Entity.cpp src/world/Voxel.cpp src/world/VoxelChunk.cpp src/world/VoxelWorld.cpp
 		src/world/VoxelWorldRenderer.cpp
 )
+
+add_executable(VoxelGameClient src/main.cpp src/SDLGameEngine.cpp ${SRC})
 target_link_libraries(VoxelGameClient glm::glm)
 
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
 	target_link_libraries(VoxelGameClient SDL2::SDL2 GLEW::GLEW opengl32 ws2_32)
+endif()
+
+if (TARGET gtest)
+	message("Detected GoogleTest")
+	
+	add_executable(
+			VoxelGameClient_tst
+			tst/main.cpp
+			tst/VoxelLocation.cpp
+			${SRC}
+	)
+	target_link_libraries(VoxelGameClient_tst glm::glm GLEW::GLEW gtest)
+	
+	if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+		target_link_libraries(VoxelGameClient_tst opengl32)
+	endif()
+	
+	add_test(NAME VoxelGameClient COMMAND VoxelGameClient_tst)
 endif()
