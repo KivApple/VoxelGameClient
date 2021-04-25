@@ -4,6 +4,7 @@ project(VoxelGameClient)
 set(CMAKE_CXX_STANDARD 20)
 
 add_subdirectory(lib/glm)
+add_subdirectory(lib/bitsery)
 
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Emscripten")
 	message("Detected usage of Emscripten")
@@ -61,7 +62,8 @@ set(
 
 add_executable(
 		VoxelGameClient
-		src/client/main.cpp src/client/SDLGameEngine.cpp src/client/net/WebSocketClientTransport.cpp
+		src/client/main.cpp src/client/SDLGameEngine.cpp
+		src/client/net/BinaryClientTransport.cpp src/client/net/WebSocketClientTransport.cpp
 		src/client/GameEngine.cpp
 		src/client/OpenGL.cpp src/client/ShaderProgram.cpp src/client/ui/TextRenderer.cpp src/client/world/Model.cpp
 		src/client/ui/UIBase.cpp src/client/ui/UIJoystick.cpp src/client/ui/UIRoot.cpp
@@ -69,7 +71,7 @@ add_executable(
 		src/client/world/VoxelWorldRenderer.cpp
 		${COMMON_SRC}
 )
-target_link_libraries(VoxelGameClient glm::glm)
+target_link_libraries(VoxelGameClient glm::glm Bitsery::bitsery)
 
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Emscripten")
 	target_link_libraries(VoxelGameClient websocket.js)
@@ -88,7 +90,10 @@ else()
 			${COMMON_SRC}
 	)
 	target_compile_definitions(VoxelGameServer PUBLIC HEADLESS)
-	target_link_libraries(VoxelGameServer glm::glm websocketpp::websocketpp asio::asio Threads::Threads)
+	target_link_libraries(
+			VoxelGameServer
+			glm::glm Bitsery::bitsery websocketpp::websocketpp asio::asio Threads::Threads
+	)
 	if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
 		target_link_libraries(VoxelGameServer ws2_32 wsock32)
 	endif()

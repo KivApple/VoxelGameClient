@@ -4,9 +4,9 @@
 #include <thread>
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/server.hpp>
-#include "ServerTransport.h"
+#include "BinaryServerTransport.h"
 
-class WebSocketServerTransport: public ServerTransport, std::thread {
+class WebSocketServerTransport: public BinaryServerTransport, std::thread {
 	typedef websocketpp::server<websocketpp::config::asio> server_t;
 	
 	uint16_t m_port;

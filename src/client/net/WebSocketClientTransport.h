@@ -8,9 +8,9 @@
 #else
 #include <emscripten/websocket.h>
 #endif
-#include "ClientTransport.h"
+#include "BinaryClientTransport.h"
 
-class WebSocketClientTransport: public ClientTransport {
+class WebSocketClientTransport: public BinaryClientTransport {
 #ifndef __EMSCRIPTEN__
 	typedef websocketpp::client<websocketpp::config::asio_client> client_t;
 	
@@ -25,20 +25,12 @@ class WebSocketClientTransport: public ClientTransport {
 	
 #endif
 	std::string m_url;
-	glm::vec3 m_playerPosition = glm::vec3(0.0f);
-	float m_playerYaw = 0.0f;
-	float m_playerPitch = 0.0f;
-	int m_viewRadius = 0;
-	bool m_playerPositionValid = false;
-	std::mutex m_playerPositionMutex;
 	std::atomic<bool> m_connected = false;
 	
 	void handleOpen();
 	void handleError();
 	void handleClose();
-	void handleMessage(const char *data, size_t dataSize);
-	void sendMessage(const void *data, size_t dataSize);
-	void sendPlayerPosition();
+	void sendMessage(const void *data, size_t dataSize) override;
 	
 public:
 	explicit WebSocketClientTransport(std::string url);
@@ -47,6 +39,5 @@ public:
 	bool isConnected() override {
 		return m_connected;
 	}
-	void sendPlayerPosition(const glm::vec3 &position, float yaw, float pitch, int viewRadius) override;
 	
 };

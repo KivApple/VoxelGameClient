@@ -1,4 +1,5 @@
 #include "WebSocketServerTransport.h"
+#include "net/ClientMessage.h"
 
 WebSocketServerTransport::WebSocketServerTransport(uint16_t port): m_port(port) {
 	m_server.clear_access_channels(websocketpp::log::alevel::all);
@@ -18,7 +19,22 @@ void WebSocketServerTransport::handleClose(websocketpp::connection_hdl connectio
 }
 
 void WebSocketServerTransport::handleMessage(websocketpp::connection_hdl connection, server_t::message_ptr message) {
-	printf("Received %zi bytes\n", message->get_payload().size());
+	auto &payload = message->get_payload();
+	ClientMessage<ClientMessageData::Empty> genericMessage;
+	deserialize(payload, genericMessage);
+	switch (genericMessage.type) {
+		case ClientMessageType::UPDATE_POSITION: {
+			ClientMessage<ClientMessageData::UpdatePosition> msg;
+			deserialize(payload, msg);
+			printf(
+					"UpdatePosition(x=%0.2f, y=%0.2f, z=%0.2f, yaw=%0.3f, pitch=%0.3f, viewRadius=%i)\n",
+					msg.data.x, msg.data.y, msg.data.z, msg.data.yaw, msg.data.pitch, msg.data.viewRadius
+			);
+			break;
+		}
+		default:
+			printf("Unknown message received from client: %i\n", (int) genericMessage.type);
+	}
 }
 
 void WebSocketServerTransport::run() {

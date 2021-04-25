@@ -10,3 +10,6 @@
 [submodule "lib/glm"]
 	path = lib/glm
 	url = https://github.com/g-truc/glm
+[submodule "lib/bitsery"]
+	path = lib/bitsery
+	url = https://github.com/fraillt/bitsery
