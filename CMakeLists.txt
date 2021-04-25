@@ -87,6 +87,7 @@ else()
 	add_executable(
 			VoxelGameServer
 			src/server/main.cpp src/server/GameServerEngine.cpp src/server/net/WebSocketServerTransport.cpp
+			src/server/net/ClientConnection.cpp src/server/net/BinaryServerTransport.cpp
 			${COMMON_SRC}
 	)
 	target_compile_definitions(VoxelGameServer PUBLIC HEADLESS)
