@@ -19,6 +19,7 @@ SDLGameEngine::SDLGameEngine(): m_keyMap({
 		{SDLK_LSHIFT, KeyCode::CLIMB_DOWN},
 		{SDLK_RSHIFT, KeyCode::CLIMB_DOWN},
 		{SDLK_F1, KeyCode::TOGGLE_DEBUG_INFO},
+		{SDLK_F2, KeyCode::RESET_PERFORMANCE_COUNTERS},
 		{SDLK_LCTRL, KeyCode::SPEEDUP},
 		{SDLK_RCTRL, KeyCode::SPEEDUP}
 }) {

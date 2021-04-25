@@ -134,9 +134,7 @@ void VoxelWorldRenderer::build(
 }
 
 bool VoxelWorldRenderer::build(const VoxelChunkLocation &location, VoxelChunkMesh &mesh) {
-	//printf("Locking %i,%i,%i\n", location.x, location.y, location.z);
 	auto chunk = m_world.extendedChunk(location);
-	//printf("Locked\n");
 	if (!chunk) return false;
 	mesh.valid = false;
 	for (auto &&part : mesh.parts) {
@@ -162,6 +160,7 @@ bool VoxelWorldRenderer::build(const VoxelChunkLocation &location, VoxelChunkMes
 }
 
 bool VoxelWorldRenderer::build(const VoxelChunkLocation &location) {
+	PerformanceMeasurement measurement(m_buildPerformanceCounter);
 	std::shared_lock<std::shared_mutex> meshesSharedLock(m_meshesMutex);
 	auto it = m_meshes.find(location);
 	while (it == m_meshes.end()) {
@@ -178,7 +177,11 @@ bool VoxelWorldRenderer::build(const VoxelChunkLocation &location) {
 	auto &mesh = *it->second;
 	std::unique_lock<std::mutex> lock(mesh.mutex);
 	meshesSharedLock.unlock();
-	return build(location, mesh);
+	if (build(location, mesh)) {
+		return true;
+	}
+	measurement.discard();
+	return false;
 }
 
 GLBuffer VoxelWorldRenderer::allocateBuffer() {
@@ -352,6 +355,7 @@ void VoxelWorldRenderer::render(
 		const glm::mat4 &view,
 		const glm::mat4 &projection
 ) {
+	PerformanceMeasurement measurement(m_renderPerformanceCounter);
 	VoxelChunkLocation playerChunkLocation(
 			(int) roundf(playerPosition.x / VOXEL_CHUNK_SIZE),
 			(int) roundf(playerPosition.y / VOXEL_CHUNK_SIZE),

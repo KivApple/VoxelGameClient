@@ -148,7 +148,11 @@ void GameEngine::updateDebugInfo() {
 	std::stringstream ss;
 	ss << "FPS: " << m_framePerSecond << "\n";
 	ss << "X=" << m_player->position().x << ", Y=" << m_player->position().y << ", Z=" << m_player->position().z << "\n";
-	ss << m_voxelWorldRenderer->queueSize() << " chunk(s) in render queue";
+	ss << m_voxelWorldRenderer->queueSize() << " chunk(s) in mesh build queue" << "\n";
+	ss << "Used " << m_voxelWorldRenderer->usedBufferCount() << " voxel mesh buffers";
+	ss << " (" << m_voxelWorldRenderer->availableBufferCount() << " available)\n";
+	ss << "World render time (ms): " << m_voxelWorldRenderer->renderPerformanceCounter() << "\n";
+	ss << "Chunk mesh build time (ms): " << m_voxelWorldRenderer->buildPerformanceCounter() << "\n";
 	m_debugTextRenderer->setText(ss.str(), glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 }
 
@@ -157,6 +161,10 @@ void GameEngine::keyDown(KeyCode keyCode) {
 	switch (keyCode) {
 		case KeyCode::TOGGLE_DEBUG_INFO:
 			m_showDebugInfo = !m_showDebugInfo;
+			break;
+		case KeyCode::RESET_PERFORMANCE_COUNTERS:
+			m_voxelWorldRenderer->renderPerformanceCounter().reset();
+			m_voxelWorldRenderer->buildPerformanceCounter().reset();
 			break;
 		default:;
 	}

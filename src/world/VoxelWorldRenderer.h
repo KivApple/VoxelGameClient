@@ -10,6 +10,7 @@
 #include <glm/mat4x4.hpp>
 #include "Voxel.h"
 #include "VoxelLocation.h"
+#include "PerformanceCounter.h"
 
 class VoxelShaderProvider;
 class VoxelWorld;
@@ -42,6 +43,8 @@ class VoxelWorldRenderer {
 	std::vector<VoxelVertexData> m_vertexDataBuffer;
 	std::vector<GLBuffer> m_buffers;
 	std::vector<VoxelChunkRenderStep> m_renderSchedule;
+	PerformanceCounter m_buildPerformanceCounter;
+	PerformanceCounter m_renderPerformanceCounter;
 	
 	std::optional<VoxelChunkLocation> getInvalidated(const glm::vec3 &playerPosition);
 	constexpr static int shaderProviderPriority(const VoxelShaderProvider *shaderProvider);
@@ -78,6 +81,18 @@ public:
 	);
 	size_t queueSize() const {
 		return m_queue.size();
+	}
+	size_t availableBufferCount() const {
+		return m_buffers.size();
+	}
+	size_t usedBufferCount() const {
+		return m_renderSchedule.size();
+	}
+	PerformanceCounter &buildPerformanceCounter() {
+		return m_buildPerformanceCounter;
+	}
+	PerformanceCounter &renderPerformanceCounter() {
+		return m_renderPerformanceCounter;
 	}
 
 };
