@@ -28,6 +28,7 @@ class WebSocketClientTransport: public ClientTransport {
 	glm::vec3 m_playerPosition = glm::vec3(0.0f);
 	float m_playerYaw = 0.0f;
 	float m_playerPitch = 0.0f;
+	int m_viewRadius = 0;
 	bool m_playerPositionValid = false;
 	std::mutex m_playerPositionMutex;
 	std::atomic<bool> m_connected = false;
@@ -43,6 +44,9 @@ public:
 	explicit WebSocketClientTransport(std::string url);
 	void start() override;
 	void shutdown() override;
-	void sendPlayerPosition(const glm::vec3 &position, float yaw, float pitch) override;
+	bool isConnected() override {
+		return m_connected;
+	}
+	void sendPlayerPosition(const glm::vec3 &position, float yaw, float pitch, int viewRadius) override;
 	
 };

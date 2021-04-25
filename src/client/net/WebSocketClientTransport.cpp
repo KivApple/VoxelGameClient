@@ -128,21 +128,28 @@ void WebSocketClientTransport::sendPlayerPosition() {
 	struct {
 		float x, y, z;
 		float yaw, pitch;
+		int viewRadius;
 	} data {
 		m_playerPosition.x, m_playerPosition.y, m_playerPosition.z,
-		m_playerYaw, m_playerPitch
+		m_playerYaw, m_playerPitch,
+		m_viewRadius
 	};
 	sendMessage(&data, sizeof(data));
 }
 
-void WebSocketClientTransport::sendPlayerPosition(const glm::vec3 &position, float yaw, float pitch) {
+void WebSocketClientTransport::sendPlayerPosition(const glm::vec3 &position, float yaw, float pitch, int viewRadius) {
 	std::unique_lock<std::mutex> lock(m_playerPositionMutex);
-	if (m_playerPositionValid && m_playerPosition == position && m_playerYaw == yaw && m_playerPitch == pitch) {
+	if (
+			m_playerPositionValid &&
+			m_playerPosition == position && m_playerYaw == yaw && m_playerPitch == pitch &&
+			m_viewRadius == viewRadius
+	) {
 		return;
 	}
 	m_playerPosition = position;
 	m_playerYaw = yaw;
 	m_playerPitch = pitch;
+	m_viewRadius = viewRadius;
 	m_playerPositionValid = true;
 	lock.unlock();
 	sendPlayerPosition();

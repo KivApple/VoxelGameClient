@@ -165,6 +165,11 @@ void GameEngine::updateDebugInfo() {
 	ss << " (" << m_voxelWorldRenderer->availableBufferCount() << " available)\n";
 	ss << "World render time (ms): " << m_voxelWorldRenderer->renderPerformanceCounter() << "\n";
 	ss << "Chunk mesh build time (ms): " << m_voxelWorldRenderer->buildPerformanceCounter() << "\n";
+	if (m_transport && m_transport->isConnected()) {
+		ss << "Connected to the server";
+	} else {
+		ss << "!!! NOT CONNECTED TO THE SERVER !!!";
+	}
 	m_debugTextRenderer->setText(ss.str(), glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 }
 
@@ -234,7 +239,7 @@ void GameEngine::updatePlayerPosition() {
 	m_player->move(moveDirection);
 	
 	if (m_transport) {
-		m_transport->sendPlayerPosition(m_player->position(), m_player->yaw(), m_player->pitch());
+		m_transport->sendPlayerPosition(m_player->position(), m_player->yaw(), m_player->pitch(), 2);
 	}
 }
 
