@@ -44,16 +44,20 @@ include_directories(lib)
 include_directories(src)
 
 set(
-		SRC
+		COMMON_SRC
+		src/world/Voxel.cpp src/world/VoxelChunk.cpp src/world/VoxelWorld.cpp src/world/VoxelTypeRegistry.cpp
+)
+
+add_executable(
+		VoxelGameClient
+		src/main.cpp src/SDLGameEngine.cpp
 		src/GameEngine.cpp
 		src/OpenGL.cpp src/ShaderProgram.cpp src/TextRenderer.cpp src/world/Model.cpp
 		src/ui/UIBase.cpp src/ui/UIJoystick.cpp src/ui/UIRoot.cpp
-		src/world/Entity.cpp src/world/Voxel.cpp src/world/VoxelChunk.cpp src/world/VoxelWorld.cpp
-		src/world/VoxelTypeRegistry.cpp
+		src/world/Entity.cpp
 		src/world/VoxelWorldRenderer.cpp
+		${COMMON_SRC}
 )
-
-add_executable(VoxelGameClient src/main.cpp src/SDLGameEngine.cpp ${SRC})
 target_link_libraries(VoxelGameClient glm::glm)
 
 if(NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Emscripten")
@@ -73,15 +77,10 @@ if (TARGET gtest)
 			VoxelGameClient_tst
 			tst/main.cpp
 			tst/VoxelLocation.cpp tst/VoxelWorld.cpp
-			${SRC}
+			${COMMON_SRC}
 	)
-	target_link_libraries(VoxelGameClient_tst glm::glm GLEW::GLEW gtest gmock)
-	
-	if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
-		target_link_libraries(VoxelGameClient_tst opengl32)
-	else()
-		target_link_libraries(VoxelGameClient_tst OpenGL::OpenGL)
-	endif()
+	target_compile_definitions(VoxelGameClient_tst PUBLIC HEADLESS)
+	target_link_libraries(VoxelGameClient_tst glm::glm gtest gmock)
 	
 	add_test(NAME VoxelGameClient COMMAND VoxelGameClient_tst)
 endif()

@@ -5,13 +5,16 @@
 #include <vector>
 #include <variant>
 #include <functional>
+#ifndef HEADLESS
 #include "../ShaderProgram.h"
+#endif
 
 struct VoxelVertexData {
 	float x, y, z;
 	float u, v;
 };
 
+#ifndef HEADLESS
 class VoxelShaderProvider {
 public:
 	virtual ~VoxelShaderProvider() = default;
@@ -33,6 +36,7 @@ public:
 	void setup(const CommonShaderProgram &program) const override;
 	
 };
+#endif
 
 struct Voxel;
 
@@ -42,7 +46,9 @@ public:
 	virtual Voxel &invokeInit(void *ptr) = 0;
 	virtual void invokeDestroy(Voxel &voxel) = 0;
 	virtual std::string invokeToString(const Voxel &voxel) = 0;
+#ifndef HEADLESS
 	virtual const VoxelShaderProvider *invokeShaderProvider(const Voxel &voxel) = 0;
+#endif
 	virtual void invokeBuildVertexData(const Voxel &voxel, std::vector<VoxelVertexData> &data) = 0;
 	
 };
@@ -53,10 +59,12 @@ struct Voxel {
 	[[nodiscard]] std::string toString() const {
 		return type.invokeToString(*this);
 	}
-	
+
+#ifndef HEADLESS
 	[[nodiscard]] const VoxelShaderProvider *shaderProvider() const {
 		return type.invokeShaderProvider(*this);
 	}
+#endif
 	
 	void buildVertexData(std::vector<VoxelVertexData> &data) const {
 		type.invokeBuildVertexData(*this, data);
@@ -87,12 +95,14 @@ public:
 	std::string invokeToString(const Voxel &voxel) final {
 		return static_cast<T*>(this)->T::toString(static_cast<const S&>(voxel));
 	}
-	
+
+#ifndef HEADLESS
 	virtual const VoxelShaderProvider *shaderProvider(const S &voxel) = 0;
 	
 	const VoxelShaderProvider *invokeShaderProvider(const Voxel &voxel) final {
 		return static_cast<T*>(this)->T::shaderProvider(static_cast<const S&>(voxel));
 	}
+#endif
 	
 	virtual void buildVertexData(const S &voxel, std::vector<VoxelVertexData> &data) = 0;
 	
@@ -107,19 +117,30 @@ public:
 	static EmptyVoxelType INSTANCE;
 	
 	std::string toString(const Voxel &voxel) final;
+#ifndef HEADLESS
 	const VoxelShaderProvider *shaderProvider(const Voxel &voxel) final;
+#endif
 	void buildVertexData(const Voxel &voxel, std::vector<VoxelVertexData> &data) final;
 	
 };
 
-class SimpleVoxelType: public ConcreteVoxelType<SimpleVoxelType, Voxel>, public VoxelTextureShaderProvider {
+class SimpleVoxelType: public ConcreteVoxelType<SimpleVoxelType, Voxel>
+#ifndef HEADLESS
+		, public VoxelTextureShaderProvider
+#endif
+{
 	std::string m_name;
 
 public:
 	SimpleVoxelType(std::string name, const std::string &textureFileName);
+
+#ifndef HEADLESS
 	SimpleVoxelType(std::string name, const GLTexture &texture);
+#endif
 	std::string toString(const Voxel &voxel) final;
+#ifndef HEADLESS
 	const VoxelShaderProvider *shaderProvider(const Voxel &voxel) final;
+#endif
 	void buildVertexData(const Voxel &voxel, std::vector<VoxelVertexData> &data) final;
 	
 };

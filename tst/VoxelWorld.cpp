@@ -23,11 +23,6 @@ public:
 		return "test";
 	}
 	
-	const VoxelShaderProvider *shaderProvider(const TestVoxel &voxel) override {
-		shaderProviderCalled();
-		return nullptr;
-	}
-	
 	void buildVertexData(const TestVoxel &voxel, std::vector<VoxelVertexData> &data) override {
 		buildVertexDataCalled();
 	}
@@ -46,11 +41,6 @@ TEST(VoxelWorld, voxelType) {
 	chunk.initAt(0, 0, 0, testVoxelType);
 	ASSERT_EQ(chunk.at(0, 0, 0).toString(), "test");
 	
-	EXPECT_CALL(testVoxelType, shaderProviderCalled()).Times(1);
-	{
-		auto result = chunk.at(0, 0, 0).shaderProvider();
-		(void) result;
-	}
 	EXPECT_CALL(testVoxelType, buildVertexDataCalled()).Times(1);
 	{
 		std::vector<VoxelVertexData> data;
