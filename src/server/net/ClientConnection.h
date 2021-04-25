@@ -1,5 +1,6 @@
 #pragma once
 
+#include <shared_mutex>
 #include <glm/vec3.hpp>
 #include "ServerTransport.h"
 
@@ -11,6 +12,7 @@ class ClientConnection {
 	float m_pitch = 0.0f;
 	int m_viewRadius = 0;
 	bool m_positionValid = false;
+	std::shared_mutex m_positionMutex;
 	
 public:
 	constexpr explicit ClientConnection(ServerTransport &transport): m_transport(transport) {

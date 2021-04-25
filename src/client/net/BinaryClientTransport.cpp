@@ -38,7 +38,7 @@ void BinaryClientTransport::sendPlayerPosition(const glm::vec3 &position, float 
 			m_playerPositionValid &&
 			m_playerPosition == position && m_playerYaw == yaw && m_playerPitch == pitch &&
 			m_viewRadius == viewRadius
-			) {
+	) {
 		return;
 	}
 	m_playerPosition = position;
