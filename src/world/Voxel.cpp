@@ -1,6 +1,6 @@
 #include "Voxel.h"
 #ifndef HEADLESS
-#include "../GameEngine.h"
+#include "../client/GameEngine.h"
 #endif
 
 #ifndef HEADLESS

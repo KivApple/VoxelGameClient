@@ -2,7 +2,7 @@
 
 #include <vector>
 #include <unordered_map>
-#include "OpenGL.h"
+#include "../OpenGL.h"
 #include <glm/vec4.hpp>
 
 class TextRenderer {

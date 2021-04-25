@@ -2,7 +2,7 @@
 #include <GL/glew.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include "UIJoystick.h"
-#include "../GameEngine.h"
+#include "client/GameEngine.h"
 
 float UIJoystick::s_bufferData[] = {
 		-1.0f,  1.0f, 0.0f, /**/ 1.0f, 1.0f, 1.0f, 1.0f,

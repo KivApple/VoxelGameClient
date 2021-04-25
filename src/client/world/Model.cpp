@@ -3,7 +3,7 @@
 #include <sstream>
 #include <GL/glew.h>
 #include "Model.h"
-#include "../GameEngine.h"
+#include "client/GameEngine.h"
 
 Model::Model(
 		const std::string &fileName,

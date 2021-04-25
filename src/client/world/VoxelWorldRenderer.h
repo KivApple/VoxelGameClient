@@ -8,8 +8,8 @@
 #include <mutex>
 #include <shared_mutex>
 #include <glm/mat4x4.hpp>
-#include "Voxel.h"
-#include "VoxelLocation.h"
+#include "world/Voxel.h"
+#include "world/VoxelLocation.h"
 #include "PerformanceCounter.h"
 
 class VoxelShaderProvider;

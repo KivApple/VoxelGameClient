@@ -5,12 +5,12 @@
 #include <memory>
 #include <unordered_set>
 #include "ShaderProgram.h"
-#include "TextRenderer.h"
+#include "client/ui/TextRenderer.h"
 #include "ui/UIRoot.h"
 #include "world/VoxelTypeRegistry.h"
 #include "world/VoxelWorld.h"
-#include "world/VoxelWorldRenderer.h"
-#include "world/Entity.h"
+#include "client/world/VoxelWorldRenderer.h"
+#include "client/world/Entity.h"
 
 enum class KeyCode {
 	MOVE_FORWARD,

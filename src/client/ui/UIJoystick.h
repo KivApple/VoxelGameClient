@@ -2,7 +2,7 @@
 
 #include <functional>
 #include "UIBase.h"
-#include "../OpenGL.h"
+#include "client/OpenGL.h"
 
 class UIJoystick: public UIElement {
 	static float s_bufferData[];

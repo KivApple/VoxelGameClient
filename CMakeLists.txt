@@ -50,12 +50,12 @@ set(
 
 add_executable(
 		VoxelGameClient
-		src/main.cpp src/SDLGameEngine.cpp
-		src/GameEngine.cpp
-		src/OpenGL.cpp src/ShaderProgram.cpp src/TextRenderer.cpp src/world/Model.cpp
-		src/ui/UIBase.cpp src/ui/UIJoystick.cpp src/ui/UIRoot.cpp
-		src/world/Entity.cpp
-		src/world/VoxelWorldRenderer.cpp
+		src/client/main.cpp src/client/SDLGameEngine.cpp
+		src/client/GameEngine.cpp
+		src/client/OpenGL.cpp src/client/ShaderProgram.cpp src/client/ui/TextRenderer.cpp src/client/world/Model.cpp
+		src/client/ui/UIBase.cpp src/client/ui/UIJoystick.cpp src/client/ui/UIRoot.cpp
+		src/client/world/Entity.cpp
+		src/client/world/VoxelWorldRenderer.cpp
 		${COMMON_SRC}
 )
 target_link_libraries(VoxelGameClient glm::glm)

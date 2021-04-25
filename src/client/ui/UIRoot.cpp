@@ -1,6 +1,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include "UIRoot.h"
-#include "../GameEngine.h"
+#include "client/GameEngine.h"
 
 UserInterface::UserInterface(
 ): m_joystick(false, [](const glm::vec2 &position) {

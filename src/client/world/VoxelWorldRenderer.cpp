@@ -2,7 +2,7 @@
 #include <GL/glew.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include "VoxelWorldRenderer.h"
-#include "VoxelWorld.h"
+#include "world/VoxelWorld.h"
 
 VoxelWorldRenderer::VoxelWorldRenderer(VoxelWorld &world): m_world(world) {
 }

@@ -6,7 +6,7 @@
 #include <variant>
 #include <functional>
 #ifndef HEADLESS
-#include "../ShaderProgram.h"
+#include "../client/ShaderProgram.h"
 #endif
 
 struct VoxelVertexData {

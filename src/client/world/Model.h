@@ -2,8 +2,8 @@
 
 #include <glm/vec3.hpp>
 #include <glm/mat4x4.hpp>
-#include "../OpenGL.h"
-#include "../ShaderProgram.h"
+#include "client/OpenGL.h"
+#include "client/ShaderProgram.h"
 
 class Model {
 	const CommonShaderProgram &m_program;

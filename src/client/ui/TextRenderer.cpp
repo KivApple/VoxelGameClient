@@ -2,7 +2,7 @@
 #include <GL/glew.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include "TextRenderer.h"
-#include "GameEngine.h"
+#include "client/GameEngine.h"
 
 BitmapFont::BitmapFont(const std::string &fileName): m_texture(fileName) {
 	std::ifstream file(fileName + ".txt");
