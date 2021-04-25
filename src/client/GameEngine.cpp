@@ -243,6 +243,10 @@ void GameEngine::updatePlayerPosition() {
 	}
 }
 
+void GameEngine::setPlayerPosition(const glm::vec3 &position) {
+	m_player->setPosition(position);
+}
+
 void GameEngine::setTransport(std::unique_ptr<ClientTransport> transport) {
 	if (m_transport) {
 		m_transport->shutdown();

@@ -3,6 +3,9 @@
 #include <glm/vec3.hpp>
 
 class ClientTransport {
+protected:
+	void setPosition(const glm::vec3 &position);
+	
 public:
 	virtual ~ClientTransport() = default;
 	virtual void start() = 0;

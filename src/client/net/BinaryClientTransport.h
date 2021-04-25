@@ -4,6 +4,7 @@
 #include <mutex>
 #include <bitsery/bitsery.h>
 #include <bitsery/adapter/buffer.h>
+#include <bitsery/traits/string.h>
 #include <bitsery/traits/vector.h>
 #include "ClientTransport.h"
 
@@ -25,7 +26,7 @@ protected:
 		);
 	}
 	
-	void handleMessage(const void *data, size_t dataSize);
+	void handleMessage(const std::string &payload);
 
 	template<typename T> void serializeAndSendMessage(const T &message) {
 		std::vector<uint8_t> buffer;

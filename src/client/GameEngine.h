@@ -79,6 +79,7 @@ public:
 	void updatePlayerDirection(float dx, float dy);
 	void updatePlayerMovement(const float *dx, const float *dy, const float *dz);
 	void updatePlayerPosition();
+	void setPlayerPosition(const glm::vec3 &position);
 	void updateDebugInfo();
 	
 	[[nodiscard]] int viewportWidth() const {

@@ -1,4 +1,5 @@
 #include "BinaryServerTransport.h"
+#include "net/ServerMessage.h"
 #include "net/ClientMessage.h"
 
 void BinaryServerTransport::Connection::deserializeAndHandleMessage(const std::string &payload) {
@@ -14,4 +15,10 @@ void BinaryServerTransport::Connection::deserializeAndHandleMessage(const std::s
 		default:
 			printf("[Client %p] Unknown message received from client: %i\n", this, (int) genericMessage.type);
 	}
+}
+
+void BinaryServerTransport::Connection::setPosition(const glm::vec3 &position) {
+	serializeAndSendMessage(ServerMessage<ServerMessageData::SetPosition>({
+		position.x, position.y, position.z
+	}));
 }

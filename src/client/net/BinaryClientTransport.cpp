@@ -1,9 +1,21 @@
 #include "BinaryClientTransport.h"
 #include "../GameEngine.h"
+#include "net/ServerMessage.h"
 #include "net/ClientMessage.h"
 
-void BinaryClientTransport::handleMessage(const void *data, size_t dataSize) {
-	GameEngine::instance().log("WebSocket received %zi bytes", dataSize);
+void BinaryClientTransport::handleMessage(const std::string &payload) {
+	ServerMessage<ServerMessageData::Empty> genericMessage;
+	deserialize(payload, genericMessage);
+	switch (genericMessage.type) {
+		case ServerMessageType::SET_POSITION: {
+			ServerMessage<ServerMessageData::SetPosition> msg;
+			deserialize(payload, msg);
+			setPosition({msg.data.x, msg.data.y, msg.data.z});
+			break;
+		}
+		default:
+			GameEngine::instance().log("Unknown server message type: %i", (int) genericMessage.type);
+	}
 }
 
 void BinaryClientTransport::sendHello() {

@@ -3,6 +3,7 @@
 #include <bitsery/bitsery.h>
 #include <bitsery/adapter/buffer.h>
 #include <bitsery/traits/string.h>
+#include <bitsery/traits/vector.h>
 #include "ServerTransport.h"
 #include "ClientConnection.h"
 
@@ -31,6 +32,7 @@ protected:
 	public:
 		constexpr explicit Connection(BinaryServerTransport &transport): ClientConnection(transport) {
 		}
+		void setPosition(const glm::vec3 &position) override;
 		
 	};
 	

@@ -64,7 +64,7 @@ add_executable(
 		VoxelGameClient
 		src/client/main.cpp src/client/SDLGameEngine.cpp
 		src/client/net/BinaryClientTransport.cpp src/client/net/WebSocketClientTransport.cpp
-		src/client/GameEngine.cpp
+		src/client/GameEngine.cpp src/client/net/ClientTransport.cpp
 		src/client/OpenGL.cpp src/client/ShaderProgram.cpp src/client/ui/TextRenderer.cpp src/client/world/Model.cpp
 		src/client/ui/UIBase.cpp src/client/ui/UIJoystick.cpp src/client/ui/UIRoot.cpp
 		src/client/world/Entity.cpp

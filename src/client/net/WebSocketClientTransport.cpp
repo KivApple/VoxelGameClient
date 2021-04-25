@@ -21,8 +21,7 @@ void WebSocketClientTransport::start() {
 	connection->set_open_handler([this] (auto connection) { handleOpen(); });
 	connection->set_close_handler([this] (auto connection) { handleClose(); });
 	connection->set_message_handler([this] (auto connection, client_t::message_ptr message) {
-		auto &payload = message->get_payload();
-		handleMessage(payload.data(), payload.size());
+		handleMessage(message->get_payload());
 	});
 	m_client.connect(connection);
 	m_thread = std::thread(&WebSocketClientTransport::run, this);
@@ -62,8 +61,7 @@ void WebSocketClientTransport::start() {
 			this,
 			[] (int eventType, const EmscriptenWebSocketMessageEvent *websocketEvent, void *userData) {
 				static_cast<WebSocketClientTransport*>(userData)->handleMessage(
-						(const char*) websocketEvent->data,
-						websocketEvent->numBytes
+						std::string((const char*) websocketEvent->data, websocketEvent->numBytes)
 				);
 				return EM_TRUE;
 			}
