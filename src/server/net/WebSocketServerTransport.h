@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unordered_set>
 #include <thread>
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/server.hpp>
@@ -13,6 +14,8 @@ class WebSocketServerTransport: public ServerTransport, std::thread {
 	std::thread m_thread;
 	
 	void run();
+	void handleOpen(websocketpp::connection_hdl connection);
+	void handleClose(websocketpp::connection_hdl connection);
 	void handleMessage(websocketpp::connection_hdl connection, server_t::message_ptr message);
 	
 public:
