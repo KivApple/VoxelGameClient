@@ -3,8 +3,7 @@ project(VoxelGameClient)
 
 set(CMAKE_CXX_STANDARD 20)
 
-set(glm_DIR lib/glm/cmake/glm)
-find_package(glm REQUIRED)
+add_subdirectory(lib/glm)
 
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Emscripten")
 	message("Detected usage of Emscripten")
