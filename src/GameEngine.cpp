@@ -39,8 +39,25 @@ bool GameEngine::init() {
 	m_debugTextRenderer = std::make_unique<BitmapFontRenderer>(*m_font);
 	m_userInterface = std::make_unique<UserInterface>();
 
+	m_grassVoxelType = std::make_unique<SimpleVoxelType>("grass", "assets/textures/grass_top.png");
+	
 	m_voxelWorld = std::make_unique<VoxelWorld>();
 	m_voxelWorldRenderer = std::make_unique<VoxelWorldRenderer>(*m_voxelWorld);
+	
+	{
+		auto chunk = m_voxelWorld->mutableChunk({0, 0, 0}, true);
+		chunk.at(0, 0, 0).setType(*m_grassVoxelType);
+		chunk.at(0, 1, 0).setType(*m_grassVoxelType);
+		chunk.at(0, 0, 1).setType(*m_grassVoxelType);
+	}
+	{
+		auto chunk = m_voxelWorld->mutableChunk({0, -1, 0}, true);
+		for (int x = 0; x < VOXEL_CHUNK_SIZE; x++) {
+			for (int z = 0; z < VOXEL_CHUNK_SIZE; z++) {
+				chunk.at(x, VOXEL_CHUNK_SIZE - 1, z).setType(*m_grassVoxelType);
+			}
+		}
+	}
 	
 	m_player = std::make_unique<Entity>(
 			glm::vec3(1.0f, 1.0f, -1.0f),
@@ -107,8 +124,8 @@ void GameEngine::render() {
 			m_player->upDirection()
 	);
 	
-	m_voxelWorldRenderer->render(playerPosition, 2, view, m_projection);
 	m_cowEntity->render(view, m_projection);
+	m_voxelWorldRenderer->render(playerPosition, 2, view, m_projection);
 	
 	glDisable(GL_DEPTH_TEST);
 	
@@ -130,7 +147,8 @@ void GameEngine::render() {
 void GameEngine::updateDebugInfo() {
 	std::stringstream ss;
 	ss << "FPS: " << m_framePerSecond << "\n";
-	ss << "X=" << m_player->position().x << ", Y=" << m_player->position().y << ", Z=" << m_player->position().z;
+	ss << "X=" << m_player->position().x << ", Y=" << m_player->position().y << ", Z=" << m_player->position().z << "\n";
+	ss << m_voxelWorldRenderer->queueSize() << " chunk(s) in render queue";
 	m_debugTextRenderer->setText(ss.str(), glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 }
 

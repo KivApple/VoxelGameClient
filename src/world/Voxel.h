@@ -15,6 +15,9 @@ struct VoxelVertexData {
 class VoxelShaderProvider {
 public:
 	virtual ~VoxelShaderProvider() = default;
+	[[nodiscard]] virtual int priority() const {
+		return INT_MAX;
+	}
 	[[nodiscard]] virtual const CommonShaderProgram &get() const = 0;
 	virtual void setup(const CommonShaderProgram &program) const = 0;
 	

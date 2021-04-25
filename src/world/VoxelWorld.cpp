@@ -108,9 +108,10 @@ VoxelChunkExtendedRef::~VoxelChunkExtendedRef() {
 }
 
 void VoxelChunkExtendedRef::unlock() {
-	for (auto neighbor : m_neighbors) {
+	for (auto &&neighbor : m_neighbors) {
 		if (neighbor == nullptr) continue;
 		neighbor->mutex().unlock_shared();
+		neighbor = nullptr;
 	}
 	VoxelChunkRef::unlock();
 }
