@@ -188,8 +188,10 @@ VoxelChunkMutableRef::~VoxelChunkMutableRef() {
 }
 
 void VoxelChunkMutableRef::unlock() {
-	m_chunk->mutex().unlock();
-	m_chunk = nullptr;
+	if (m_chunk) {
+		m_chunk->mutex().unlock();
+		m_chunk = nullptr;
+	}
 	VoxelChunkExtendedRef::unlock();
 }
 

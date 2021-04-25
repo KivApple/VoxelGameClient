@@ -11,6 +11,7 @@
 #include "world/VoxelWorld.h"
 #include "client/world/VoxelWorldRenderer.h"
 #include "client/world/Entity.h"
+#include "client/net/ClientTransport.h"
 
 enum class KeyCode {
 	MOVE_FORWARD,
@@ -51,12 +52,14 @@ class GameEngine {
 	std::unique_ptr<GLTexture> m_cowTexture;
 	std::unique_ptr<Model> m_cowModel;
 	std::unique_ptr<Entity> m_cowEntity;
+	
+	std::unique_ptr<ClientTransport> m_transport;
 
 protected:
 	virtual bool platformInit() = 0;
 	void handleResize(int width, int height);
 	void render();
-	
+
 public:
 	static GameEngine &instance();
 	GameEngine();
@@ -91,6 +94,8 @@ public:
 	[[nodiscard]] UserInterface &userInterface() {
 		return *m_userInterface;
 	}
+	
+	void setTransport(std::unique_ptr<ClientTransport> transport);
 	
 	virtual void log(const char *fmt, ...);
 	virtual void logv(const char *fmt, va_list arg);

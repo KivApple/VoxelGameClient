@@ -33,7 +33,8 @@
                     e.preventDefault();
                 }, false);
                 return canvas;
-            })()
+            })(),
+            arguments: ["ws://" + window.location.hostname + ":9002/"]
         };
 
         const script = document.createElement("script");

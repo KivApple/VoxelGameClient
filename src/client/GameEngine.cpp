@@ -22,6 +22,9 @@ GameEngine::GameEngine() {
 }
 
 GameEngine::~GameEngine() {
+	if (m_transport) {
+		m_transport->shutdown();
+	}
 	s_instance = nullptr;
 }
 
@@ -229,6 +232,18 @@ void GameEngine::updatePlayerPosition() {
 		moveDirection.y -= SPEED * delta;
 	}
 	m_player->move(moveDirection);
+	
+	if (m_transport) {
+		m_transport->sendPlayerPosition(m_player->position(), m_player->yaw(), m_player->pitch());
+	}
+}
+
+void GameEngine::setTransport(std::unique_ptr<ClientTransport> transport) {
+	if (m_transport) {
+		m_transport->shutdown();
+	}
+	m_transport = std::move(transport);
+	m_transport->start();
 }
 
 void GameEngine::log(const char *fmt, ...) {

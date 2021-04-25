@@ -221,7 +221,7 @@ void VoxelWorldRenderer::updateBuffersAndScheduleRender(
 				if (it2 == mesh.buffers.end()) {
 					mesh.buffers.emplace(part.first, VoxelMeshPart {
 							allocateBuffer(),
-							part.second.size() / 5
+							(unsigned int) part.second.size() / 5
 					});
 					it2 = mesh.buffers.find(part.first);
 				}

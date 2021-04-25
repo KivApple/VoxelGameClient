@@ -1,3 +1,9 @@
 [submodule "lib/googletest"]
 	path = lib/googletest
 	url = https://github.com/google/googletest/
+[submodule "lib/websocketpp"]
+	path = lib/websocketpp
+	url = https://github.com/zaphoyd/websocketpp
+[submodule "lib/asio"]
+	path = lib/asio
+	url = https://github.com/chriskohlhoff/asio
