@@ -123,5 +123,8 @@ public:
 	VoxelChunkExtendedRef extendedChunk(const VoxelChunkLocation &location);
 	VoxelChunkMutableRef mutableChunk(const VoxelChunkLocation &location, bool create = false);
 	VoxelChunkExtendedMutableRef extendedMutableChunk(const VoxelChunkLocation &location, bool create = false);
+	size_t chunkCount() const {
+		return m_chunks.size();
+	}
 	
 };

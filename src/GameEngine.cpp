@@ -40,6 +40,7 @@ bool GameEngine::init() {
 	m_userInterface = std::make_unique<UserInterface>();
 
 	m_grassVoxelType = std::make_unique<SimpleVoxelType>("grass", "assets/textures/grass_top.png");
+	m_dirtVoxelType = std::make_unique<SimpleVoxelType>("grass", "assets/textures/mud.png");
 	
 	m_voxelWorld = std::make_unique<VoxelWorld>();
 	m_voxelWorldRenderer = std::make_unique<VoxelWorldRenderer>(*m_voxelWorld);
@@ -55,6 +56,8 @@ bool GameEngine::init() {
 		for (int x = 0; x < VOXEL_CHUNK_SIZE; x++) {
 			for (int z = 0; z < VOXEL_CHUNK_SIZE; z++) {
 				chunk.at(x, VOXEL_CHUNK_SIZE - 1, z).setType(*m_grassVoxelType);
+				chunk.at(x, VOXEL_CHUNK_SIZE - 2, z).setType(*m_dirtVoxelType);
+				chunk.at(x, VOXEL_CHUNK_SIZE - 3, z).setType(*m_dirtVoxelType);
 			}
 		}
 	}
@@ -148,7 +151,8 @@ void GameEngine::updateDebugInfo() {
 	std::stringstream ss;
 	ss << "FPS: " << m_framePerSecond << "\n";
 	ss << "X=" << m_player->position().x << ", Y=" << m_player->position().y << ", Z=" << m_player->position().z << "\n";
-	ss << m_voxelWorldRenderer->queueSize() << " chunk(s) in mesh build queue" << "\n";
+	ss << "Loaded " << m_voxelWorld->chunkCount() << " chunks";
+	ss << " (" << m_voxelWorldRenderer->queueSize() << " chunk(s) in mesh build queue)\n";
 	ss << "Used " << m_voxelWorldRenderer->usedBufferCount() << " voxel mesh buffers";
 	ss << " (" << m_voxelWorldRenderer->availableBufferCount() << " available)\n";
 	ss << "World render time (ms): " << m_voxelWorldRenderer->renderPerformanceCounter() << "\n";

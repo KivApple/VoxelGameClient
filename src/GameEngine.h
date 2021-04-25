@@ -40,6 +40,7 @@ class GameEngine {
 	std::unordered_set<KeyCode> m_pressedKeys;
 	std::unique_ptr<UserInterface> m_userInterface;
 	std::unique_ptr<SimpleVoxelType> m_grassVoxelType;
+	std::unique_ptr<SimpleVoxelType> m_dirtVoxelType;
 	std::unique_ptr<VoxelWorld> m_voxelWorld;
 	std::unique_ptr<VoxelWorldRenderer> m_voxelWorldRenderer;
 	glm::mat4 m_projection = glm::mat4(1.0f);
