@@ -49,6 +49,7 @@ set(
 		src/OpenGL.cpp src/ShaderProgram.cpp src/TextRenderer.cpp src/world/Model.cpp
 		src/ui/UIBase.cpp src/ui/UIJoystick.cpp src/ui/UIRoot.cpp
 		src/world/Entity.cpp src/world/Voxel.cpp src/world/VoxelChunk.cpp src/world/VoxelWorld.cpp
+		src/world/VoxelTypeRegistry.cpp
 		src/world/VoxelWorldRenderer.cpp
 )
 
