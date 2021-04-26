@@ -11,7 +11,7 @@ void ClientConnection::updatePosition(const glm::vec3 &position, float yaw, floa
 	bool resetPosition = false;
 	if (m_positionValid) {
 		auto delta = position - m_position;
-		static const float MAX_DELTA = 0.05f;
+		static const float MAX_DELTA = 0.2f;
 		if (fabsf(delta.x) >= MAX_DELTA || fabsf(delta.y) >= MAX_DELTA || fabsf(delta.z) >= MAX_DELTA) {
 			printf("[Client %p] player is moving too fast\n", this);
 			resetPosition = true;
