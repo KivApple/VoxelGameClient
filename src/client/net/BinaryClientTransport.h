@@ -5,7 +5,6 @@
 #include <bitsery/bitsery.h>
 #include <bitsery/adapter/buffer.h>
 #include <bitsery/traits/string.h>
-#include <bitsery/traits/vector.h>
 #include "ClientTransport.h"
 
 class BinaryClientTransport: public ClientTransport {
@@ -18,8 +17,8 @@ protected:
 	}
 	
 	template<typename T> void serializeAndSendMessage(const T &message) {
-		std::vector<uint8_t> buffer;
-		auto count = bitsery::quickSerialization<bitsery::OutputBufferAdapter<std::vector<uint8_t>>>(buffer, message);
+		std::string buffer;
+		auto count = bitsery::quickSerialization<bitsery::OutputBufferAdapter<std::string>>(buffer, message);
 		sendMessage(buffer.data(), count);
 	}
 	

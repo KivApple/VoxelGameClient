@@ -6,11 +6,11 @@
 
 class VoxelChunk {
 	VoxelChunkLocation m_location;
-	char m_data[VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE * VOXEL_DATA_SIZE];
+	char m_data[VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE * MAX_VOXEL_DATA_SIZE];
 	
 	
 	static size_t voxelDataOffset(int x, int y, int z) {
-		return (z * VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE + y * VOXEL_CHUNK_SIZE + x) * VOXEL_DATA_SIZE;
+		return (z * VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE + y * VOXEL_CHUNK_SIZE + x) * MAX_VOXEL_DATA_SIZE;
 	}
 	
 	Voxel &initAtNoDestroy(int x, int y, int z, VoxelType &type);

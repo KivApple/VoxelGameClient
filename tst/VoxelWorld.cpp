@@ -1,5 +1,5 @@
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
+#include <gtest/gtest.h>
+#include <gmock/gmock.h>
 #include "world/VoxelWorld.h"
 
 struct Observer {
@@ -17,17 +17,15 @@ struct TestVoxel: public Voxel {
 	
 };
 
-class TestVoxelType: public ConcreteVoxelType<TestVoxelType, TestVoxel> {
+class TestVoxelType: public VoxelTypeHelper<TestVoxelType, TestVoxel> {
 public:
-	std::string toString(const TestVoxel &voxel) override {
+	std::string toString(const TestVoxel &voxel) {
 		return "test";
 	}
 	
-	void buildVertexData(const TestVoxel &voxel, std::vector<VoxelVertexData> &data) override {
+	void buildVertexData(const TestVoxel &voxel, std::vector<VoxelVertexData> &data) {
 		buildVertexDataCalled();
 	}
-	
-	MOCK_METHOD0(shaderProviderCalled, void());
 	
 	MOCK_METHOD0(buildVertexDataCalled, void());
 	

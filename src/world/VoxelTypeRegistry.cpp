@@ -1,8 +1,8 @@
 #include "VoxelTypeRegistry.h"
 
-class UnknownVoxelType: public SimpleVoxelType {
+class UnknownVoxelType: public VoxelTypeHelper<UnknownVoxelType, Voxel, SimpleVoxelType> {
 public:
-	explicit UnknownVoxelType(std::string name): SimpleVoxelType(
+	explicit UnknownVoxelType(std::string name): VoxelTypeHelper(
 			std::move(name),
 			"assets/textures/unknown_block.png"
 	) {

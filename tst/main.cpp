@@ -1,4 +1,4 @@
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 extern "C" void __cxa_pure_virtual() {
 	fprintf(stderr, "pure virtual method called\n");

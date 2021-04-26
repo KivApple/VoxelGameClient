@@ -1,4 +1,5 @@
 #include "Voxel.h"
+#include "VoxelTypeRegistry.h"
 #ifndef HEADLESS
 #include "../client/GameEngine.h"
 #endif
@@ -32,6 +33,36 @@ void VoxelTextureShaderProvider::setup(const CommonShaderProgram &program) const
 	std::visit(visitor, m_texture);
 }
 #endif
+
+void Voxel::deserialize(
+		VoxelTypeSerializationContext &context,
+		const std::string &buffer,
+		size_t &offset
+) {
+	auto offset2 = offset;
+	EmptyVoxelType::INSTANCE.invokeDeserialize(*this, context, buffer, offset2);
+	type.get().invokeDeserialize(*this, context, buffer, offset);
+}
+
+VoxelTypeSerializationContext::VoxelTypeSerializationContext(VoxelTypeRegistry &registry): m_registry(registry) {
+	m_types.emplace_back(std::make_pair("empty", std::ref(EmptyVoxelType::INSTANCE)));
+	m_typeMap.emplace(&EmptyVoxelType::INSTANCE, 0);
+	registry.forEach([this] (const std::string &name, VoxelType &type) {
+		m_types.emplace_back(name, type);
+		m_typeMap.emplace(&type, (int) (m_types.size() - 1));
+	});
+}
+
+int VoxelTypeSerializationContext::typeId(const VoxelType &type) {
+	auto it = m_typeMap.find(&type);
+	return it != m_typeMap.end() ? it->second : -1;
+}
+
+VoxelType &VoxelTypeSerializationContext::findTypeById(int id) {
+	return id >= 0 && id <= m_types.size() ?
+		m_types[id].second.get() :
+		m_registry.get("unknown_" + std::to_string(id));
+}
 
 EmptyVoxelType EmptyVoxelType::INSTANCE;
 

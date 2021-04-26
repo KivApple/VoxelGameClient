@@ -15,7 +15,7 @@ VoxelChunk::~VoxelChunk() {
 		for (int y = 0; y < VOXEL_CHUNK_SIZE; y++) {
 			for (int x = 0; x < VOXEL_CHUNK_SIZE; x++) {
 				auto &voxel = at(x, y, z);
-				voxel.type.invokeDestroy(voxel);
+				voxel.type.get().invokeDestroy(voxel);
 			}
 		}
 	}
@@ -27,6 +27,6 @@ Voxel &VoxelChunk::initAtNoDestroy(int x, int y, int z, VoxelType &type) {
 
 Voxel &VoxelChunk::initAt(int x, int y, int z, VoxelType &type) {
 	auto &voxel = at(x, y, z);
-	voxel.type.invokeDestroy(voxel);
+	voxel.type.get().invokeDestroy(voxel);
 	return initAtNoDestroy(x, y, z, type);
 }

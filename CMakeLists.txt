@@ -106,11 +106,11 @@ if(TARGET gtest)
 	add_executable(
 			VoxelGameClient_tst
 			tst/main.cpp
-			tst/VoxelLocation.cpp tst/VoxelWorld.cpp
+			tst/VoxelLocation.cpp tst/VoxelWorld.cpp tst/VoxelSerialization.cpp
 			${COMMON_SRC}
 	)
 	target_compile_definitions(VoxelGameClient_tst PUBLIC HEADLESS)
-	target_link_libraries(VoxelGameClient_tst glm::glm gtest gmock)
+	target_link_libraries(VoxelGameClient_tst glm::glm Bitsery::bitsery gtest gmock)
 	
 	add_test(NAME VoxelGameClient COMMAND VoxelGameClient_tst)
 endif()
