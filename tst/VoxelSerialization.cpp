@@ -35,8 +35,11 @@ TEST(VoxelSerialization, simple) {
 		VoxelChunk chunk({0, 0, 0});
 		chunk.initAt(0, 0, 0, typeRegistry.get("test"));
 		((MyVoxel&) chunk.at(0, 0, 0)).a = 100;
-		chunk.at(0, 0, 1).serialize(typeSerializationContext, buffer);
-		chunk.at(0, 0, 0).serialize(typeSerializationContext, buffer);
+		
+		VoxelSerializer serializer(typeSerializationContext, buffer);
+		chunk.at(0, 0, 1).doSerialize(serializer);
+		chunk.at(0, 0, 0).doSerialize(serializer);
+		buffer.resize(serializer.adapter().currentWritePos());
 	}
 	
 	printf("Serialized voxels (empty, test): ");
@@ -47,10 +50,12 @@ TEST(VoxelSerialization, simple) {
 	
 	{
 		VoxelChunk chunk({0, 0, 0});
-		size_t offset = 0;
-		chunk.at(0, 0, 1).deserialize(typeSerializationContext, buffer, offset);
-		chunk.at(0, 0, 0).deserialize(typeSerializationContext, buffer, offset);
-		EXPECT_EQ(offset, buffer.size());
+		
+		VoxelDeserializer deserializer(typeSerializationContext, buffer.cbegin(), buffer.cend());
+		chunk.at(0, 0, 1).doDeserialize(deserializer);
+		chunk.at(0, 0, 0).doDeserialize(deserializer);
+		EXPECT_EQ(deserializer.adapter().currentReadPos(), buffer.size());
+		
 		EXPECT_EQ(chunk.at(0, 0, 1).toString(), "empty");
 		EXPECT_EQ(chunk.at(0, 0, 0).toString(), "test");
 		EXPECT_EQ(((MyVoxel&) chunk.at(0, 0, 0)).a, 100);

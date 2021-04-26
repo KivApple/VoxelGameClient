@@ -47,22 +47,16 @@ struct Voxel;
 class VoxelTypeRegistry;
 class VoxelTypeSerializationContext;
 
+typedef bitsery::Serializer<bitsery::OutputBufferAdapter<std::string>, VoxelTypeSerializationContext> VoxelSerializer;
+typedef bitsery::Deserializer<bitsery::InputBufferAdapter<std::string>, VoxelTypeSerializationContext> VoxelDeserializer;
+
 class VoxelType {
 public:
 	virtual ~VoxelType() = default;
 	virtual Voxel &invokeInit(void *ptr) = 0;
 	virtual void invokeDestroy(Voxel &voxel) = 0;
-	virtual void invokeSerialize(
-			const Voxel &voxel,
-			VoxelTypeSerializationContext &context,
-			std::string &buffer
-	) = 0;
-	virtual void invokeDeserialize(
-			Voxel &voxel,
-			VoxelTypeSerializationContext &context,
-			const std::string &buffer,
-			size_t &offset
-	) = 0;
+	virtual void invokeSerialize(const Voxel &voxel, VoxelSerializer &serializer) = 0;
+	virtual void invokeDeserialize(Voxel &voxel, VoxelDeserializer &deserializer) = 0;
 	virtual std::string invokeToString(const Voxel &voxel) = 0;
 #ifndef HEADLESS
 	virtual const VoxelShaderProvider *invokeShaderProvider(const Voxel &voxel) = 0;
@@ -131,18 +125,11 @@ struct Voxel {
 		newType.invokeInit(this);
 	}
 	
-	void serialize(
-			VoxelTypeSerializationContext &context,
-			std::string &buffer
-	) const {
-		type.get().invokeSerialize(*this, context, buffer);
+	void doSerialize(VoxelSerializer &serializer) const {
+		type.get().invokeSerialize(*this, serializer);
 	}
 	
-	void deserialize(
-			VoxelTypeSerializationContext &context,
-			const std::string &buffer,
-			size_t &offset
-	);
+	void doDeserialize(VoxelDeserializer &deserializer);
 	
 	template<typename S> void serialize(S& s) {
 		s.ext(type, VoxelTypeSerializationExtension {});
@@ -180,35 +167,13 @@ public:
 		static_cast<T*>(this)->T::buildVertexData(static_cast<const Data&>(voxel), data);
 	}
 	
-	void invokeSerialize(
-			const Voxel &voxel,
-			VoxelTypeSerializationContext &context,
-			std::string &buffer
-	) override {
-		auto pos = buffer.size();
-		bitsery::OutputBufferAdapter<std::string> adapter(buffer);
-		adapter.currentWritePos(pos);
-		auto count = bitsery::quickSerialization(
-				context,
-				std::move(adapter),
-				static_cast<const Data&>(voxel)
-		);
-		buffer.resize(count);
+	void invokeSerialize(const Voxel &voxel, VoxelSerializer &serializer) override {
+		serializer.object(static_cast<const Data&>(voxel));
 	}
 	
-	void invokeDeserialize(
-			Voxel &voxel,
-			VoxelTypeSerializationContext &context,
-			const std::string &buffer,
-			size_t &offset
-	) override {
-		bitsery::Deserializer<bitsery::InputBufferAdapter<std::string>, VoxelTypeSerializationContext> des(
-				context,
-				bitsery::InputBufferAdapter<std::string>(buffer.cbegin() + offset, buffer.cend())
-		);
+	void invokeDeserialize(Voxel &voxel, VoxelDeserializer &deserializer) override {
 		invokeInit(&voxel);
-		des.object(static_cast<Data&>(voxel));
-		offset += des.adapter().currentReadPos();
+		deserializer.object(static_cast<Data&>(voxel));
 	}
 	
 };

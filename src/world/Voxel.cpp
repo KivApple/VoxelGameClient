@@ -34,14 +34,11 @@ void VoxelTextureShaderProvider::setup(const CommonShaderProgram &program) const
 }
 #endif
 
-void Voxel::deserialize(
-		VoxelTypeSerializationContext &context,
-		const std::string &buffer,
-		size_t &offset
-) {
-	auto offset2 = offset;
-	EmptyVoxelType::INSTANCE.invokeDeserialize(*this, context, buffer, offset2);
-	type.get().invokeDeserialize(*this, context, buffer, offset);
+void Voxel::doDeserialize(VoxelDeserializer &deserializer) {
+	auto savedPosition = deserializer.adapter().currentReadPos();
+	EmptyVoxelType::INSTANCE.invokeDeserialize(*this, deserializer);
+	deserializer.adapter().currentReadPos(savedPosition);
+	type.get().invokeDeserialize(*this, deserializer);
 }
 
 VoxelTypeSerializationContext::VoxelTypeSerializationContext(VoxelTypeRegistry &registry): m_registry(registry) {
