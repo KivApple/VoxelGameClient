@@ -239,7 +239,7 @@ void GameEngine::updatePlayerPosition() {
 	m_player->move(moveDirection);
 	
 	if (m_transport) {
-		m_transport->sendPlayerPosition(m_player->position(), m_player->yaw(), m_player->pitch(), 2);
+		m_transport->updatePlayerPosition(m_player->position(), m_player->yaw(), m_player->pitch(), 2);
 	}
 }
 
