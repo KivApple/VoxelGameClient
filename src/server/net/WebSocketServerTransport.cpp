@@ -1,3 +1,4 @@
+#include <condition_variable>
 #include "WebSocketServerTransport.h"
 #include "../GameServerEngine.h"
 
@@ -13,10 +14,25 @@ WebSocketServerTransport::Connection::~Connection() {
 	if (m_closed) return;
 	m_closed = true;
 	printf("[Client %p] Closed\n", this);
-	auto conn = webSocketTransport().m_server.get_con_from_hdl(m_connection);
+	/* auto conn = webSocketTransport().m_server.get_con_from_hdl(m_connection);
 	conn->set_message_handler(nullptr);
 	conn->set_close_handler(nullptr);
-	conn->close(1000, "CLOSE_NORMAL");
+	conn->close(1000, "CLOSE_NORMAL"); */
+	webSocketTransport().m_server.close(m_connection, 1000, "CLOSE_NORMAL");
+	
+	// Prevent potential use after free (if input data is currently processed)
+	std::mutex mutex;
+	std::condition_variable condVar;
+	std::unique_lock<std::mutex> lock(mutex);
+	std::function<void()> callback = [this, &condVar, &callback]{
+		if (m_connection.expired()) {
+			condVar.notify_one();
+		} else {
+			asio::post(callback);
+		}
+	};
+	asio::post(callback);
+	condVar.wait(lock);
 }
 
 void WebSocketServerTransport::Connection::handleClose() {
