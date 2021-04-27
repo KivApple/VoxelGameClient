@@ -7,6 +7,7 @@
 #include <variant>
 #include <functional>
 #include <utility>
+#include <typeinfo>
 #include <bitsery/bitsery.h>
 #include <bitsery/adapter/buffer.h>
 #include <bitsery/traits/string.h>
@@ -55,6 +56,9 @@ public:
 	virtual ~VoxelType() = default;
 	virtual Voxel &invokeInit(void *ptr) = 0;
 	virtual void invokeDestroy(Voxel &voxel) = 0;
+	virtual bool invokeCheckType(const std::type_info &typeInfo) {
+		return false;
+	}
 	virtual void invokeSerialize(const Voxel &voxel, VoxelSerializer &serializer) = 0;
 	virtual void invokeDeserialize(Voxel &voxel, VoxelDeserializer &deserializer) = 0;
 	virtual std::string invokeToString(const Voxel &voxel) = 0;
@@ -69,7 +73,7 @@ class VoxelTypeSerializationContext {
 	VoxelTypeRegistry &m_registry;
 	std::vector<std::pair<std::string, std::reference_wrapper<VoxelType>>> m_types;
 	std::unordered_map<const VoxelType*, int> m_typeMap;
-	
+
 public:
 	explicit VoxelTypeSerializationContext(VoxelTypeRegistry &registry);
 	int typeId(const VoxelType &type);
@@ -81,7 +85,7 @@ class VoxelTypeSerializationExtension {
 public:
 	template<typename Ser, typename T, typename Fnc> void serialize(Ser& ser, const T& obj, Fnc&& fnc) const {
 		auto &ctx = ser.template context<VoxelTypeSerializationContext>();
-		uint16_t value = ctx.typeId(obj);
+		uint16_t value = ctx.typeId(*obj);
 		ser.value2b(value);
 	}
 	
@@ -89,7 +93,7 @@ public:
 		auto &ctx = des.template context<VoxelTypeSerializationContext>();
 		uint16_t value;
 		des.value2b(value);
-		obj = ctx.findTypeById(value);
+		obj = &ctx.findTypeById(value);
 	}
 	
 };
@@ -104,32 +108,7 @@ namespace bitsery::traits {
 }
 
 struct Voxel {
-	std::reference_wrapper<VoxelType> type;
-	
-	[[nodiscard]] std::string toString() const {
-		return type.get().invokeToString(*this);
-	}
-
-#ifndef HEADLESS
-	[[nodiscard]] const VoxelShaderProvider *shaderProvider() const {
-		return type.get().invokeShaderProvider(*this);
-	}
-#endif
-	
-	void buildVertexData(std::vector<VoxelVertexData> &data) const {
-		type.get().invokeBuildVertexData(*this, data);
-	}
-	
-	void setType(VoxelType &newType) {
-		type.get().invokeDestroy(*this);
-		newType.invokeInit(this);
-	}
-	
-	void doSerialize(VoxelSerializer &serializer) const {
-		type.get().invokeSerialize(*this, serializer);
-	}
-	
-	void doDeserialize(VoxelDeserializer &deserializer);
+	VoxelType *type;
 	
 	template<typename S> void serialize(S& s) {
 		s.ext(type, VoxelTypeSerializationExtension {});
@@ -146,11 +125,15 @@ public:
 	
 	Voxel &invokeInit(void *ptr) override {
 		static_assert(sizeof(Data) <= MAX_VOXEL_DATA_SIZE);
-		return *(new (ptr) Data { *this });
+		return *(new (ptr) Data { this });
 	}
 	
 	void invokeDestroy(Voxel &voxel) override {
 		(static_cast<Data&>(voxel)).~Data();
+	}
+	
+	bool invokeCheckType(const std::type_info &typeInfo) override {
+		return typeid(Data) == typeInfo || Base::invokeCheckType(typeInfo);
 	}
 	
 	std::string invokeToString(const Voxel &voxel) override {
@@ -190,9 +173,69 @@ public:
 	
 };
 
+template<typename T> static inline bool checkVoxelType(const Voxel &voxel) {
+	return voxel.type->invokeCheckType(typeid(T));
+}
+
+template<> bool checkVoxelType<Voxel>(const Voxel &voxel) {
+	return true;
+}
+
+class VoxelHolder {
+	char m_data[MAX_VOXEL_DATA_SIZE];
+
+public:
+	VoxelHolder(): VoxelHolder(EmptyVoxelType::INSTANCE) {
+	}
+	
+	explicit VoxelHolder(VoxelType &type) {
+		type.invokeInit(m_data);
+	}
+	
+	~VoxelHolder() {
+		get().type->invokeDestroy(get());
+	}
+	
+	template<typename T=Voxel> [[nodiscard]] const T &get() const {
+		assert(checkVoxelType<T>(*reinterpret_cast<const Voxel*>(m_data)));
+		return *reinterpret_cast<const T*>(m_data);
+	}
+	
+	template<typename T=Voxel> T &get() {
+		assert(checkVoxelType<T>(*reinterpret_cast<const Voxel*>(m_data)));
+		return *reinterpret_cast<T*>(m_data);
+	}
+	
+	void setType(VoxelType &newType) {
+		get().type->invokeDestroy(get());
+		newType.invokeInit(m_data);
+	}
+	
+	[[nodiscard]] std::string toString() const {
+		return get().type->invokeToString(get());
+	}
+
+#ifndef HEADLESS
+	[[nodiscard]] const VoxelShaderProvider *shaderProvider() const {
+		return get().type.get().invokeShaderProvider(get());
+	}
+#endif
+	
+	void buildVertexData(std::vector<VoxelVertexData> &data) const {
+		get().type->invokeBuildVertexData(get(), data);
+	}
+	
+	void serialize(VoxelSerializer &serializer) const {
+		get().type->invokeSerialize(get(), serializer);
+	}
+	
+	void serialize(VoxelDeserializer &deserializer);
+	
+};
+
 class SimpleVoxelType: public VoxelTypeHelper<SimpleVoxelType>
 #ifndef HEADLESS
-		, public VoxelTextureShaderProvider
+	, public VoxelTextureShaderProvider
 #endif
 {
 	std::string m_name;

@@ -120,11 +120,11 @@ bool VoxelChunkExtendedRef::hasNeighbor(int dx, int dy, int dz) const {
 	return m_neighbors[(dx + 1) + (dy + 1) * 3 + (dz + 1) * 3 * 3] != nullptr;
 }
 
-const Voxel &VoxelChunkExtendedRef::extendedAt(int x, int y, int z, VoxelLocation *outLocation) const {
+const VoxelHolder &VoxelChunkExtendedRef::extendedAt(int x, int y, int z, VoxelLocation *outLocation) const {
 	return extendedAt({x, y, z}, outLocation);
 }
 
-const Voxel &VoxelChunkExtendedRef::extendedAt(const InChunkVoxelLocation &location, VoxelLocation *outLocation) const {
+const VoxelHolder &VoxelChunkExtendedRef::extendedAt(const InChunkVoxelLocation &location, VoxelLocation *outLocation) const {
 	const SharedVoxelChunk *chunk = m_chunk;
 	VoxelChunkLocation chunkLocation = this->location();
 	InChunkVoxelLocation correctedLocation = location;
@@ -161,7 +161,7 @@ const Voxel &VoxelChunkExtendedRef::extendedAt(const InChunkVoxelLocation &locat
 	if (chunk) {
 		return chunk->at(correctedLocation);
 	}
-	static const Voxel empty { EmptyVoxelType::INSTANCE };
+	static const VoxelHolder empty;
 	return empty;
 }
 
@@ -195,11 +195,11 @@ void VoxelChunkMutableRef::unlock() {
 	VoxelChunkExtendedRef::unlock();
 }
 
-Voxel &VoxelChunkMutableRef::at(int x, int y, int z) const {
+VoxelHolder &VoxelChunkMutableRef::at(int x, int y, int z) const {
 	return m_chunk->at(x, y, z);
 }
 
-Voxel &VoxelChunkMutableRef::at(const InChunkVoxelLocation &location) const {
+VoxelHolder &VoxelChunkMutableRef::at(const InChunkVoxelLocation &location) const {
 	return m_chunk->at(location);
 }
 
@@ -233,11 +233,11 @@ void VoxelChunkExtendedMutableRef::unlock() {
 	VoxelChunkMutableRef::unlock();
 }
 
-Voxel &VoxelChunkExtendedMutableRef::extendedAt(int x, int y, int z, VoxelLocation *outLocation) const {
+VoxelHolder &VoxelChunkExtendedMutableRef::extendedAt(int x, int y, int z, VoxelLocation *outLocation) const {
 	return extendedAt({x, y, z}, outLocation);
 }
 
-Voxel &VoxelChunkExtendedMutableRef::extendedAt(
+VoxelHolder &VoxelChunkExtendedMutableRef::extendedAt(
 		const InChunkVoxelLocation &location,
 		VoxelLocation *outLocation
 ) const {
@@ -277,7 +277,7 @@ Voxel &VoxelChunkExtendedMutableRef::extendedAt(
 	if (chunk) {
 		return chunk->at(correctedLocation);
 	}
-	static Voxel empty { EmptyVoxelType::INSTANCE };
+	static VoxelHolder empty;
 	return empty;
 }
 

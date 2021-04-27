@@ -6,41 +6,39 @@
 
 class VoxelChunk {
 	VoxelChunkLocation m_location;
-	char m_data[VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE * MAX_VOXEL_DATA_SIZE];
+	VoxelHolder m_data[VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE];
 	
-	
-	static size_t voxelDataOffset(int x, int y, int z) {
-		return (z * VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE + y * VOXEL_CHUNK_SIZE + x) * MAX_VOXEL_DATA_SIZE;
+	static size_t voxelIndex(int x, int y, int z) {
+		return z * VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE + y * VOXEL_CHUNK_SIZE + x;
 	}
-	
-	Voxel &initAtNoDestroy(int x, int y, int z, VoxelType &type);
 	
 public:
 	explicit VoxelChunk(const VoxelChunkLocation &location);
 	VoxelChunk(const VoxelChunk&) = delete;
 	VoxelChunk &operator=(const VoxelChunk&) = delete;
-	~VoxelChunk();
 	
 	[[nodiscard]] const VoxelChunkLocation &location() const {
 		return m_location;
 	}
 	
-	[[nodiscard]] const Voxel &at(int x, int y, int z) const {
-		return *((const Voxel*) (m_data + voxelDataOffset(x, y, z)));
+	[[nodiscard]] const VoxelHolder &at(int x, int y, int z) const {
+		return m_data[voxelIndex(x, y, z)];
 	}
 	
-	[[nodiscard]] const Voxel &at(const InChunkVoxelLocation &location) const {
+	[[nodiscard]] const VoxelHolder &at(const InChunkVoxelLocation &location) const {
 		return at(location.x, location.y, location.z);
 	}
 	
-	[[nodiscard]] Voxel &at(int x, int y, int z) {
-		return *((Voxel*) (m_data + voxelDataOffset(x, y, z)));
+	[[nodiscard]] VoxelHolder &at(int x, int y, int z) {
+		return m_data[voxelIndex(x, y, z)];
 	}
 	
-	[[nodiscard]] Voxel &at(const InChunkVoxelLocation &location) {
+	[[nodiscard]] VoxelHolder &at(const InChunkVoxelLocation &location) {
 		return at(location.x, location.y, location.z);
 	}
 	
-	Voxel &initAt(int x, int y, int z, VoxelType &type);
+	template<typename S> void serialize(S &s) {
+		s.container(m_data);
+	}
 
 };

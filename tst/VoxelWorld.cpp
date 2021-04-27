@@ -36,7 +36,7 @@ TEST(VoxelWorld, voxelType) {
 	TestVoxelType testVoxelType;
 	VoxelChunk chunk({0, 0, 0});
 	ASSERT_EQ(chunk.at(0, 0, 0).toString(), "empty");
-	chunk.initAt(0, 0, 0, testVoxelType);
+	chunk.at(0, 0, 0).setType(testVoxelType);
 	ASSERT_EQ(chunk.at(0, 0, 0).toString(), "test");
 	
 	EXPECT_CALL(testVoxelType, buildVertexDataCalled()).Times(1);
@@ -59,7 +59,7 @@ TEST(VoxelWorld, rawChunk) {
 		ASSERT_EQ(chunk.at(0, 1, 0).toString(), "empty");
 		ASSERT_EQ(chunk.at(0, 0, 1).toString(), "empty");
 		ASSERT_EQ(chunk.at(1, 1, 1).toString(), "empty");
-		chunk.initAt(0, 0, 0, testVoxelType);
+		chunk.at(0, 0, 0).setType(testVoxelType);
 		ASSERT_EQ(chunk.at(0, 0, 0).toString(), "test");
 		ASSERT_EQ(chunk.at(1, 0, 0).toString(), "empty");
 		ASSERT_EQ(chunk.at(0, 1, 0).toString(), "empty");
@@ -74,7 +74,7 @@ TEST(VoxelWorld, rawChunk) {
 		ASSERT_EQ(chunk.at(0, 1, 0).toString(), "empty");
 		ASSERT_EQ(chunk.at(0, 0, 1).toString(), "empty");
 		ASSERT_EQ(chunk.at(1, 1, 1).toString(), "empty");
-		chunk.initAt(1, 0, 0, testVoxelType);
+		chunk.at(1, 0, 0).setType(testVoxelType);
 		ASSERT_EQ(chunk.at(0, 0, 0).toString(), "empty");
 		ASSERT_EQ(chunk.at(1, 0, 0).toString(), "test");
 		ASSERT_EQ(chunk.at(0, 1, 0).toString(), "empty");
@@ -89,7 +89,7 @@ TEST(VoxelWorld, rawChunk) {
 		ASSERT_EQ(chunk.at(0, 1, 0).toString(), "empty");
 		ASSERT_EQ(chunk.at(0, 0, 1).toString(), "empty");
 		ASSERT_EQ(chunk.at(1, 1, 1).toString(), "empty");
-		chunk.initAt(0, 1, 0, testVoxelType);
+		chunk.at(0, 1, 0).setType(testVoxelType);
 		ASSERT_EQ(chunk.at(0, 0, 0).toString(), "empty");
 		ASSERT_EQ(chunk.at(1, 0, 0).toString(), "empty");
 		ASSERT_EQ(chunk.at(0, 1, 0).toString(), "test");
@@ -104,7 +104,7 @@ TEST(VoxelWorld, rawChunk) {
 		ASSERT_EQ(chunk.at(0, 1, 0).toString(), "empty");
 		ASSERT_EQ(chunk.at(0, 0, 1).toString(), "empty");
 		ASSERT_EQ(chunk.at(1, 1, 1).toString(), "empty");
-		chunk.initAt(0, 0, 1, testVoxelType);
+		chunk.at(0, 0, 1).setType(testVoxelType);
 		ASSERT_EQ(chunk.at(0, 0, 0).toString(), "empty");
 		ASSERT_EQ(chunk.at(1, 0, 0).toString(), "empty");
 		ASSERT_EQ(chunk.at(0, 1, 0).toString(), "empty");
@@ -119,7 +119,7 @@ TEST(VoxelWorld, rawChunk) {
 		ASSERT_EQ(chunk.at(0, 1, 0).toString(), "empty");
 		ASSERT_EQ(chunk.at(0, 0, 1).toString(), "empty");
 		ASSERT_EQ(chunk.at(1, 1, 1).toString(), "empty");
-		chunk.initAt(1, 1, 1, testVoxelType);
+		chunk.at(1, 1, 1).setType(testVoxelType);
 		ASSERT_EQ(chunk.at(0, 0, 0).toString(), "empty");
 		ASSERT_EQ(chunk.at(1, 0, 0).toString(), "empty");
 		ASSERT_EQ(chunk.at(0, 1, 0).toString(), "empty");
@@ -134,7 +134,7 @@ TEST(VoxelWorld, rawChunk) {
 		ASSERT_EQ(chunk.at(14, 15, 14).toString(), "empty");
 		ASSERT_EQ(chunk.at(14, 14, 15).toString(), "empty");
 		ASSERT_EQ(chunk.at(15, 15, 15).toString(), "empty");
-		chunk.initAt(15, 15, 15, testVoxelType);
+		chunk.at(15, 15, 15).setType(testVoxelType);
 		ASSERT_EQ(chunk.at(14, 14, 14).toString(), "empty");
 		ASSERT_EQ(chunk.at(15, 14, 14).toString(), "empty");
 		ASSERT_EQ(chunk.at(14, 15, 14).toString(), "empty");

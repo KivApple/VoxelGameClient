@@ -43,11 +43,14 @@ public:
 	[[nodiscard]] const VoxelChunkLocation &location() const {
 		return m_chunk->location();
 	}
-	[[nodiscard]] const Voxel &at(int x, int y, int z) const {
+	[[nodiscard]] const VoxelHolder &at(int x, int y, int z) const {
 		return m_chunk->at(x, y, z);
 	}
-	[[nodiscard]] const Voxel &at(const InChunkVoxelLocation &location) const {
+	[[nodiscard]] const VoxelHolder &at(const InChunkVoxelLocation &location) const {
 		return m_chunk->at(location);
+	}
+	template<typename S> void serialize(S &s) const {
+		s.object(*m_chunk);
 	}
 	
 };
@@ -67,11 +70,11 @@ public:
 	~VoxelChunkExtendedRef();
 	void unlock();
 	[[nodiscard]] bool hasNeighbor(int dx, int dy, int dz) const;
-	[[nodiscard]] const Voxel &extendedAt(
+	[[nodiscard]] const VoxelHolder &extendedAt(
 			int x, int y, int z,
 			VoxelLocation *outLocation = nullptr
 	) const;
-	[[nodiscard]] const Voxel &extendedAt(
+	[[nodiscard]] const VoxelHolder &extendedAt(
 			const InChunkVoxelLocation &location,
 			VoxelLocation *outLocation = nullptr
 	) const;
@@ -88,8 +91,11 @@ public:
 	VoxelChunkMutableRef &operator=(VoxelChunkMutableRef &&ref) noexcept;
 	~VoxelChunkMutableRef();
 	void unlock();
-	[[nodiscard]] Voxel &at(int x, int y, int z) const;
-	[[nodiscard]] Voxel &at(const InChunkVoxelLocation &location) const;
+	[[nodiscard]] VoxelHolder &at(int x, int y, int z) const;
+	[[nodiscard]] VoxelHolder &at(const InChunkVoxelLocation &location) const;
+	template<typename S> void serialize(S &s) {
+		s.object(*m_chunk);
+	}
 	
 };
 
@@ -100,11 +106,11 @@ public:
 	VoxelChunkExtendedMutableRef &operator=(VoxelChunkExtendedMutableRef &&ref) noexcept;
 	~VoxelChunkExtendedMutableRef();
 	void unlock();
-	[[nodiscard]] Voxel &extendedAt(
+	[[nodiscard]] VoxelHolder &extendedAt(
 			int x, int y, int z,
 			VoxelLocation *outLocation = nullptr
 	) const;
-	[[nodiscard]] Voxel &extendedAt(
+	[[nodiscard]] VoxelHolder &extendedAt(
 			const InChunkVoxelLocation &location,
 			VoxelLocation *outLocation = nullptr
 	) const;

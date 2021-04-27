@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 #include "world/Voxel.h"
 #include "world/VoxelTypeRegistry.h"
-#include "world/VoxelChunk.h"
+#include "world/VoxelWorld.h"
 
 struct MyVoxel: public Voxel {
 	int a = 10;
@@ -24,7 +24,7 @@ public:
 	
 };
 
-TEST(VoxelSerialization, simple) {
+TEST(VoxelSerialization, holder) {
 	VoxelTypeRegistry typeRegistry;
 	typeRegistry.add("test", std::make_unique<MyVoxelType>());
 	VoxelTypeSerializationContext typeSerializationContext(typeRegistry);
@@ -32,13 +32,12 @@ TEST(VoxelSerialization, simple) {
 	std::string buffer;
 	
 	{
-		VoxelChunk chunk({0, 0, 0});
-		chunk.initAt(0, 0, 0, typeRegistry.get("test"));
-		((MyVoxel&) chunk.at(0, 0, 0)).a = 100;
+		VoxelHolder voxel1, voxel2(typeRegistry.get("test"));
+		voxel2.get<MyVoxel>().a = 100;
 		
 		VoxelSerializer serializer(typeSerializationContext, buffer);
-		chunk.at(0, 0, 1).doSerialize(serializer);
-		chunk.at(0, 0, 0).doSerialize(serializer);
+		serializer.object(voxel1);
+		serializer.object(voxel2);
 		buffer.resize(serializer.adapter().currentWritePos());
 	}
 	
@@ -49,16 +48,100 @@ TEST(VoxelSerialization, simple) {
 	printf("\n");
 	
 	{
+		VoxelHolder voxel1, voxel2;
+		
+		VoxelDeserializer deserializer(typeSerializationContext, buffer.cbegin(), buffer.cend());
+		deserializer.object(voxel1);
+		deserializer.object(voxel2);
+		EXPECT_EQ(deserializer.adapter().currentReadPos(), buffer.size());
+		
+		EXPECT_EQ(voxel1.toString(), "empty");
+		EXPECT_EQ(voxel2.toString(), "test");
+		EXPECT_EQ(voxel2.get<MyVoxel>().a, 100);
+		EXPECT_EQ(voxel2.get<MyVoxel>().b, 20);
+	}
+}
+
+TEST(VoxelSerialization, chunk) {
+	VoxelTypeRegistry typeRegistry;
+	typeRegistry.add("test", std::make_unique<MyVoxelType>());
+	VoxelTypeSerializationContext typeSerializationContext(typeRegistry);
+	
+	std::string buffer;
+	
+	{
+		VoxelChunk chunk({0, 0, 0});
+		chunk.at(7, 11, 13).setType(typeRegistry.get("test"));
+		chunk.at(7, 11, 13).get<MyVoxel>().a = 100;
+		
+		VoxelSerializer serializer(typeSerializationContext, buffer);
+		serializer.object(chunk);
+		buffer.resize(serializer.adapter().currentWritePos());
+	}
+	
+	printf("Serialized chunk size: %zi bytes\n", buffer.size());
+	
+	{
 		VoxelChunk chunk({0, 0, 0});
 		
 		VoxelDeserializer deserializer(typeSerializationContext, buffer.cbegin(), buffer.cend());
-		chunk.at(0, 0, 1).doDeserialize(deserializer);
-		chunk.at(0, 0, 0).doDeserialize(deserializer);
+		deserializer.object(chunk);
 		EXPECT_EQ(deserializer.adapter().currentReadPos(), buffer.size());
 		
-		EXPECT_EQ(chunk.at(0, 0, 1).toString(), "empty");
-		EXPECT_EQ(chunk.at(0, 0, 0).toString(), "test");
-		EXPECT_EQ(((MyVoxel&) chunk.at(0, 0, 0)).a, 100);
-		EXPECT_EQ(((MyVoxel&) chunk.at(0, 0, 0)).b, 20);
+		EXPECT_EQ(chunk.at(6, 11, 13).toString(), "empty");
+		EXPECT_EQ(chunk.at(7, 10, 13).toString(), "empty");
+		EXPECT_EQ(chunk.at(7, 11, 12).toString(), "empty");
+		EXPECT_EQ(chunk.at(8, 11, 13).toString(), "empty");
+		EXPECT_EQ(chunk.at(7, 12, 13).toString(), "empty");
+		EXPECT_EQ(chunk.at(7, 11, 14).toString(), "empty");
+		
+		EXPECT_EQ(chunk.at(7, 11, 13).toString(), "test");
+		EXPECT_EQ(chunk.at(7, 11, 13).get<MyVoxel>().a, 100);
+	}
+}
+
+TEST(VoxelSerialization, world) {
+	VoxelTypeRegistry typeRegistry;
+	typeRegistry.add("test", std::make_unique<MyVoxelType>());
+	VoxelTypeSerializationContext typeSerializationContext(typeRegistry);
+	
+	std::string buffer;
+	
+	{
+		VoxelWorld world;
+		
+		{
+			auto chunk = world.mutableChunk({0, 0, 0}, true);
+			chunk.at(7, 11, 13).setType(typeRegistry.get("test"));
+			chunk.at(7, 11, 13).get<MyVoxel>().a = 100;
+		}
+		
+		{
+			auto chunk = world.chunk({0, 0, 0});
+			VoxelSerializer serializer(typeSerializationContext, buffer);
+			serializer.object(chunk);
+			buffer.resize(serializer.adapter().currentWritePos());
+		}
+	}
+	
+	printf("Serialized chunk size: %zi bytes\n", buffer.size());
+	
+	{
+		VoxelWorld world;
+		auto chunk = world.mutableChunk({0, 0, 0}, true);
+		
+		VoxelDeserializer deserializer(typeSerializationContext, buffer.cbegin(), buffer.cend());
+		deserializer.object(chunk);
+		EXPECT_EQ(deserializer.adapter().currentReadPos(), buffer.size());
+		
+		EXPECT_EQ(chunk.at(6, 11, 13).toString(), "empty");
+		EXPECT_EQ(chunk.at(7, 10, 13).toString(), "empty");
+		EXPECT_EQ(chunk.at(7, 11, 12).toString(), "empty");
+		EXPECT_EQ(chunk.at(8, 11, 13).toString(), "empty");
+		EXPECT_EQ(chunk.at(7, 12, 13).toString(), "empty");
+		EXPECT_EQ(chunk.at(7, 11, 14).toString(), "empty");
+		
+		EXPECT_EQ(chunk.at(7, 11, 13).toString(), "test");
+		EXPECT_EQ(chunk.at(7, 11, 13).get<MyVoxel>().a, 100);
 	}
 }

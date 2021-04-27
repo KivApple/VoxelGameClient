@@ -34,13 +34,6 @@ void VoxelTextureShaderProvider::setup(const CommonShaderProgram &program) const
 }
 #endif
 
-void Voxel::doDeserialize(VoxelDeserializer &deserializer) {
-	auto savedPosition = deserializer.adapter().currentReadPos();
-	EmptyVoxelType::INSTANCE.invokeDeserialize(*this, deserializer);
-	deserializer.adapter().currentReadPos(savedPosition);
-	type.get().invokeDeserialize(*this, deserializer);
-}
-
 VoxelTypeSerializationContext::VoxelTypeSerializationContext(VoxelTypeRegistry &registry): m_registry(registry) {
 	m_types.emplace_back(std::make_pair("empty", std::ref(EmptyVoxelType::INSTANCE)));
 	m_typeMap.emplace(&EmptyVoxelType::INSTANCE, 0);
@@ -74,6 +67,13 @@ const VoxelShaderProvider *EmptyVoxelType::shaderProvider(const Voxel &voxel) {
 #endif
 
 void EmptyVoxelType::buildVertexData(const Voxel &voxel, std::vector<VoxelVertexData> &data) {
+}
+
+void VoxelHolder::serialize(VoxelDeserializer &deserializer) {
+	auto savedPosition = deserializer.adapter().currentReadPos();
+	EmptyVoxelType::INSTANCE.invokeDeserialize(get(), deserializer);
+	deserializer.adapter().currentReadPos(savedPosition);
+	get().type->invokeDeserialize(get(), deserializer);
 }
 
 SimpleVoxelType::SimpleVoxelType(
