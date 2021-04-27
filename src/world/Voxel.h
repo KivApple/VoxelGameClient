@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <unordered_map>
 #include <variant>
 #include <functional>
 #include <utility>
@@ -217,7 +218,7 @@ public:
 
 #ifndef HEADLESS
 	[[nodiscard]] const VoxelShaderProvider *shaderProvider() const {
-		return get().type.get().invokeShaderProvider(get());
+		return get().type->invokeShaderProvider(get());
 	}
 #endif
 	
