@@ -16,6 +16,9 @@ void VoxelTypeRegistry::add(std::string name, std::unique_ptr<VoxelType> type) {
 }
 
 VoxelType &VoxelTypeRegistry::get(const std::string &name) {
+	if (name == "empty") {
+		return EmptyVoxelType::INSTANCE;
+	}
 	std::shared_lock<std::shared_mutex> lock(m_mutex);
 	auto it = m_types.find(name);
 	if (it != m_types.end()) {

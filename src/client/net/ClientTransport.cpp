@@ -1,9 +1,18 @@
 #include "ClientTransport.h"
 #include "../GameEngine.h"
 
+ClientTransport::ClientTransport(GameEngine &engine): m_engine(engine) {
+}
+
 void ClientTransport::handleSetPosition(const glm::vec3 &position) {
-	GameEngine::instance().log("Player position set from the server");
-	GameEngine::instance().setPlayerPosition(position);
+	m_engine.log("Player position set from the server");
+	m_engine.setPlayerPosition(position);
+}
+
+void ClientTransport::handleSetChunk(const VoxelChunkLocation &location, VoxelDeserializer &deserializer) {
+	auto chunk = m_engine.voxelWorld().mutableChunk(location);
+	deserializer.object(chunk);
+	m_engine.voxelWorldRenderer().invalidate(location);
 }
 
 void ClientTransport::sendPlayerPosition() {

@@ -35,8 +35,6 @@ void VoxelTextureShaderProvider::setup(const CommonShaderProgram &program) const
 #endif
 
 VoxelTypeSerializationContext::VoxelTypeSerializationContext(VoxelTypeRegistry &registry): m_registry(registry) {
-	m_types.emplace_back(std::make_pair("empty", std::ref(EmptyVoxelType::INSTANCE)));
-	m_typeMap.emplace(&EmptyVoxelType::INSTANCE, 0);
 	registry.forEach([this] (const std::string &name, VoxelType &type) {
 		m_types.emplace_back(name, type);
 		m_typeMap.emplace(&type, (int) (m_types.size() - 1));

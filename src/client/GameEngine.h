@@ -95,6 +95,15 @@ public:
 	[[nodiscard]] UserInterface &userInterface() {
 		return *m_userInterface;
 	}
+	[[nodiscard]] VoxelTypeRegistry &voxelTypeRegistry() {
+		return *m_voxelTypeRegistry;
+	}
+	[[nodiscard]] VoxelWorld &voxelWorld() {
+		return *m_voxelWorld;
+	}
+	[[nodiscard]] VoxelWorldRenderer &voxelWorldRenderer() {
+		return *m_voxelWorldRenderer;
+	}
 	
 	void setTransport(std::unique_ptr<ClientTransport> transport);
 	

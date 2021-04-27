@@ -1,7 +1,10 @@
 #include "WebSocketClientTransport.h"
 #include "../GameEngine.h"
 
-WebSocketClientTransport::WebSocketClientTransport(std::string url): m_url(std::move(url))
+WebSocketClientTransport::WebSocketClientTransport(
+		GameEngine &engine,
+		std::string url
+): BinaryClientTransport(engine), m_url(std::move(url))
 #ifdef __EMSCRIPTEN__
 , m_socket(-1)
 #endif

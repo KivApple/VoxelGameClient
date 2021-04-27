@@ -7,7 +7,11 @@
 #include <bitsery/traits/string.h>
 #include "ClientTransport.h"
 
+class GameEngine;
+
 class BinaryClientTransport: public ClientTransport {
+	VoxelTypeSerializationContext m_voxelTypeSerializationContext;
+	
 protected:
 	template<typename T> static void deserialize(const std::string &data, T& message) {
 		bitsery::quickDeserialization<bitsery::InputBufferAdapter<std::string>>(
@@ -31,5 +35,8 @@ protected:
 	void sendPlayerPosition(const glm::vec3 &position, float yaw, float pitch, int viewRadius) override;
 	
 	void sendHello();
+
+public:
+	explicit BinaryClientTransport(GameEngine &engine);
 	
 };

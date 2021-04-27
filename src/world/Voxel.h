@@ -12,6 +12,7 @@
 #include <bitsery/bitsery.h>
 #include <bitsery/adapter/buffer.h>
 #include <bitsery/traits/string.h>
+#include <bitsery/traits/vector.h>
 #ifndef HEADLESS
 #include "../client/ShaderProgram.h"
 #endif
@@ -74,15 +75,45 @@ class VoxelTypeSerializationContext {
 	VoxelTypeRegistry &m_registry;
 	std::vector<std::pair<std::string, std::reference_wrapper<VoxelType>>> m_types;
 	std::unordered_map<const VoxelType*, int> m_typeMap;
-
+	
 public:
 	explicit VoxelTypeSerializationContext(VoxelTypeRegistry &registry);
 	int typeId(const VoxelType &type);
 	VoxelType &findTypeById(int id);
+	template<typename S> void serialize(S &s) {
+		s.ext(*this, SerializationHelper {});
+	}
+	
+	class SerializationHelper {
+	public:
+		template<typename Ser, typename T, typename Fnc> void serialize(Ser& ser, const T& obj, Fnc&& fnc) const {
+			std::vector<std::string> names;
+			for (auto &type : obj.m_types) {
+				names.emplace_back(type.first);
+			}
+			ser.container(names, UINT16_MAX, [](auto &s, const std::string &name) {
+				s.container1b(name, 127);
+			});
+		}
+		
+		template<typename Des, typename T, typename Fnc> void deserialize(Des& des, T& obj, Fnc&& fnc) const {
+			std::vector<std::string> names;
+			des.container(names, UINT16_MAX, [](auto &s, std::string &name) {
+				s.container1b(name, 127);
+			});
+			obj.m_types.clear();
+			obj.m_typeMap.clear();
+			for (auto &name : names) {
+				auto &type = obj.m_registry.get(name);
+				obj.m_types.emplace_back(name, type);
+				obj.m_typeMap.emplace(&type, (int) (obj.m_types.size() - 1));
+			}
+		}
+	};
 	
 };
 
-class VoxelTypeSerializationExtension {
+class VoxelTypeSerializationHelper {
 public:
 	template<typename Ser, typename T, typename Fnc> void serialize(Ser& ser, const T& obj, Fnc&& fnc) const {
 		auto &ctx = ser.template context<VoxelTypeSerializationContext>();
@@ -100,7 +131,14 @@ public:
 };
 
 namespace bitsery::traits {
-	template<typename T> struct ExtensionTraits<VoxelTypeSerializationExtension, T> {
+	template<typename T> struct ExtensionTraits<VoxelTypeSerializationHelper, T> {
+		using TValue = void;
+		static constexpr bool SupportValueOverload = false;
+		static constexpr bool SupportObjectOverload = true;
+		static constexpr bool SupportLambdaOverload = false;
+	};
+	
+	template<typename T> struct ExtensionTraits<VoxelTypeSerializationContext::SerializationHelper, T> {
 		using TValue = void;
 		static constexpr bool SupportValueOverload = false;
 		static constexpr bool SupportObjectOverload = true;
@@ -112,7 +150,7 @@ struct Voxel {
 	VoxelType *type;
 	
 	template<typename S> void serialize(S& s) {
-		s.ext(type, VoxelTypeSerializationExtension {});
+		s.ext(type, VoxelTypeSerializationHelper {});
 	}
 	
 };
@@ -192,6 +230,9 @@ public:
 	explicit VoxelHolder(VoxelType &type) {
 		type.invokeInit(m_data);
 	}
+	
+	VoxelHolder(VoxelHolder&) = delete;
+	VoxelHolder &operator=(VoxelHolder&) = delete;
 	
 	~VoxelHolder() {
 		get().type->invokeDestroy(get());

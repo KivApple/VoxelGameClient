@@ -1,7 +1,9 @@
 #pragma once
 
 enum class ServerMessageType: uint16_t {
-	SET_POSITION
+	SET_POSITION,
+	SET_VOXEL_TYPES,
+	SET_CHUNK
 };
 
 template<typename T> struct ServerMessage {
@@ -37,4 +39,22 @@ namespace ServerMessageData {
 			s.value4b(z);
 		}
 	};
+	
+	struct SetVoxelTypes {
+		static const ServerMessageType TYPE = ServerMessageType::SET_VOXEL_TYPES;
+		
+		template<typename S> void serialize(S &s) {
+		}
+	};
+	
+	struct SetChunk {
+		static const ServerMessageType TYPE = ServerMessageType::SET_CHUNK;
+		
+		VoxelChunkLocation location;
+		
+		template<typename S> void serialize(S &s) {
+			s.object(location);
+		}
+	};
+	
 }

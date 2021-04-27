@@ -33,7 +33,7 @@ class WebSocketClientTransport: public BinaryClientTransport {
 	void sendMessage(const void *data, size_t dataSize) override;
 	
 public:
-	explicit WebSocketClientTransport(std::string url);
+	WebSocketClientTransport(GameEngine &engine, std::string url);
 	void start() override;
 	void shutdown() override;
 	bool isConnected() override {

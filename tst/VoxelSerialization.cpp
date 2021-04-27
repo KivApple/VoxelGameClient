@@ -24,6 +24,42 @@ public:
 	
 };
 
+TEST(VoxelSerialization, context) {
+	std::string buffer;
+	
+	int emptyTypeId, testTypeId;
+	
+	{
+		VoxelTypeRegistry typeRegistry;
+		typeRegistry.add("test", std::make_unique<MyVoxelType>());
+		VoxelTypeSerializationContext typeSerializationContext(typeRegistry);
+		emptyTypeId = typeSerializationContext.typeId(typeRegistry.get("empty"));
+		testTypeId = typeSerializationContext.typeId(typeRegistry.get("test"));
+		
+		bitsery::Serializer<bitsery::OutputBufferAdapter<std::string>> serializer(buffer);
+		serializer.object(typeSerializationContext);
+		buffer.resize(serializer.adapter().currentWritePos());
+	}
+	
+	printf("Serialized voxel serialization context (empty=%i, test=%i): ", emptyTypeId, testTypeId);
+	for (auto c : buffer) {
+		printf("%02X ", (unsigned char) c);
+	}
+	printf("\n");
+	
+	{
+		VoxelTypeRegistry typeRegistry;
+		VoxelTypeSerializationContext typeSerializationContext(typeRegistry);
+		
+		bitsery::Deserializer<bitsery::InputBufferAdapter<std::string>> deserializer(buffer.cbegin(), buffer.cend());
+		deserializer.object(typeSerializationContext);
+		EXPECT_EQ(deserializer.adapter().currentReadPos(), buffer.size());
+		
+		EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("empty")), emptyTypeId);
+		EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("test")), testTypeId);
+	}
+}
+
 TEST(VoxelSerialization, holder) {
 	VoxelTypeRegistry typeRegistry;
 	typeRegistry.add("test", std::make_unique<MyVoxelType>());

@@ -8,6 +8,6 @@ int main(int argc, char *argv[]) {
 	}
 	
 	SDLGameEngine engine;
-	engine.setTransport(std::make_unique<WebSocketClientTransport>(argv[1]));
+	engine.setTransport(std::make_unique<WebSocketClientTransport>(engine, argv[1]));
 	return engine.init() ? engine.run() : 1;
 }

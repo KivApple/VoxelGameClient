@@ -9,6 +9,9 @@ struct VoxelLocation;
 struct VoxelChunkLocation {
 	int x, y, z;
 	
+	VoxelChunkLocation() {
+	}
+	
 	constexpr VoxelChunkLocation(int x, int y, int z): x(x), y(y), z(z) {
 	}
 	
@@ -18,10 +21,19 @@ struct VoxelChunkLocation {
 		return x == location.x && y == location.y && z == location.z;
 	}
 	
+	template<typename S> void serialize(S &s) {
+		s.value4b(x);
+		s.value4b(y);
+		s.value4b(z);
+	}
+	
 };
 
 struct InChunkVoxelLocation {
 	int x, y, z;
+	
+	InChunkVoxelLocation() {
+	}
 	
 	constexpr InChunkVoxelLocation(int x, int y, int z): x(x), y(y), z(z) {
 	}
@@ -32,10 +44,19 @@ struct InChunkVoxelLocation {
 		return x == location.x && y == location.y && z == location.z;
 	}
 	
+	template<typename S> void serialize(S &s) {
+		s.value4b(x);
+		s.value4b(y);
+		s.value4b(z);
+	}
+	
 };
 
 struct VoxelLocation {
 	int x, y, z;
+	
+	VoxelLocation() {
+	}
 	
 	constexpr VoxelLocation(int x, int y, int z): x(x), y(y), z(z) {
 	}
@@ -57,6 +78,12 @@ struct VoxelLocation {
 	
 	[[nodiscard]] constexpr InChunkVoxelLocation inChunk() const {
 		return InChunkVoxelLocation(*this);
+	}
+	
+	template<typename S> void serialize(S &s) {
+		s.value4b(x);
+		s.value4b(y);
+		s.value4b(z);
 	}
 	
 };
