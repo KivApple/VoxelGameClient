@@ -1,5 +1,9 @@
 #pragma once
 
+#include "world/VoxelLocation.h"
+
+class VoxelTypeSerializationContext;
+
 enum class ServerMessageType: uint16_t {
 	SET_POSITION,
 	SET_VOXEL_TYPES,
@@ -43,7 +47,10 @@ namespace ServerMessageData {
 	struct SetVoxelTypes {
 		static const ServerMessageType TYPE = ServerMessageType::SET_VOXEL_TYPES;
 		
+		VoxelTypeSerializationContext &voxelSerializationContext;
+		
 		template<typename S> void serialize(S &s) {
+			s.object(voxelSerializationContext);
 		}
 	};
 	

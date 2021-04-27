@@ -37,6 +37,9 @@ public:
 		return at(location.x, location.y, location.z);
 	}
 	
+	template<typename S> void serialize(S &s) const {
+		s.container(m_data);
+	}
 	template<typename S> void serialize(S &s) {
 		s.container(m_data);
 	}

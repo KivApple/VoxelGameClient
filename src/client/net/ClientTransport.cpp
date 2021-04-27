@@ -10,7 +10,8 @@ void ClientTransport::handleSetPosition(const glm::vec3 &position) {
 }
 
 void ClientTransport::handleSetChunk(const VoxelChunkLocation &location, VoxelDeserializer &deserializer) {
-	auto chunk = m_engine.voxelWorld().mutableChunk(location);
+	m_engine.log("Chunk x=%i,y=%i,z=%i received", location.x, location.y, location.z);
+	auto chunk = m_engine.voxelWorld().mutableChunk(location, true);
 	deserializer.object(chunk);
 	m_engine.voxelWorldRenderer().invalidate(location);
 }

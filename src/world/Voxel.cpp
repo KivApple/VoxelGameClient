@@ -41,15 +41,23 @@ VoxelTypeSerializationContext::VoxelTypeSerializationContext(VoxelTypeRegistry &
 	});
 }
 
-int VoxelTypeSerializationContext::typeId(const VoxelType &type) {
+int VoxelTypeSerializationContext::typeId(const VoxelType &type) const {
 	auto it = m_typeMap.find(&type);
 	return it != m_typeMap.end() ? it->second : -1;
 }
 
-VoxelType &VoxelTypeSerializationContext::findTypeById(int id) {
-	return id >= 0 && id <= m_types.size() ?
+VoxelType &VoxelTypeSerializationContext::findTypeById(int id) const {
+	return id >= 0 && id < m_types.size() ?
 		m_types[id].second.get() :
 		m_registry.get("unknown_" + std::to_string(id));
+}
+
+std::vector<std::string> VoxelTypeSerializationContext::names() const {
+	std::vector<std::string> names;
+	for (auto &type : m_types) {
+		names.emplace_back(type.first);
+	}
+	return names;
 }
 
 EmptyVoxelType EmptyVoxelType::INSTANCE;
@@ -68,10 +76,11 @@ void EmptyVoxelType::buildVertexData(const Voxel &voxel, std::vector<VoxelVertex
 }
 
 void VoxelHolder::serialize(VoxelDeserializer &deserializer) {
+	auto &voxel = get();
 	auto savedPosition = deserializer.adapter().currentReadPos();
-	EmptyVoxelType::INSTANCE.invokeDeserialize(get(), deserializer);
+	EmptyVoxelType::INSTANCE.invokeDeserialize(voxel, deserializer);
 	deserializer.adapter().currentReadPos(savedPosition);
-	get().type->invokeDeserialize(get(), deserializer);
+	voxel.type->invokeDeserialize(voxel, deserializer);
 }
 
 SimpleVoxelType::SimpleVoxelType(

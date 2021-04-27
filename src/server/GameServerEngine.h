@@ -19,6 +19,7 @@ class GameServerEngine {
 	std::atomic<bool> m_running = true;
 	
 public:
+	GameServerEngine();
 	void addTransport(std::unique_ptr<ServerTransport> transport);
 	int run();
 	void shutdown();

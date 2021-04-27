@@ -45,5 +45,8 @@ public:
 	~WebSocketServerTransport() override;
 	void start(GameServerEngine &engine) override;
 	void shutdown() override;
+	GameServerEngine *engine() override {
+		return m_engine;
+	}
 	
 };

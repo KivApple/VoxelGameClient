@@ -50,8 +50,8 @@ struct Voxel;
 class VoxelTypeRegistry;
 class VoxelTypeSerializationContext;
 
-typedef bitsery::Serializer<bitsery::OutputBufferAdapter<std::string>, VoxelTypeSerializationContext> VoxelSerializer;
-typedef bitsery::Deserializer<bitsery::InputBufferAdapter<std::string>, VoxelTypeSerializationContext> VoxelDeserializer;
+typedef bitsery::Serializer<bitsery::OutputBufferAdapter<std::string>, const VoxelTypeSerializationContext> VoxelSerializer;
+typedef bitsery::Deserializer<bitsery::InputBufferAdapter<std::string>, const VoxelTypeSerializationContext> VoxelDeserializer;
 
 class VoxelType {
 public:
@@ -78,8 +78,13 @@ class VoxelTypeSerializationContext {
 	
 public:
 	explicit VoxelTypeSerializationContext(VoxelTypeRegistry &registry);
-	int typeId(const VoxelType &type);
-	VoxelType &findTypeById(int id);
+	int typeId(const VoxelType &type) const;
+	VoxelType &findTypeById(int id) const;
+	std::vector<std::string> names() const;
+
+	template<typename S> void serialize(S &s) const {
+		s.ext(*this, SerializationHelper {});
+	}
 	template<typename S> void serialize(S &s) {
 		s.ext(*this, SerializationHelper {});
 	}
@@ -87,11 +92,7 @@ public:
 	class SerializationHelper {
 	public:
 		template<typename Ser, typename T, typename Fnc> void serialize(Ser& ser, const T& obj, Fnc&& fnc) const {
-			std::vector<std::string> names;
-			for (auto &type : obj.m_types) {
-				names.emplace_back(type.first);
-			}
-			ser.container(names, UINT16_MAX, [](auto &s, const std::string &name) {
+			ser.container(obj.names(), UINT16_MAX, [](auto &s, const std::string &name) {
 				s.container1b(name, 127);
 			});
 		}
@@ -116,13 +117,13 @@ public:
 class VoxelTypeSerializationHelper {
 public:
 	template<typename Ser, typename T, typename Fnc> void serialize(Ser& ser, const T& obj, Fnc&& fnc) const {
-		auto &ctx = ser.template context<VoxelTypeSerializationContext>();
+		auto &ctx = ser.template context<const VoxelTypeSerializationContext>();
 		uint16_t value = ctx.typeId(*obj);
 		ser.value2b(value);
 	}
 	
 	template<typename Des, typename T, typename Fnc> void deserialize(Des& des, T& obj, Fnc&& fnc) const {
-		auto &ctx = des.template context<VoxelTypeSerializationContext>();
+		auto &ctx = des.template context<const VoxelTypeSerializationContext>();
 		uint16_t value;
 		des.value2b(value);
 		obj = &ctx.findTypeById(value);

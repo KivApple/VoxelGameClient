@@ -19,13 +19,13 @@ void BinaryClientTransport::handleMessage(const std::string &payload) {
 			break;
 		}
 		case ServerMessageType::SET_VOXEL_TYPES: {
-			bitsery::Deserializer<bitsery::InputBufferAdapter<std::string>> deserializer(
-					payload.cbegin(),
-					payload.cend()
-			);
-			ServerMessage<ServerMessageData::SetVoxelTypes> msg;
-			deserializer.object(msg);
-			deserializer.object(m_voxelTypeSerializationContext);
+			ServerMessage<ServerMessageData::SetVoxelTypes> msg({m_voxelTypeSerializationContext});
+			deserialize(payload, msg);
+			auto names = m_voxelTypeSerializationContext.names();
+			GameEngine::instance().log("Received %i voxel types from the server", names.size());
+			for (size_t i = 0; i < names.size(); i++) {
+				GameEngine::instance().log("%i: %s", i, names[i].c_str());
+			}
 			break;
 		}
 		case ServerMessageType::SET_CHUNK: {
