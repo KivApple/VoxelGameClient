@@ -19,7 +19,7 @@ void ClientConnection::updatePosition(const glm::vec3 &position, float yaw, floa
 		static const float MAX_DELTA = 10.0f;
 		if (fabsf(delta.x) >= MAX_DELTA || fabsf(delta.y) >= MAX_DELTA || fabsf(delta.z) >= MAX_DELTA) {
 			logger().warn(
-					"[Client %v] player is moving too fast (dx=%v,dy=%v,dz=%v)",
+					"[Client %v] Player is moving too fast (dx=%v,dy=%v,dz=%v)",
 					this, delta.x, delta.y, delta.z
 			);
 			resetPosition = true;
@@ -30,7 +30,12 @@ void ClientConnection::updatePosition(const glm::vec3 &position, float yaw, floa
 	}
 	m_yaw = yaw;
 	m_pitch = pitch;
-	m_viewRadius = std::max(viewRadius, 3);
+	if (viewRadius > 3) {
+		logger().warn("[Client %v] Requested too large view radius. Value will be reduced to 3");
+		m_viewRadius = 3;
+	} else {
+		m_viewRadius = viewRadius;
+	}
 	m_lastPositionUpdatedAt = std::chrono::steady_clock::now();
 	m_positionValid = true;
 	auto newPosition = m_position;
