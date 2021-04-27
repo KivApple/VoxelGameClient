@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <unordered_set>
 #include <shared_mutex>
 #include <easylogging++.h>
@@ -17,6 +18,7 @@ class ClientConnection {
 	float m_yaw = 0.0f;
 	float m_pitch = 0.0f;
 	int m_viewRadius = 0;
+	std::chrono::time_point<std::chrono::steady_clock> m_lastPositionUpdatedAt;
 	bool m_positionValid = false;
 	std::shared_mutex m_positionMutex;
 	std::unordered_set<VoxelChunkLocation> m_loadedChunks;

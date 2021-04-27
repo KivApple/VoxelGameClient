@@ -14,10 +14,14 @@ void ClientConnection::updatePosition(const glm::vec3 &position, float yaw, floa
 	std::unique_lock<std::shared_mutex> lock(m_positionMutex);
 	bool resetPosition = false;
 	if (m_positionValid) {
-		auto delta = position - m_position;
-		static const float MAX_DELTA = 0.2f;
+		std::chrono::duration<float> dt = std::chrono::steady_clock::now() - m_lastPositionUpdatedAt;
+		auto delta = (position - m_position) / dt.count();
+		static const float MAX_DELTA = 10.0f;
 		if (fabsf(delta.x) >= MAX_DELTA || fabsf(delta.y) >= MAX_DELTA || fabsf(delta.z) >= MAX_DELTA) {
-			logger().warn("[Client %v] player is moving too fast", this);
+			logger().warn(
+					"[Client %v] player is moving too fast (dx=%v,dy=%v,dz=%v)",
+					this, delta.x, delta.y, delta.z
+			);
 			resetPosition = true;
 		}
 	}
@@ -27,6 +31,7 @@ void ClientConnection::updatePosition(const glm::vec3 &position, float yaw, floa
 	m_yaw = yaw;
 	m_pitch = pitch;
 	m_viewRadius = std::max(viewRadius, 3);
+	m_lastPositionUpdatedAt = std::chrono::steady_clock::now();
 	m_positionValid = true;
 	auto newPosition = m_position;
 	auto radius = m_viewRadius;
