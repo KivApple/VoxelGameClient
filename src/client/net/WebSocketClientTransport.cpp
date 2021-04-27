@@ -1,5 +1,5 @@
 #include "WebSocketClientTransport.h"
-#include "../GameEngine.h"
+#include <easylogging++.h>
 
 WebSocketClientTransport::WebSocketClientTransport(
 		GameEngine &engine,
@@ -91,18 +91,18 @@ void WebSocketClientTransport::shutdown() {
 }
 
 void WebSocketClientTransport::handleError() {
-	GameEngine::instance().log("WebSocket error");
+	LOG(ERROR) << "WebSocket error";
 	m_connected = false;
 }
 
 void WebSocketClientTransport::handleOpen() {
-	GameEngine::instance().log("WebSocket connected");
+	LOG(INFO) << "WebSocket connected";
 	m_connected = true;
 	sendHello();
 }
 
 void WebSocketClientTransport::handleClose() {
-	GameEngine::instance().log("WebSocket closed");
+	LOG(INFO) << "WebSocket closed";
 	m_connected = false;
 }
 
@@ -112,7 +112,7 @@ void WebSocketClientTransport::sendMessage(const void *data, size_t dataSize) {
 	std::error_code errorCode;
 	m_client.send(m_connection, data, dataSize, websocketpp::frame::opcode::binary, errorCode);
 	if (errorCode) {
-		GameEngine::instance().log("WebSocket send payload error: %s", errorCode.message().c_str());
+		LOG(ERROR) << "WebSocket send payload error: " << errorCode.message();
 	}
 #else
 	emscripten_websocket_send_binary(m_socket, (void*) data, dataSize);

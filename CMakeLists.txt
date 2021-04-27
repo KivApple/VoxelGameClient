@@ -3,6 +3,11 @@ project(VoxelGameClient)
 
 set(CMAKE_CXX_STANDARD 20)
 
+add_library(easyloggingpp::easyloggingpp INTERFACE IMPORTED)
+target_include_directories(easyloggingpp::easyloggingpp INTERFACE lib/easyloggingpp/src)
+target_compile_definitions(easyloggingpp::easyloggingpp INTERFACE ELPP_NO_DEFAULT_LOG_FILE)
+target_sources(easyloggingpp::easyloggingpp INTERFACE lib/easyloggingpp/src/easylogging++.cc)
+
 add_subdirectory(lib/glm)
 add_subdirectory(lib/bitsery)
 
@@ -71,7 +76,7 @@ add_executable(
 		src/client/world/VoxelWorldRenderer.cpp
 		${COMMON_SRC}
 )
-target_link_libraries(VoxelGameClient glm::glm Bitsery::bitsery)
+target_link_libraries(VoxelGameClient easyloggingpp::easyloggingpp glm::glm Bitsery::bitsery)
 
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Emscripten")
 	target_link_libraries(VoxelGameClient websocket.js)
@@ -93,7 +98,7 @@ else()
 	target_compile_definitions(VoxelGameServer PUBLIC HEADLESS)
 	target_link_libraries(
 			VoxelGameServer
-			glm::glm Bitsery::bitsery websocketpp::websocketpp asio::asio Threads::Threads
+			easyloggingpp::easyloggingpp glm::glm Bitsery::bitsery websocketpp::websocketpp asio::asio Threads::Threads
 	)
 	if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
 		target_link_libraries(VoxelGameServer ws2_32 wsock32)
@@ -110,7 +115,7 @@ if(TARGET gtest)
 			${COMMON_SRC}
 	)
 	target_compile_definitions(VoxelGameClient_tst PUBLIC HEADLESS)
-	target_link_libraries(VoxelGameClient_tst glm::glm Bitsery::bitsery gtest gmock)
+	target_link_libraries(VoxelGameClient_tst easyloggingpp::easyloggingpp glm::glm Bitsery::bitsery gtest gmock)
 	
 	add_test(NAME VoxelGameClient COMMAND VoxelGameClient_tst)
 endif()

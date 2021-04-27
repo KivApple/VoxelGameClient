@@ -13,3 +13,6 @@
 [submodule "lib/bitsery"]
 	path = lib/bitsery
 	url = https://github.com/fraillt/bitsery
+[submodule "lib/easyloggingpp"]
+	path = lib/easyloggingpp
+	url = https://github.com/amrayn/easyloggingpp

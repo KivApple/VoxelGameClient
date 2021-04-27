@@ -1,3 +1,4 @@
+#include <easylogging++.h>
 #include "VoxelTypeRegistry.h"
 
 class UnknownVoxelType: public VoxelTypeHelper<UnknownVoxelType, Voxel, SimpleVoxelType> {
@@ -22,7 +23,7 @@ VoxelTypeRegistry::VoxelTypeRegistry() {
 
 void VoxelTypeRegistry::add(std::string name, std::unique_ptr<VoxelType> type) {
 	std::unique_lock<std::shared_mutex> lock(m_mutex);
-	printf("Registered \"%s\" voxel type\n", name.c_str());
+	LOG(INFO) << "Registered \"" << name << "\" voxel type";
 	m_types.emplace(std::move(name), std::move(type));
 }
 

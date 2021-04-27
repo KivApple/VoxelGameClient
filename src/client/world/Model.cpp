@@ -1,9 +1,9 @@
 #include <fstream>
 #include <vector>
 #include <sstream>
+#include <easylogging++.h>
 #include <GL/glew.h>
 #include "Model.h"
-#include "client/GameEngine.h"
 
 Model::Model(
 		const std::string &fileName,
@@ -55,7 +55,7 @@ Model::Model(
 			}
 		}
 	} else {
-		GameEngine::instance().log("Failed to load model %s", fileName.c_str());
+		LOG(ERROR) << "Failed to load model " << fileName;
 	}
 	
 	m_buffer.setData(vertexData.data(), vertexData.size() * sizeof(float), GL_STATIC_DRAW);

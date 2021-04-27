@@ -1,13 +1,14 @@
-#include <cstdio>
 #include <csignal>
-#include "GameServerEngine.h"
 #include "net/WebSocketServerTransport.h"
+#include "GameServerEngine.h"
+
+INITIALIZE_EASYLOGGINGPP
 
 static GameServerEngine *engineInstance = nullptr;
 
 static void sigIntHandler(int) {
 	if (engineInstance) {
-		fprintf(stderr, "Shutdown initiated\n");
+		LOG(INFO) << "Shutdown initiated";
 		engineInstance->shutdown();
 		engineInstance = nullptr;
 	} else {
@@ -20,6 +21,16 @@ static void setupSigIntHandler() {
 }
 
 int main(int argc, char *argv[]) {
+	START_EASYLOGGINGPP(argc, argv);
+	{
+		el::Configurations conf;
+		conf.setGlobally(
+				el::ConfigurationType::Format,
+				"%datetime{%Y-%M-%d %H:%m:%s.%g} [%level] [%logger] %msg"
+		);
+		el::Loggers::setDefaultConfigurations(conf, true);
+	}
+	
 	GameServerEngine engine;
 	engineInstance = &engine;
 	setupSigIntHandler();

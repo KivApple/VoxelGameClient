@@ -1,6 +1,8 @@
 .idea
 /*build*
 
+*.log
+
 Thumbs.db
 .directory
 .DS_Store

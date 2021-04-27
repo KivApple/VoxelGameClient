@@ -1,3 +1,4 @@
+#include <easylogging++.h>
 #include "SDLGameEngine.h"
 
 #ifdef __EMSCRIPTEN__
@@ -27,11 +28,11 @@ SDLGameEngine::SDLGameEngine(): m_keyMap({
 
 bool SDLGameEngine::platformInit() {
 	if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-		log("Failed to initialize SDL: %s", SDL_GetError());
+		LOG(ERROR) << "Failed to initialize SDL: " << SDL_GetError();
 		return false;
 	}
 	if (!SDL_SetHint("SDL_HINT_ANDROID_SEPARATE_MOUSE_AND_TOUCH", "1")) {
-		log("SDL_SetHint failed");
+		LOG(WARNING) << "SDL_SetHint(SDL_HINT_ANDROID_SEPARATE_MOUSE_AND_TOUCH) failed";
 	}
 	m_window = SDL_CreateWindow(
 			"VoxelGame",
@@ -43,7 +44,7 @@ bool SDLGameEngine::platformInit() {
 #endif
 	);
 	if (m_window == nullptr) {
-		log("Failed to create SDL window: %s", SDL_GetError());
+		LOG(ERROR) << "Failed to create SDL window: " << SDL_GetError();
 		return false;
 	}
 	
@@ -53,7 +54,7 @@ bool SDLGameEngine::platformInit() {
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 	m_glContext = SDL_GL_CreateContext(m_window);
 	if (m_glContext == nullptr) {
-		log("Failed to create OpenGL context: %s", SDL_GetError());
+		LOG(ERROR) << "Failed to create OpenGL context: " << SDL_GetError();
 		SDL_DestroyWindow(m_window);
 		m_window = nullptr;
 		return false;

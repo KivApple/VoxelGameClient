@@ -14,7 +14,10 @@ void BinaryServerTransport::Connection::deserializeAndHandleMessage(const std::s
 			break;
 		}
 		default:
-			printf("[Client %p] Unknown message received from client: %i\n", this, (int) genericMessage.type);
+			logger().warn(
+					"[Client %v] Unknown message received from client: %v",
+					this, (int) genericMessage.type
+			);
 	}
 }
 
@@ -35,7 +38,7 @@ void BinaryServerTransport::Connection::setVoxelTypes() {
 	serializeAndSendMessage(ServerMessage<ServerMessageData::SetVoxelTypes>({
 		*m_voxelSerializationContext
 	}));
-	printf("[Client %p] Sent voxel types\n", this);
+	logger().debug("[Client %v] Sent voxel types", this);
 }
 
 void BinaryServerTransport::Connection::setChunk(const VoxelChunkRef &chunk) {

@@ -1,11 +1,14 @@
-#include <cstdio>
 #include <cmath>
 #include "ClientConnection.h"
 #include "server/GameServerEngine.h"
 
+ClientConnection::ClientConnection(ServerTransport &transport): m_transport(transport) {
+	m_logger = el::Loggers::getLogger("default");
+}
+
 void ClientConnection::updatePosition(const glm::vec3 &position, float yaw, float pitch, int viewRadius) {
-	printf(
-			"[Client %p] updatePosition(x=%0.2f, y=%0.2f, z=%0.2f, yaw=%0.1f, pitch=%0.1f, viewRadius=%i)\n",
+	logger().trace(
+			"[Client %v] updatePosition(x=%v, y=%v, z=%v, yaw=%v, pitch=%v, viewRadius=%v)",
 			this, position.x, position.y, position.z, yaw, pitch, viewRadius
 	);
 	std::unique_lock<std::shared_mutex> lock(m_positionMutex);
@@ -14,7 +17,7 @@ void ClientConnection::updatePosition(const glm::vec3 &position, float yaw, floa
 		auto delta = position - m_position;
 		static const float MAX_DELTA = 0.2f;
 		if (fabsf(delta.x) >= MAX_DELTA || fabsf(delta.y) >= MAX_DELTA || fabsf(delta.z) >= MAX_DELTA) {
-			printf("[Client %p] player is moving too fast\n", this);
+			logger().warn("[Client %v] player is moving too fast", this);
 			resetPosition = true;
 		}
 	}
@@ -47,8 +50,8 @@ void ClientConnection::sendUnloadedChunks(const glm::vec3 &position, int viewRad
 						m_loadedChunks.emplace(location);
 						auto chunk = m_transport.engine()->voxelWorld().chunk(location);
 						if (chunk) {
-							printf(
-									"[Client %p] Sending chunk x=%i,y=%i,z=%i\n",
+							logger().debug(
+									"[Client %v] Sending chunk x=%v,y=%v,z=%v",
 									this, location.x, location.y, location.z
 							);
 							setChunk(chunk);

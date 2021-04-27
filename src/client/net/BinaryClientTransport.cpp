@@ -1,3 +1,4 @@
+#include <easylogging++.h>
 #include "BinaryClientTransport.h"
 #include "../GameEngine.h"
 #include "net/ServerMessage.h"
@@ -22,9 +23,8 @@ void BinaryClientTransport::handleMessage(const std::string &payload) {
 			ServerMessage<ServerMessageData::SetVoxelTypes> msg({m_voxelTypeSerializationContext});
 			deserialize(payload, msg);
 			auto names = m_voxelTypeSerializationContext.names();
-			GameEngine::instance().log("Received %i voxel types from the server", names.size());
 			for (size_t i = 0; i < names.size(); i++) {
-				GameEngine::instance().log("%i: %s", i, names[i].c_str());
+				LOG(INFO) << "Received \"" << names[i] << "\" voxel type (id " << i << ") from the server";
 			}
 			break;
 		}
@@ -36,7 +36,7 @@ void BinaryClientTransport::handleMessage(const std::string &payload) {
 			break;
 		}
 		default:
-			GameEngine::instance().log("Unknown server message type: %i", (int) genericMessage.type);
+			LOG(WARNING) << "Unknown server message type: " << (int) genericMessage.type;
 	}
 }
 

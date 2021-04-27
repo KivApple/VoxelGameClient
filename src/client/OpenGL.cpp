@@ -1,8 +1,8 @@
 #include <fstream>
 #include <streambuf>
 #include <GL/glew.h>
+#include <easylogging++.h>
 #include "OpenGL.h"
-#include "GameEngine.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
 
@@ -59,7 +59,7 @@ GLTexture::GLTexture(const std::string &fileName): GLTexture() {
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_width, m_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 		stbi_image_free(data);
 	} else {
-		GameEngine::instance().log("Failed to load texture asset %s", fileName.c_str());
+		LOG(ERROR) << "Failed to load texture asset " << fileName;
 	}
 }
 
@@ -90,7 +90,7 @@ void GLTexture::bind() const {
 static std::string loadStringFromFile(const std::string &fileName) {
 	std::ifstream file(fileName);
 	if (!file.good()) {
-		GameEngine::instance().log("Failed to open asset file %s", fileName.c_str());
+		LOG(ERROR) << "Failed to open asset file " << fileName;
 	}
 	return std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
 }
@@ -114,14 +114,17 @@ Shader::Shader(
 		char *infoLog = new char[infoLogLength];
 		glGetShaderInfoLog(m_id, infoLogLength, nullptr, infoLog);
 		if (infoLogLength > 1) {
-			GameEngine::instance().log(
-					success ? "Shader %s compiled with warnings:\n%s" : "Failed to compile shader %s:\n%s",
-					m_name.c_str(), infoLog
-			);
+			if (success) {
+				LOG(WARNING) << "Shader " << m_name << " compiled with warnings:";
+				LOG(WARNING) << infoLog;
+			} else {
+				LOG(ERROR) << "Failed to compile shader " << m_name << ":";
+				LOG(ERROR) << infoLog;
+			}
 		}
 		delete[] infoLog;
 	} else if (!success) {
-		GameEngine::instance().log("Failed to compile shader %s", m_name.c_str());
+		LOG(ERROR) << "Failed to compile shader " << m_name;
 	}
 }
 
@@ -156,14 +159,17 @@ ShaderProgram::ShaderProgram(
 		char *infoLog = new char[infoLogLength];
 		glGetProgramInfoLog(m_id, infoLogLength, nullptr, infoLog);
 		if (infoLogLength > 1) {
-			GameEngine::instance().log(
-					success ? "Shader program %s linked with warnings:\n%s" : "Failed to link shader program %s:\n%s",
-					m_name.c_str(), infoLog
-			);
+			if (success) {
+				LOG(WARNING) << "Shader program " << m_name << " linked with warnings:";
+				LOG(WARNING) << infoLog;
+			} else {
+				LOG(ERROR) << "Failed to link shader program " << m_name << ":";
+				LOG(ERROR) << infoLog;
+			}
 		}
 		delete[] infoLog;
 	} else if (!success) {
-		GameEngine::instance().log("Failed to link shader program %s", m_name.c_str());
+		LOG(ERROR) << "Failed to link shader program " << m_name;
 	}
 }
 
@@ -187,10 +193,7 @@ ShaderProgram::~ShaderProgram() {
 int ShaderProgram::attribLocation(const char *name, bool required) const {
 	int result = glGetAttribLocation(m_id, name);
 	if (required && result < 0) {
-		GameEngine::instance().log(
-				"Failed to find attribute %s location in shader program %s",
-				name, m_name.c_str()
-		);
+		LOG(WARNING) << "Failed to find attribute " << name << " location in shader program " << m_name;
 	}
 	return result;
 }
@@ -198,10 +201,7 @@ int ShaderProgram::attribLocation(const char *name, bool required) const {
 int ShaderProgram::uniformLocation(const char *name, bool required) const {
 	int result = glGetUniformLocation(m_id, name);
 	if (required && result < 0) {
-		GameEngine::instance().log(
-				"Failed to find uniform %s location in shader program %s",
-				name, m_name.c_str()
-		);
+		LOG(WARNING) << "Failed to find uniform " << name <<" location in shader program " << m_name;
 	}
 	return result;
 }

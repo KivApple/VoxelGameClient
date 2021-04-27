@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstdarg>
 #include <chrono>
 #include <memory>
 #include <unordered_set>
@@ -106,8 +105,5 @@ public:
 	}
 	
 	void setTransport(std::unique_ptr<ClientTransport> transport);
-	
-	virtual void log(const char *fmt, ...);
-	virtual void logv(const char *fmt, va_list arg);
 	
 };

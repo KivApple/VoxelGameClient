@@ -1,6 +1,6 @@
-#include <cstdio>
 #include <stdexcept>
 #include <sstream>
+#include <easylogging++.h>
 #include "GameEngine.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <GL/glew.h>
@@ -33,7 +33,7 @@ bool GameEngine::init() {
 		return false;
 	}
 	if (glewInit() != GLEW_OK) {
-		log("Failed to initialize GLEW");
+		LOG(ERROR) << "Failed to initialize GLEW";
 		return false;
 	}
 	
@@ -65,13 +65,13 @@ bool GameEngine::init() {
 	m_voxelTypeRegistry->add("grass", std::make_unique<SimpleVoxelType>("grass", "assets/textures/grass_top.png"));
 	m_voxelTypeRegistry->add("dirt", std::make_unique<SimpleVoxelType>("dirt", "assets/textures/mud.png"));
 	
-	log("Game engine initialized");
+	LOG(INFO) << "Game engine initialized";
 	return true;
 }
 
 void GameEngine::quit() {
 	m_running = false;
-	log("Quitting...");
+	LOG(INFO) << "Quitting...";
 }
 
 float GameEngine::viewportWidthOverHeight() const {
@@ -81,7 +81,7 @@ float GameEngine::viewportWidthOverHeight() const {
 void GameEngine::handleResize(int width, int height) {
 	m_viewportWidth = width;
 	m_viewportHeight = height;
-	log("Viewport set to %i x %i", width, height);
+	LOG(INFO) << "Viewport set to " << width << "x" << height;
 	
 	glViewport(0, 0, m_viewportWidth, m_viewportHeight);
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -232,22 +232,4 @@ void GameEngine::setTransport(std::unique_ptr<ClientTransport> transport) {
 	}
 	m_transport = std::move(transport);
 	m_transport->start();
-}
-
-void GameEngine::log(const char *fmt, ...) {
-	va_list arg;
-	va_start(arg, fmt);
-	logv(fmt, arg);
-	va_end(arg);
-}
-
-void GameEngine::logv(const char *fmt, va_list arg) {
-	va_list argCopy;
-	va_copy(argCopy, arg);
-	int count = vsnprintf(nullptr, 0, fmt, argCopy);
-	va_end(argCopy);
-	char *buffer = new char[count + 1];
-	vsnprintf(buffer, count + 1, fmt, argCopy);
-	fprintf(stdout, "%s\n", buffer);
-	delete[] buffer;
 }

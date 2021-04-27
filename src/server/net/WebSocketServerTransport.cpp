@@ -8,12 +8,13 @@ WebSocketServerTransport::Connection::Connection(
 		WebSocketServerTransport &transport,
 		websocketpp::connection_hdl connection
 ): BinaryServerTransport::Connection(transport), m_connection(connection) {
+	logger().info("[Client %v] Connected", this);
 }
 
 WebSocketServerTransport::Connection::~Connection() {
 	if (m_closed) return;
 	m_closed = true;
-	printf("[Client %p] Closed\n", this);
+	logger().warn("[Client %v] Closed", this);
 	/* auto conn = webSocketTransport().m_server.get_con_from_hdl(m_connection);
 	conn->set_message_handler(nullptr);
 	conn->set_close_handler(nullptr);
@@ -37,7 +38,7 @@ WebSocketServerTransport::Connection::~Connection() {
 
 void WebSocketServerTransport::Connection::handleClose() {
 	if (m_closed) return;
-	printf("[Client %p] Disconnected\n", this);
+	logger().info("[Client %v] Disconnected", this);
 	m_closed = true;
 	webSocketTransport().m_engine->unregisterConnection(this);
 }
@@ -53,7 +54,7 @@ void WebSocketServerTransport::Connection::sendMessage(const void *data, size_t 
 			errorCode
 	);
 	if (errorCode) {
-		printf("[Client %p] Send failed: %s\n", this, errorCode.message().c_str());
+		logger().error("[Client %v] Send failed: %v", this, errorCode.message().c_str());
 	}
 }
 
@@ -84,7 +85,6 @@ void WebSocketServerTransport::handleOpen(websocketpp::connection_hdl conn_ptr) 
 	auto connection = std::make_unique<Connection>(*this, conn_ptr);
 	conn->set_message_handler(std::bind(&Connection::handleWebSocketMessage, connection.get(), std::placeholders::_2));
 	conn->set_close_handler(std::bind(&Connection::handleClose, connection.get()));
-	printf("[Client %p] Connected\n", connection.get());
 	m_engine->registerConnection(std::move(connection));
 }
 
