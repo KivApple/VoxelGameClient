@@ -150,7 +150,7 @@ TEST(VoxelWorld, oneChunk) {
 	ASSERT_FALSE(world.chunk({0, 0, 0}));
 	
 	{
-		auto chunk = world.mutableChunk({0, 0, 0}, true);
+		auto chunk = world.mutableChunk({0, 0, 0}, VoxelWorld::MissingChunkPolicy::CREATE);
 		ASSERT_TRUE(chunk);
 		ASSERT_EQ(chunk.at(0, 0, 0).toString(), "empty");
 		chunk.at(0, 0, 0).setType(testVoxelType);
@@ -172,7 +172,7 @@ TEST(VoxelWorld, twoChunks) {
 	ASSERT_FALSE(world.chunk({0, 0, 0}));
 	
 	{
-		auto chunk = world.mutableChunk({0, 0, 0}, true);
+		auto chunk = world.mutableChunk({0, 0, 0}, VoxelWorld::MissingChunkPolicy::CREATE);
 		ASSERT_TRUE(chunk);
 		ASSERT_FALSE(chunk.hasNeighbor(1, 0, 0));
 		ASSERT_EQ(chunk.extendedAt(16, 0, 0).toString(), "empty");
@@ -184,7 +184,7 @@ TEST(VoxelWorld, twoChunks) {
 	}
 	
 	{
-		auto chunk = world.mutableChunk({1, 0, 0}, true);
+		auto chunk = world.mutableChunk({1, 0, 0}, VoxelWorld::MissingChunkPolicy::CREATE);
 		ASSERT_TRUE(chunk);
 		ASSERT_TRUE(chunk.hasNeighbor(-1, 0, 0));
 		ASSERT_EQ(chunk.extendedAt(-16, 0, 0).toString(), "test");
@@ -202,7 +202,7 @@ TEST(VoxelWorld, twoChunks) {
 	}
 	
 	{
-		auto chunk = world.extendedMutableChunk({0, 0, 0}, true);
+		auto chunk = world.extendedMutableChunk({0, 0, 0}, VoxelWorld::MissingChunkPolicy::CREATE);
 		ASSERT_TRUE(chunk);
 		ASSERT_TRUE(chunk.hasNeighbor(1, 0, 0));
 		ASSERT_EQ(chunk.extendedAt(16, 0, 0).toString(), "test");

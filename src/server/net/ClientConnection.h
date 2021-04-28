@@ -45,5 +45,6 @@ public:
 	[[nodiscard]] ServerTransport &transport() const {
 		return m_transport;
 	}
+	void chunkInvalidated(const VoxelChunkLocation &location);
 	
 };

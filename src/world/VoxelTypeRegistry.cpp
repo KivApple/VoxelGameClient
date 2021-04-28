@@ -21,10 +21,12 @@ VoxelTypeRegistry::VoxelTypeRegistry() {
 #endif
 }
 
-void VoxelTypeRegistry::add(std::string name, std::unique_ptr<VoxelType> type) {
+VoxelType &VoxelTypeRegistry::add(std::string name, std::unique_ptr<VoxelType> type) {
+	auto &typeRef = *type;
 	std::unique_lock<std::shared_mutex> lock(m_mutex);
 	LOG(INFO) << "Registered \"" << name << "\" voxel type";
 	m_types.emplace(std::move(name), std::move(type));
+	return typeRef;
 }
 
 VoxelType &VoxelTypeRegistry::get(const std::string &name) {

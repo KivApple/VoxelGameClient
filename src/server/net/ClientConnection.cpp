@@ -109,8 +109,18 @@ bool ClientConnection::setPendingChunk() {
 		m_pendingChunks.erase(nearestIt);
 		m_loadedChunks.emplace(location);
 		lock.unlock();
-		chunk = transport().engine()->voxelWorld().chunk(location);
+		chunk = transport().engine()->voxelWorld().chunk(location, VoxelWorld::MissingChunkPolicy::LOAD_ASYNC);
 	} while (!chunk);
 	setChunk(chunk);
 	return true;
+}
+
+void ClientConnection::chunkInvalidated(const VoxelChunkLocation &location) {
+	std::unique_lock<std::mutex> lock(m_pendingChunksMutex);
+	if (m_loadedChunks.find(location) == m_loadedChunks.end()) {
+		return;
+	}
+	m_pendingChunks.emplace(location);
+	lock.unlock();
+	newPendingChunk();
 }

@@ -48,6 +48,9 @@ void WebSocketServerTransport::Connection::handleWriteComplete(const websocketpp
 	logger().trace("[Client %v] Connection idle detected", this);
 	asio::post([this]() {
 		m_sendingPendingChunks = setPendingChunk();
+		if (!m_sendingPendingChunks) {
+			logger().trace("[Client %v] Finished sending chunks", this);
+		}
 	});
 }
 
@@ -81,8 +84,11 @@ void WebSocketServerTransport::Connection::newPendingChunk() {
 	if (m_closed) return;
 	asio::post([this]() {
 		if (m_sendingPendingChunks) return;
-		m_sendingPendingChunks = true;
-		setPendingChunk();
+		logger().trace("[Client %v] Started sending chunks", this);
+		m_sendingPendingChunks = setPendingChunk();
+		if (!m_sendingPendingChunks) {
+			logger().trace("[Client %v] Finished sending chunks", this);
+		}
 	});
 }
 

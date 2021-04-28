@@ -43,7 +43,7 @@ bool GameEngine::init() {
 	m_userInterface = std::make_unique<UserInterface>();
 
 	m_voxelTypeRegistry = std::make_unique<VoxelTypeRegistry>();
-	m_voxelWorld = std::make_unique<VoxelWorld>();
+	m_voxelWorld = std::make_unique<VoxelWorld>(nullptr, static_cast<VoxelChunkListener*>(this));
 	m_voxelWorldRenderer = std::make_unique<VoxelWorldRenderer>(*m_voxelWorld);
 	
 	m_player = std::make_unique<Entity>(
@@ -62,8 +62,8 @@ bool GameEngine::init() {
 			m_cowModel.get()
 	);
 	
-	m_voxelTypeRegistry->add("grass", std::make_unique<SimpleVoxelType>("grass", "assets/textures/grass_top.png"));
-	m_voxelTypeRegistry->add("dirt", std::make_unique<SimpleVoxelType>("dirt", "assets/textures/mud.png"));
+	m_voxelTypeRegistry->make<SimpleVoxelType>("grass", "grass", "assets/textures/grass_top.png");
+	m_voxelTypeRegistry->make<SimpleVoxelType>("dirt", "dirt", "assets/textures/mud.png");
 	
 	LOG(INFO) << "Game engine initialized";
 	return true;
@@ -137,7 +137,14 @@ void GameEngine::render() {
 void GameEngine::updateDebugInfo() {
 	std::stringstream ss;
 	ss << "FPS: " << m_framePerSecond << "\n";
-	ss << "X=" << m_player->position().x << ", Y=" << m_player->position().y << ", Z=" << m_player->position().z << "\n";
+	ss << "X=" << m_player->position().x << ", Y=" << m_player->position().y << ", Z=" << m_player->position().z;
+	VoxelChunkLocation playerChunkLocation(
+			(int) m_player->position().x / VOXEL_CHUNK_SIZE,
+			(int) m_player->position().y / VOXEL_CHUNK_SIZE,
+			(int) m_player->position().z / VOXEL_CHUNK_SIZE
+	);
+	ss << ", (chunk X=" << playerChunkLocation.x << ", Y=" << playerChunkLocation.y <<
+			", Z=" << playerChunkLocation.z << "\n";
 	ss << "Loaded " << m_voxelWorld->chunkCount() << " chunks";
 	ss << " (" << m_voxelWorldRenderer->queueSize() << " chunk(s) in mesh build queue)\n";
 	ss << "Used " << m_voxelWorldRenderer->usedBufferCount() << " voxel mesh buffers";
@@ -161,6 +168,7 @@ void GameEngine::keyDown(KeyCode keyCode) {
 		case KeyCode::RESET_PERFORMANCE_COUNTERS:
 			m_voxelWorldRenderer->renderPerformanceCounter().reset();
 			m_voxelWorldRenderer->buildPerformanceCounter().reset();
+			m_voxelWorldRenderer->reset();
 			break;
 		default:;
 	}
@@ -232,4 +240,14 @@ void GameEngine::setTransport(std::unique_ptr<ClientTransport> transport) {
 	}
 	m_transport = std::move(transport);
 	m_transport->start();
+}
+
+void GameEngine::chunkInvalidated(const VoxelChunkLocation &location) {
+	m_voxelWorldRenderer->invalidate(location);
+	m_voxelWorldRenderer->invalidate({location.x - 1, location.y, location.z});
+	m_voxelWorldRenderer->invalidate({location.x, location.y - 1, location.z});
+	m_voxelWorldRenderer->invalidate({location.x, location.y, location.z - 1});
+	m_voxelWorldRenderer->invalidate({location.x + 1, location.y, location.z});
+	m_voxelWorldRenderer->invalidate({location.x, location.y + 1, location.z});
+	m_voxelWorldRenderer->invalidate({location.x, location.y, location.z + 1});
 }

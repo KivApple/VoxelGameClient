@@ -224,6 +224,8 @@ void VoxelWorldRenderer::updateBuffersAndScheduleRender(
 							(unsigned int) part.second.size() / 5
 					});
 					it2 = mesh.buffers.find(part.first);
+				} else {
+					it2->second.vertexCount = (unsigned int) part.second.size() / 5;
 				}
 				it2->second.buffer.setData(
 						part.second.data(),
@@ -235,6 +237,7 @@ void VoxelWorldRenderer::updateBuffersAndScheduleRender(
 			auto it2 = mesh.buffers.begin();
 			while (it2 != mesh.buffers.end()) {
 				if (it2->second.vertexCount == 0) {
+					freeBuffer(std::move(it2->second.buffer));
 					it2 = mesh.buffers.erase(it2);
 				} else {
 					++it2;
@@ -373,4 +376,12 @@ void VoxelWorldRenderer::render(
 			}
 	);
 	renderScheduled(view, projection);
+}
+
+void VoxelWorldRenderer::reset() {
+	std::unique_lock<std::mutex> lock1(m_queueMutex);
+	std::unique_lock<std::shared_mutex> lock2(m_meshesMutex);
+	m_queue.clear();
+	m_meshes.clear();
+	m_buffers.clear();
 }

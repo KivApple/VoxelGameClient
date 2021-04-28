@@ -27,7 +27,7 @@ enum class KeyCode {
 	SECONDARY_CLICK
 };
 
-class GameEngine {
+class GameEngine: VoxelChunkListener {
 	static GameEngine *s_instance;
 	bool m_running = true;
 	int m_viewportWidth = 0;
@@ -53,6 +53,8 @@ class GameEngine {
 	std::unique_ptr<Entity> m_cowEntity;
 	
 	std::unique_ptr<ClientTransport> m_transport;
+	
+	void chunkInvalidated(const VoxelChunkLocation &location) override;
 
 protected:
 	virtual bool platformInit() = 0;

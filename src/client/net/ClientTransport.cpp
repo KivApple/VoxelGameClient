@@ -12,9 +12,9 @@ void ClientTransport::handleSetPosition(const glm::vec3 &position) {
 
 void ClientTransport::handleSetChunk(const VoxelChunkLocation &location, VoxelDeserializer &deserializer) {
 	LOG(DEBUG) << "Received chunk x=" << location.x << ",y=" << location.y << ",z=" << location.z;
-	auto chunk = m_engine.voxelWorld().mutableChunk(location, true);
+	auto chunk = m_engine.voxelWorld().mutableChunk(location, VoxelWorld::MissingChunkPolicy::CREATE);
 	deserializer.object(chunk);
-	m_engine.voxelWorldRenderer().invalidate(location);
+	chunk.markDirty();
 }
 
 void ClientTransport::sendPlayerPosition() {

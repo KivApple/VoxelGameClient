@@ -4,12 +4,16 @@
 #include <shared_mutex>
 #include "VoxelChunk.h"
 
+class VoxelWorld;
+
 class SharedVoxelChunk: public VoxelChunk {
+	VoxelWorld &m_world;
 	SharedVoxelChunk *m_neighbors[3 * 3 * 3] = {};
 	std::shared_mutex m_mutex;
+	bool m_dirty = false;
 	
 public:
-	explicit SharedVoxelChunk(const VoxelChunkLocation &location): VoxelChunk(location) {
+	SharedVoxelChunk(VoxelWorld &world, const VoxelChunkLocation &location): VoxelChunk(location), m_world(world) {
 	}
 	
 	void setNeighbors(const std::unordered_map<VoxelChunkLocation, std::unique_ptr<SharedVoxelChunk>> &chunks);
@@ -20,10 +24,25 @@ public:
 		return m_mutex;
 	}
 	
+	[[nodiscard]] VoxelWorld &world() const {
+		return m_world;
+	}
+	
+	[[nodiscard]] bool dirty() const {
+		return m_dirty;
+	}
+	
+	void markDirty() {
+		m_dirty = true;
+	}
+	
+	void clearDirty() {
+		m_dirty = false;
+	}
+	
 };
 
 class VoxelChunkRef {
-
 protected:
 	SharedVoxelChunk *m_chunk;
 	
@@ -88,6 +107,7 @@ protected:
 public:
 	constexpr VoxelChunkMutableRef() = default;
 	explicit VoxelChunkMutableRef(SharedVoxelChunk &chunk);
+	VoxelChunkMutableRef(VoxelChunkMutableRef &&ref) noexcept = default;
 	VoxelChunkMutableRef &operator=(VoxelChunkMutableRef &&ref) noexcept;
 	~VoxelChunkMutableRef();
 	void unlock();
@@ -96,6 +116,9 @@ public:
 	template<typename S> void serialize(S &s) {
 		s.object(*m_chunk);
 	}
+	void markDirty() {
+		m_chunk->markDirty();
+	}
 	
 };
 
@@ -103,6 +126,7 @@ class VoxelChunkExtendedMutableRef: public VoxelChunkMutableRef {
 public:
 	constexpr VoxelChunkExtendedMutableRef() = default;
 	explicit VoxelChunkExtendedMutableRef(SharedVoxelChunk &chunk);
+	VoxelChunkExtendedMutableRef(VoxelChunkExtendedMutableRef &&ref) noexcept = default;
 	VoxelChunkExtendedMutableRef &operator=(VoxelChunkExtendedMutableRef &&ref) noexcept;
 	~VoxelChunkExtendedMutableRef();
 	void unlock();
@@ -117,18 +141,59 @@ public:
 	
 };
 
+class VoxelChunkLoader {
+public:
+	virtual ~VoxelChunkLoader() = default;
+	virtual void load(VoxelChunkMutableRef &chunk) = 0;
+	virtual void loadAsync(VoxelWorld &world, const VoxelChunkLocation &location) = 0;
+	
+};
+
+class VoxelChunkListener {
+public:
+	virtual ~VoxelChunkListener() = default;
+	virtual void chunkInvalidated(const VoxelChunkLocation &location) = 0;
+
+};
+
 class VoxelWorld {
+	VoxelChunkLoader *m_chunkLoader;
+	VoxelChunkListener *m_chunkListener;
 	std::unordered_map<VoxelChunkLocation, std::unique_ptr<SharedVoxelChunk>> m_chunks;
 	std::shared_mutex m_mutex;
 	
+	template<typename T> T createChunk(const VoxelChunkLocation &location);
+	template<typename T> T createAndLoadChunk(const VoxelChunkLocation &location);
+	
+	friend class VoxelChunkMutableRef;
+	
 public:
-	VoxelWorld() = default;
+	enum class MissingChunkPolicy {
+		NONE,
+		CREATE,
+		LOAD,
+		LOAD_ASYNC
+	};
+	
+	explicit VoxelWorld(VoxelChunkLoader *chunkLoader = nullptr, VoxelChunkListener *chunkListener = nullptr);
 	VoxelWorld(const VoxelWorld &world) = delete;
 	VoxelWorld &operator=(const VoxelWorld &world) = delete;
-	VoxelChunkRef chunk(const VoxelChunkLocation &location);
-	VoxelChunkExtendedRef extendedChunk(const VoxelChunkLocation &location);
-	VoxelChunkMutableRef mutableChunk(const VoxelChunkLocation &location, bool create = false);
-	VoxelChunkExtendedMutableRef extendedMutableChunk(const VoxelChunkLocation &location, bool create = false);
+	VoxelChunkRef chunk(
+			const VoxelChunkLocation &location,
+			MissingChunkPolicy policy = MissingChunkPolicy::NONE
+	);
+	VoxelChunkExtendedRef extendedChunk(
+			const VoxelChunkLocation &location,
+			MissingChunkPolicy policy = MissingChunkPolicy::NONE
+	);
+	VoxelChunkMutableRef mutableChunk(
+			const VoxelChunkLocation &location,
+			MissingChunkPolicy policy = MissingChunkPolicy::NONE
+	);
+	VoxelChunkExtendedMutableRef extendedMutableChunk(
+			const VoxelChunkLocation &location,
+			MissingChunkPolicy policy = MissingChunkPolicy::NONE
+	);
 	size_t chunkCount() const {
 		return m_chunks.size();
 	}

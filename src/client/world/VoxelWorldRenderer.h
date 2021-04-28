@@ -94,5 +94,6 @@ public:
 	PerformanceCounter &renderPerformanceCounter() {
 		return m_renderPerformanceCounter;
 	}
+	void reset();
 
 };

@@ -147,7 +147,7 @@ TEST(VoxelSerialization, world) {
 		VoxelWorld world;
 		
 		{
-			auto chunk = world.mutableChunk({0, 0, 0}, true);
+			auto chunk = world.mutableChunk({0, 0, 0}, VoxelWorld::MissingChunkPolicy::CREATE);
 			chunk.at(7, 11, 13).setType(typeRegistry.get("test"));
 			chunk.at(7, 11, 13).get<MyVoxel>().a = 100;
 		}
@@ -164,7 +164,7 @@ TEST(VoxelSerialization, world) {
 	
 	{
 		VoxelWorld world;
-		auto chunk = world.mutableChunk({0, 0, 0}, true);
+		auto chunk = world.mutableChunk({0, 0, 0}, VoxelWorld::MissingChunkPolicy::CREATE);
 		
 		VoxelDeserializer deserializer(typeSerializationContext, buffer.cbegin(), buffer.cend());
 		deserializer.object(chunk);

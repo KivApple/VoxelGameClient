@@ -7,16 +7,20 @@
 #include <shared_mutex>
 #include "world/VoxelWorld.h"
 #include "world/VoxelTypeRegistry.h"
+#include "world/VoxelWorldGenerator.h"
 #include "net/ServerTransport.h"
 #include "net/ClientConnection.h"
 
-class GameServerEngine {
+class GameServerEngine: VoxelChunkListener {
 	VoxelTypeRegistry m_voxelTypeRegistry;
+	VoxelWorldGenerator m_voxelWorldGenerator;
 	VoxelWorld m_voxelWorld;
 	std::vector<std::unique_ptr<ServerTransport>> m_transports;
 	std::unordered_map<ClientConnection*, std::unique_ptr<ClientConnection>> m_connections;
 	std::shared_mutex m_connectionsMutex;
 	std::atomic<bool> m_running = true;
+	
+	void chunkInvalidated(const VoxelChunkLocation &location) override;
 	
 public:
 	GameServerEngine();

@@ -1,3 +1,4 @@
+#include <easylogging++.h>
 #include "VoxelWorld.h"
 
 /* SharedVoxelChunk */
@@ -189,8 +190,21 @@ VoxelChunkMutableRef::~VoxelChunkMutableRef() {
 
 void VoxelChunkMutableRef::unlock() {
 	if (m_chunk) {
+		auto &world = m_chunk->world();
+		VoxelChunkLocation l;
+		auto dirty = m_chunk->dirty();
+		if (dirty) {
+			l = location();
+			m_chunk->clearDirty();
+		}
 		m_chunk->mutex().unlock();
 		m_chunk = nullptr;
+		if (dirty) {
+			LOG(TRACE) << "Chunk at x=" << l.x << ",y=" << l.y << ",z=" << l.z << " invalidated";
+			if (world.m_chunkListener) {
+				world.m_chunkListener->chunkInvalidated(l);
+			}
+		}
 	}
 	VoxelChunkExtendedRef::unlock();
 }
@@ -283,64 +297,120 @@ VoxelHolder &VoxelChunkExtendedMutableRef::extendedAt(
 
 /* VoxelWorld */
 
-VoxelChunkRef VoxelWorld::chunk(const VoxelChunkLocation &location) {
+VoxelWorld::VoxelWorld(
+		VoxelChunkLoader *chunkLoader,
+		VoxelChunkListener *chunkListener
+): m_chunkLoader(chunkLoader), m_chunkListener(chunkListener) {
+}
+
+template<typename T> T VoxelWorld::createChunk(const VoxelChunkLocation &location) {
+	std::unique_lock<std::shared_mutex> lock(m_mutex);
+	auto it = m_chunks.find(location);
+	if (it != m_chunks.end()) {
+		return T(*it->second);
+	}
+	auto chunkPtr = std::make_unique<SharedVoxelChunk>(*this, location);
+	auto &chunk = *chunkPtr;
+	chunk.setNeighbors(m_chunks);
+	m_chunks.emplace(location, std::move(chunkPtr));
+	return T(chunk);
+}
+
+template<typename T> T VoxelWorld::createAndLoadChunk(const VoxelChunkLocation &location) {
+	auto chunk = createChunk<T>(location);
+	m_chunkLoader->load(chunk);
+	return chunk;
+}
+
+VoxelChunkRef VoxelWorld::chunk(const VoxelChunkLocation &location, MissingChunkPolicy policy) {
 	std::shared_lock<std::shared_mutex> lock(m_mutex);
 	auto it = m_chunks.find(location);
 	if (it == m_chunks.end()) {
-		return VoxelChunkRef();
+		switch (policy) {
+			case MissingChunkPolicy::NONE:
+				return VoxelChunkRef();
+			case MissingChunkPolicy::CREATE:
+				lock.unlock();
+				return createChunk<VoxelChunkRef>(location);
+			case MissingChunkPolicy::LOAD:
+				lock.unlock();
+				createAndLoadChunk<VoxelChunkMutableRef>(location);
+				return chunk(location, MissingChunkPolicy::NONE);
+			case MissingChunkPolicy::LOAD_ASYNC:
+				lock.unlock();
+				m_chunkLoader->loadAsync(*this, location);
+				return VoxelChunkRef();
+		}
 	}
 	return VoxelChunkRef(*it->second);
 }
 
-VoxelChunkExtendedRef VoxelWorld::extendedChunk(const VoxelChunkLocation &location) {
+VoxelChunkExtendedRef VoxelWorld::extendedChunk(const VoxelChunkLocation &location, MissingChunkPolicy policy) {
 	std::shared_lock<std::shared_mutex> lock(m_mutex);
 	auto it = m_chunks.find(location);
 	if (it == m_chunks.end()) {
-		return VoxelChunkExtendedRef();
+		switch (policy) {
+			case MissingChunkPolicy::NONE:
+				return VoxelChunkExtendedRef();
+			case MissingChunkPolicy::CREATE:
+				lock.unlock();
+				return createChunk<VoxelChunkExtendedRef>(location);
+			case MissingChunkPolicy::LOAD:
+				lock.unlock();
+				createAndLoadChunk<VoxelChunkMutableRef>(location);
+				return extendedChunk(location, MissingChunkPolicy::NONE);
+			case MissingChunkPolicy::LOAD_ASYNC:
+				lock.unlock();
+				m_chunkLoader->loadAsync(*this, location);
+				return VoxelChunkExtendedRef();
+		}
 	}
 	return VoxelChunkExtendedRef(*it->second);
 }
 
-VoxelChunkMutableRef VoxelWorld::mutableChunk(const VoxelChunkLocation &location, bool create) {
-	std::shared_lock<std::shared_mutex> sharedLock(m_mutex);
+VoxelChunkMutableRef VoxelWorld::mutableChunk(const VoxelChunkLocation &location, MissingChunkPolicy policy) {
+	std::shared_lock<std::shared_mutex> lock(m_mutex);
 	auto it = m_chunks.find(location);
 	if (it == m_chunks.end()) {
-		if (!create) {
-			return VoxelChunkMutableRef();
+		switch (policy) {
+			case MissingChunkPolicy::NONE:
+				return VoxelChunkMutableRef();
+			case MissingChunkPolicy::CREATE:
+				lock.unlock();
+				return createChunk<VoxelChunkMutableRef>(location);
+			case MissingChunkPolicy::LOAD:
+				lock.unlock();
+				return createAndLoadChunk<VoxelChunkMutableRef>(location);
+			case MissingChunkPolicy::LOAD_ASYNC:
+				lock.unlock();
+				m_chunkLoader->loadAsync(*this, location);
+				return VoxelChunkMutableRef();
 		}
-		sharedLock.unlock();
-		std::unique_lock<std::shared_mutex> lock(m_mutex);
-		it = m_chunks.find(location);
-		if (it != m_chunks.end()) {
-			return VoxelChunkMutableRef(*it->second);
-		}
-		auto chunkPtr = std::make_unique<SharedVoxelChunk>(location);
-		auto &chunk = *chunkPtr;
-		chunk.setNeighbors(m_chunks);
-		m_chunks.emplace(location, std::move(chunkPtr));
-		return VoxelChunkMutableRef(chunk);
 	}
 	return VoxelChunkMutableRef(*it->second);
 }
 
-VoxelChunkExtendedMutableRef VoxelWorld::extendedMutableChunk(const VoxelChunkLocation &location, bool create) {
-	std::shared_lock<std::shared_mutex> sharedLock(m_mutex);
+VoxelChunkExtendedMutableRef VoxelWorld::extendedMutableChunk(
+		const VoxelChunkLocation &location,
+		MissingChunkPolicy policy
+) {
+	std::shared_lock<std::shared_mutex> lock(m_mutex);
 	auto it = m_chunks.find(location);
 	if (it == m_chunks.end()) {
-		if (!create) {
-			return VoxelChunkExtendedMutableRef();
+		switch (policy) {
+			case MissingChunkPolicy::NONE:
+				return VoxelChunkExtendedMutableRef();
+			case MissingChunkPolicy::CREATE:
+				lock.unlock();
+				return createChunk<VoxelChunkExtendedMutableRef>(location);
+			case MissingChunkPolicy::LOAD:
+				lock.unlock();
+				return createAndLoadChunk<VoxelChunkExtendedMutableRef>(location);
+			case MissingChunkPolicy::LOAD_ASYNC:
+				lock.unlock();
+				m_chunkLoader->loadAsync(*this, location);
+				return VoxelChunkExtendedMutableRef();
 		}
-		sharedLock.unlock();
-		std::unique_lock<std::shared_mutex> lock(m_mutex);
-		it = m_chunks.find(location);
-		if (it != m_chunks.end()) {
-			return VoxelChunkExtendedMutableRef(*it->second);
-		}
-		auto chunkPtr = std::make_unique<SharedVoxelChunk>(location);
-		auto &chunk = *chunkPtr;
-		chunk.setNeighbors(m_chunks);
-		m_chunks.emplace(location, std::move(chunkPtr));
-		return VoxelChunkExtendedMutableRef(chunk);
 	}
 	return VoxelChunkExtendedMutableRef(*it->second);
 }
