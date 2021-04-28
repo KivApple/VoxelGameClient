@@ -26,6 +26,18 @@ void SharedVoxelChunk::setNeighbors(
 	}
 }
 
+void SharedVoxelChunk::unsetNeighbors() {
+	for (int dz = -1; dz <= 1; dz++) {
+		for (int dy = -1; dy <= 1; dy++) {
+			for (int dx = -1; dx <= 1; dx++) {
+				auto chunk = m_neighbors[(dx + 1) + (dy + 1) * 3 + (dz + 1) * 3 * 3];
+				if (chunk == nullptr) continue;
+				chunk->m_neighbors[(-dx + 1) + (-dy + 1) * 3 + (-dz + 1) * 3 * 3] = nullptr;
+			}
+		}
+	}
+}
+
 SharedVoxelChunk *SharedVoxelChunk::neighbor(int dx, int dy, int dz) const {
 	return m_neighbors[(dx + 1) + (dy + 1) * 3 + (dz + 1) * 3 * 3];
 }
@@ -413,4 +425,17 @@ VoxelChunkExtendedMutableRef VoxelWorld::extendedMutableChunk(
 		}
 	}
 	return VoxelChunkExtendedMutableRef(*it->second);
+}
+
+void VoxelWorld::unloadChunks(const std::vector<VoxelChunkLocation> &locations) {
+	std::unique_lock<std::shared_mutex> lock(m_mutex);
+	for (auto &location : locations) {
+		auto it = m_chunks.find(location);
+		if (it != m_chunks.end()) {
+			std::unique_lock<std::shared_mutex> chunkLock(it->second->mutex());
+			it->second->unsetNeighbors();
+			chunkLock.unlock();
+			m_chunks.erase(it);
+		}
+	}
 }

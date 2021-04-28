@@ -19,6 +19,7 @@ class ClientTransport {
 protected:
 	void handleSetPosition(const glm::vec3 &position);
 	void handleSetChunk(const VoxelChunkLocation &location, VoxelDeserializer &deserializer);
+	void handleDiscardChunks(const std::vector<VoxelChunkLocation> &locations);
 	virtual void sendPlayerPosition(const glm::vec3 &position, float yaw, float pitch, int viewRadius) = 0;
 	
 public:

@@ -17,6 +17,11 @@ void ClientTransport::handleSetChunk(const VoxelChunkLocation &location, VoxelDe
 	chunk.markDirty();
 }
 
+void ClientTransport::handleDiscardChunks(const std::vector<VoxelChunkLocation> &locations) {
+	LOG(DEBUG) << "Discarding " << locations.size() << " chunk(s)";
+	m_engine.voxelWorld().unloadChunks(locations);
+}
+
 void ClientTransport::sendPlayerPosition() {
 	std::unique_lock<std::mutex> lock(m_playerPositionMutex);
 	if (!m_playerPositionValid) return;

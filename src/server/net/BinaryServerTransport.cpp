@@ -58,3 +58,7 @@ void BinaryServerTransport::Connection::setChunk(const VoxelChunkRef &chunk) {
 	serializer.object(chunk);
 	sendMessage(buffer.data(), serializer.adapter().currentWritePos());
 }
+
+void BinaryServerTransport::Connection::discardChunks(const std::vector<VoxelChunkLocation> &locations) {
+	serializeAndSendMessage(ServerMessage<ServerMessageData::DiscardChunks>({locations}));
+}

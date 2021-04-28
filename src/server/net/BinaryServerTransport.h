@@ -38,6 +38,7 @@ protected:
 		void setPosition(const glm::vec3 &position) override;
 		void setVoxelTypes();
 		void setChunk(const VoxelChunkRef &chunk) override;
+		void discardChunks(const std::vector<VoxelChunkLocation> &locations) override;
 	
 	public:
 		explicit Connection(BinaryServerTransport &transport): ClientConnection(transport) {

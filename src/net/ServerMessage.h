@@ -7,7 +7,8 @@ class VoxelTypeSerializationContext;
 enum class ServerMessageType: uint16_t {
 	SET_POSITION,
 	SET_VOXEL_TYPES,
-	SET_CHUNK
+	SET_CHUNK,
+	DISCARD_CHUNKS
 };
 
 template<typename T> struct ServerMessage {
@@ -61,6 +62,16 @@ namespace ServerMessageData {
 		
 		template<typename S> void serialize(S &s) {
 			s.object(location);
+		}
+	};
+	
+	struct DiscardChunks {
+		static const ServerMessageType TYPE = ServerMessageType::DISCARD_CHUNKS;
+		
+		std::vector<VoxelChunkLocation> locations;
+		
+		template<typename S> void serialize(S &s) {
+			s.container(locations, 65535);
 		}
 	};
 	

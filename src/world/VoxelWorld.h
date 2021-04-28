@@ -17,6 +17,7 @@ public:
 	}
 	
 	void setNeighbors(const std::unordered_map<VoxelChunkLocation, std::unique_ptr<SharedVoxelChunk>> &chunks);
+	void unsetNeighbors();
 	
 	[[nodiscard]] SharedVoxelChunk *neighbor(int dx, int dy, int dz) const;
 	
@@ -194,6 +195,7 @@ public:
 			const VoxelChunkLocation &location,
 			MissingChunkPolicy policy = MissingChunkPolicy::NONE
 	);
+	void unloadChunks(const std::vector<VoxelChunkLocation> &locations);
 	size_t chunkCount() const {
 		return m_chunks.size();
 	}

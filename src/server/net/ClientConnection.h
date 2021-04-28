@@ -36,6 +36,7 @@ protected:
 	void updatePosition(const glm::vec3 &position, float yaw, float pitch, int viewRadius);
 	virtual void setPosition(const glm::vec3 &position) = 0;
 	virtual void setChunk(const VoxelChunkRef &chunk) = 0;
+	virtual void discardChunks(const std::vector<VoxelChunkLocation> &locations) = 0;
 	virtual void newPendingChunk() = 0;
 	bool setPendingChunk();
 

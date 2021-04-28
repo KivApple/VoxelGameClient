@@ -75,9 +75,30 @@ void ClientConnection::handleChunkChanged(const VoxelChunkLocation &location, in
 			}
 		}
 	}
+	std::vector<VoxelChunkLocation> discardedChunks;
+	auto it = m_loadedChunks.begin();
+	while (it != m_loadedChunks.end() && discardedChunks.size() < 65535) {
+		int dx = it->x - location.x;
+		int dy = it->y - location.y;
+		int dz = it->z - location.z;
+		if (
+				dx < -(viewRadius + 1) || dx > (viewRadius + 1) ||
+				dy < -(viewRadius + 1) || dy > (viewRadius + 1) ||
+				dz < -(viewRadius + 1) || dz > (viewRadius + 1)
+		) {
+			discardedChunks.emplace_back(*it);
+			it = m_loadedChunks.erase(it);
+		} else {
+			++it;
+		}
+	}
 	lock.unlock();
 	if (foundUnloadedChunks) {
 		newPendingChunk();
+	}
+	if (!discardedChunks.empty()) {
+		logger().debug("[Client %v] Discarding %v chunk(s)", this, discardedChunks.size());
+		discardChunks(discardedChunks);
 	}
 }
 

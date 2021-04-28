@@ -35,6 +35,12 @@ void BinaryClientTransport::handleMessage(const std::string &payload) {
 			handleSetChunk(msg.data.location, deserializer);
 			break;
 		}
+		case ServerMessageType::DISCARD_CHUNKS: {
+			ServerMessage<ServerMessageData::DiscardChunks> msg;
+			deserialize(payload, msg);
+			handleDiscardChunks(msg.data.locations);
+			break;
+		}
 		default:
 			LOG(WARNING) << "Unknown server message type: " << (int) genericMessage.type;
 	}
