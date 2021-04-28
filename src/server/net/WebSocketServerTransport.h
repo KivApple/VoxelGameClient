@@ -2,17 +2,15 @@
 
 #include <unordered_set>
 #include <thread>
-#include <websocketpp/config/asio_no_tls.hpp>
-#include <websocketpp/server.hpp>
+#include "WebSocketServerConfig.h"
 #include "BinaryServerTransport.h"
 #include "ClientConnection.h"
 
 class WebSocketServerTransport: public BinaryServerTransport, std::thread {
-	typedef websocketpp::server<websocketpp::config::asio> server_t;
-	
 	class Connection: public BinaryServerTransport::Connection {
 		websocketpp::connection_hdl m_connection;
 		std::atomic<bool> m_closed = false;
+		bool m_sendingPendingChunks = false;
 		
 		[[nodiscard]] WebSocketServerTransport &webSocketTransport() const {
 			return (WebSocketServerTransport&) transport();
@@ -20,11 +18,13 @@ class WebSocketServerTransport: public BinaryServerTransport, std::thread {
 		
 		friend class WebSocketServerTransport;
 		
-		void handleWebSocketMessage(server_t::message_ptr message);
+		void handleWriteComplete(const websocketpp::lib::error_code &errorCode);
+		void handleWebSocketMessage(WebSocketServer::message_ptr message);
 		void handleClose();
 	
 	protected:
 		void sendMessage(const void *data, size_t dataSize) override;
+		void newPendingChunk() override;
 	
 	public:
 		Connection(WebSocketServerTransport &transport, websocketpp::connection_hdl connection);
@@ -33,7 +33,7 @@ class WebSocketServerTransport: public BinaryServerTransport, std::thread {
 	};
 	
 	uint16_t m_port;
-	server_t m_server;
+	WebSocketServer m_server;
 	std::thread m_thread;
 	GameServerEngine *m_engine = nullptr;
 	

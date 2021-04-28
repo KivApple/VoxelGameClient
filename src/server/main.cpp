@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
 		el::Configurations conf;
 		conf.setGlobally(
 				el::ConfigurationType::Format,
-				"%datetime{%Y-%M-%d %H:%m:%s.%g} [%level] [%logger] %msg"
+				"%datetime{%Y-%M-%d %H:%m:%s.%g} [%level] [%logger] [%thread] %msg"
 		);
 		el::Loggers::setDefaultConfigurations(conf, true);
 	}

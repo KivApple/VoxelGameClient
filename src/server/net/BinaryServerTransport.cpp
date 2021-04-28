@@ -48,6 +48,10 @@ void BinaryServerTransport::Connection::setChunk(const VoxelChunkRef &chunk) {
 		setVoxelTypes();
 		lock.lock();
 	}
+	logger().debug(
+			"[Client %v] Sending chunk x=%v,y=%v,z=%v",
+			this, chunk.location().x, chunk.location().y, chunk.location().z
+	);
 	std::string buffer;
 	VoxelSerializer serializer(*m_voxelSerializationContext, buffer);
 	serializer.object(ServerMessage<ServerMessageData::SetChunk>({ chunk.location() }));

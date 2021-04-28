@@ -21,6 +21,10 @@ struct VoxelChunkLocation {
 		return x == location.x && y == location.y && z == location.z;
 	}
 	
+	constexpr bool operator!=(const VoxelChunkLocation &location) const {
+		return !(*this == location);
+	}
+	
 	template<typename S> void serialize(S &s) {
 		s.value4b(x);
 		s.value4b(y);
@@ -42,6 +46,10 @@ struct InChunkVoxelLocation {
 	
 	constexpr bool operator==(const InChunkVoxelLocation &location) const {
 		return x == location.x && y == location.y && z == location.z;
+	}
+	
+	constexpr bool operator!=(const InChunkVoxelLocation &location) const {
+		return !(*this == location);
 	}
 	
 	template<typename S> void serialize(S &s) {
@@ -70,6 +78,10 @@ struct VoxelLocation {
 	
 	constexpr bool operator==(const VoxelLocation &location) const {
 		return x == location.x && y == location.y && z == location.z;
+	}
+	
+	constexpr bool operator!=(const VoxelLocation &location) const {
+		return !(*this == location);
 	}
 	
 	[[nodiscard]] constexpr VoxelChunkLocation chunk() const {

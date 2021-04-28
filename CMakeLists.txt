@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_library(easyloggingpp::easyloggingpp INTERFACE IMPORTED)
 target_include_directories(easyloggingpp::easyloggingpp INTERFACE lib/easyloggingpp/src)
-target_compile_definitions(easyloggingpp::easyloggingpp INTERFACE ELPP_NO_DEFAULT_LOG_FILE)
+target_compile_definitions(easyloggingpp::easyloggingpp INTERFACE ELPP_THREAD_SAFE ELPP_NO_DEFAULT_LOG_FILE)
 target_sources(easyloggingpp::easyloggingpp INTERFACE lib/easyloggingpp/src/easylogging++.cc)
 
 add_subdirectory(lib/glm)

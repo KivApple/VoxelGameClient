@@ -36,6 +36,25 @@ WebSocketServerTransport::Connection::~Connection() {
 	condVar.wait(lock);
 }
 
+void WebSocketServerTransport::Connection::handleWriteComplete(const websocketpp::lib::error_code &errorCode) {
+	if (errorCode) {
+		logger().error("[Client %v] Write failed %v", this, errorCode);
+		return;
+	}
+	auto conn = webSocketTransport().m_server.get_con_from_hdl(m_connection);
+	if (conn->get_buffered_amount() > 0) {
+		return;
+	}
+	logger().trace("[Client %v] Connection idle detected", this);
+	asio::post([this]() {
+		m_sendingPendingChunks = setPendingChunk();
+	});
+}
+
+void WebSocketServerTransport::Connection::handleWebSocketMessage(WebSocketServer::message_ptr message) {
+	deserializeAndHandleMessage(message->get_payload());
+}
+
 void WebSocketServerTransport::Connection::handleClose() {
 	if (m_closed) return;
 	logger().info("[Client %v] Disconnected", this);
@@ -58,8 +77,13 @@ void WebSocketServerTransport::Connection::sendMessage(const void *data, size_t 
 	}
 }
 
-void WebSocketServerTransport::Connection::handleWebSocketMessage(server_t::message_ptr message) {
-	deserializeAndHandleMessage(message->get_payload());
+void WebSocketServerTransport::Connection::newPendingChunk() {
+	if (m_closed) return;
+	asio::post([this]() {
+		if (m_sendingPendingChunks) return;
+		m_sendingPendingChunks = true;
+		setPendingChunk();
+	});
 }
 
 /* WebSocketServerTransport */
@@ -83,6 +107,7 @@ void WebSocketServerTransport::start(GameServerEngine &engine) {
 void WebSocketServerTransport::handleOpen(websocketpp::connection_hdl conn_ptr) {
 	auto conn = m_server.get_con_from_hdl(conn_ptr);
 	auto connection = std::make_unique<Connection>(*this, conn_ptr);
+	conn->setWriteCompleteHandler(std::bind(&Connection::handleWriteComplete, connection.get(), std::placeholders::_1));
 	conn->set_message_handler(std::bind(&Connection::handleWebSocketMessage, connection.get(), std::placeholders::_2));
 	conn->set_close_handler(std::bind(&Connection::handleClose, connection.get()));
 	m_engine->registerConnection(std::move(connection));

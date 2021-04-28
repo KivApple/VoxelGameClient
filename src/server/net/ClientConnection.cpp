@@ -25,8 +25,18 @@ void ClientConnection::updatePosition(const glm::vec3 &position, float yaw, floa
 			resetPosition = true;
 		}
 	}
+	bool chunkChanged = false;
 	if (!resetPosition) {
 		m_position = position;
+		VoxelChunkLocation positionChunk(
+				(int) position.x / VOXEL_CHUNK_SIZE,
+				(int) position.y / VOXEL_CHUNK_SIZE,
+				(int) position.z / VOXEL_CHUNK_SIZE
+		);
+		if (!m_positionValid || positionChunk != m_positionChunk) {
+			m_positionChunk = positionChunk;
+			chunkChanged = true;
+		}
 	}
 	m_yaw = yaw;
 	m_pitch = pitch;
@@ -40,35 +50,67 @@ void ClientConnection::updatePosition(const glm::vec3 &position, float yaw, floa
 	m_positionValid = true;
 	auto newPosition = m_position;
 	auto radius = m_viewRadius;
+	auto positionChunk = m_positionChunk;
 	lock.unlock();
 	if (resetPosition) {
 		setPosition(newPosition);
 	}
-	sendUnloadedChunks(newPosition, radius);
+	if (chunkChanged) {
+		handleChunkChanged(positionChunk, radius);
+	}
 }
 
-void ClientConnection::sendUnloadedChunks(const glm::vec3 &position, int viewRadius) {
-	auto x0 = (int) roundf(position.x / VOXEL_CHUNK_SIZE);
-	auto y0 = (int) roundf(position.y / VOXEL_CHUNK_SIZE);
-	auto z0 = (int) roundf(position.z / VOXEL_CHUNK_SIZE);
-	for (int r = 0; r < viewRadius; r++) {
-		for (int dz = -r; dz <= r; dz++) {
-			for (int dy = -r; dy <= r; dy++) {
-				for (int dx = -r; dx <= r; dx++) {
-					VoxelChunkLocation location(x0 + dx, y0 + dy, z0 + dz);
-					if (m_loadedChunks.find(location) == m_loadedChunks.end()) {
-						m_loadedChunks.emplace(location);
-						auto chunk = m_transport.engine()->voxelWorld().chunk(location);
-						if (chunk) {
-							logger().debug(
-									"[Client %v] Sending chunk x=%v,y=%v,z=%v",
-									this, location.x, location.y, location.z
-							);
-							setChunk(chunk);
-						}
-					}
+void ClientConnection::handleChunkChanged(const VoxelChunkLocation &location, int viewRadius) {
+	std::unique_lock<std::mutex> lock(m_pendingChunksMutex);
+	m_pendingChunks.clear();
+	bool foundUnloadedChunks = false;
+	for (int dz = -viewRadius; dz <= viewRadius; dz++) {
+		for (int dy = -viewRadius; dy <= viewRadius; dy++) {
+			for (int dx = -viewRadius; dx <= viewRadius; dx++) {
+				VoxelChunkLocation l(location.x + dx, location.y + dy, location.z + dz);
+				if (m_loadedChunks.find(l) == m_loadedChunks.end()) {
+					m_pendingChunks.emplace(l);
+					foundUnloadedChunks = true;
 				}
 			}
 		}
 	}
+	lock.unlock();
+	if (foundUnloadedChunks) {
+		newPendingChunk();
+	}
+}
+
+bool ClientConnection::setPendingChunk() {
+	glm::vec3 position;
+	{
+		std::shared_lock<std::shared_mutex> sharedLock(m_positionMutex);
+		position = m_position;
+	}
+	VoxelChunkRef chunk;
+	do {
+		std::unique_lock<std::mutex> lock(m_pendingChunksMutex);
+		auto nearestIt = m_pendingChunks.end();
+		float nearestDistance = INFINITY;
+		for (auto it = m_pendingChunks.begin(); it != m_pendingChunks.end(); ++it) {
+			float dx = (float) it->x - position.x;
+			float dy = (float) it->y - position.y;
+			float dz = (float) it->z - position.z;
+			float distance = dx * dx + dy * dy + dz * dz;
+			if (distance < nearestDistance) {
+				nearestDistance = distance;
+				nearestIt = it;
+			}
+		}
+		if (nearestIt == m_pendingChunks.end()) {
+			return false;
+		}
+		auto location = *nearestIt;
+		m_pendingChunks.erase(nearestIt);
+		m_loadedChunks.emplace(location);
+		lock.unlock();
+		chunk = transport().engine()->voxelWorld().chunk(location);
+	} while (!chunk);
+	setChunk(chunk);
+	return true;
 }

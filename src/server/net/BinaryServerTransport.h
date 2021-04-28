@@ -35,13 +35,13 @@ protected:
 			);
 			sendMessage(buffer.data(), count);
 		}
+		void setPosition(const glm::vec3 &position) override;
 		void setVoxelTypes();
+		void setChunk(const VoxelChunkRef &chunk) override;
 	
 	public:
 		explicit Connection(BinaryServerTransport &transport): ClientConnection(transport) {
 		}
-		void setPosition(const glm::vec3 &position) override;
-		void setChunk(const VoxelChunkRef &chunk) override;
 		
 	};
 	
