@@ -1,9 +1,11 @@
 #pragma once
 
 #include "UIBase.h"
+#include "Crosshair.h"
 #include "UIJoystick.h"
 
 class UserInterface: public UIElementGroup {
+	Crosshair m_crosshair;
 	UIJoystick m_joystick;
 	UIJoystick m_verticalJoystick;
 	bool m_joystickVisible = false;

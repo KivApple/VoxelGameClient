@@ -8,6 +8,7 @@ UserInterface::UserInterface(
 }), m_verticalJoystick(true, [](const glm::vec2 &position) {
 	GameEngine::instance().updatePlayerMovement(nullptr, &position.y, nullptr);
 }) {
+	addChild(&m_crosshair, glm::vec2(0.0f), glm::vec2(0.05f));
 }
 
 glm::mat4 UserInterface::transformMatrix() {

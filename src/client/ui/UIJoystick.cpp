@@ -4,7 +4,7 @@
 #include "UIJoystick.h"
 #include "client/GameEngine.h"
 
-float UIJoystick::s_bufferData[] = {
+const float UIJoystick::s_bufferData[] = {
 		-1.0f,  1.0f, 0.0f, /**/ 1.0f, 1.0f, 1.0f, 1.0f,
 		1.0f,  1.0f, 0.0f, /**/ 1.0f, 1.0f, 1.0f, 1.0f,
 		-1.0f, -1.0f, 0.0f, /**/ 1.0f, 1.0f, 1.0f, 1.0f,

@@ -5,7 +5,7 @@
 #include "client/OpenGL.h"
 
 class UIJoystick: public UIElement {
-	static float s_bufferData[];
+	static const float s_bufferData[];
 	GLBuffer m_buffer;
 	bool m_vertical;
 	std::function<void(const glm::vec2&)> m_callback;
