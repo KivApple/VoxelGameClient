@@ -360,9 +360,9 @@ void VoxelWorldRenderer::render(
 ) {
 	PerformanceMeasurement measurement(m_renderPerformanceCounter);
 	VoxelChunkLocation playerChunkLocation(
-			(int) roundf(playerPosition.x / VOXEL_CHUNK_SIZE),
-			(int) roundf(playerPosition.y / VOXEL_CHUNK_SIZE),
-			(int) roundf(playerPosition.z / VOXEL_CHUNK_SIZE)
+			(int) roundf(playerPosition.x) / VOXEL_CHUNK_SIZE,
+			(int) roundf(playerPosition.y) / VOXEL_CHUNK_SIZE,
+			(int) roundf(playerPosition.z) / VOXEL_CHUNK_SIZE
 	);
 	cleanupQueue(playerChunkLocation, radius);
 	buildInvalidated(playerPosition);

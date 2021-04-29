@@ -1,7 +1,9 @@
 #pragma once
 
 enum class ClientMessageType: uint16_t {
-	UPDATE_POSITION
+	UPDATE_POSITION,
+	DIG_VOXEL,
+	PLACE_VOXEL
 };
 
 template<typename T> struct ClientMessage {
@@ -40,6 +42,26 @@ namespace ClientMessageData {
 			s.value4b(yaw);
 			s.value4b(pitch);
 			s.value1b(viewRadius);
+		}
+	};
+	
+	struct DigVoxel {
+		static const ClientMessageType TYPE = ClientMessageType::DIG_VOXEL;
+		
+		VoxelLocation location;
+		
+		template<typename S> void serialize(S &s) {
+			s.object(location);
+		}
+	};
+	
+	struct PlaceVoxel {
+		static const ClientMessageType TYPE = ClientMessageType::PLACE_VOXEL;
+		
+		VoxelLocation location;
+		
+		template<typename S> void serialize(S &s) {
+			s.object(location);
 		}
 	};
 }

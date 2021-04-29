@@ -7,16 +7,16 @@ ClientConnection::ClientConnection(ServerTransport &transport): m_transport(tran
 }
 
 void ClientConnection::updatePosition(const glm::vec3 &position, float yaw, float pitch, int viewRadius) {
-	logger().trace(
+	/* logger().trace(
 			"[Client %v] updatePosition(x=%v, y=%v, z=%v, yaw=%v, pitch=%v, viewRadius=%v)",
 			this, position.x, position.y, position.z, yaw, pitch, viewRadius
-	);
+	); */
 	std::unique_lock<std::shared_mutex> lock(m_positionMutex);
 	bool resetPosition = false;
 	if (m_positionValid) {
 		std::chrono::duration<float> dt = std::chrono::steady_clock::now() - m_lastPositionUpdatedAt;
 		auto delta = (position - m_position) / dt.count();
-		static const float MAX_DELTA = 10.0f;
+		static const float MAX_DELTA = 20.0f;
 		if (fabsf(delta.x) >= MAX_DELTA || fabsf(delta.y) >= MAX_DELTA || fabsf(delta.z) >= MAX_DELTA) {
 			logger().warn(
 					"[Client %v] Player is moving too fast (dx=%v,dy=%v,dz=%v)",
@@ -29,9 +29,9 @@ void ClientConnection::updatePosition(const glm::vec3 &position, float yaw, floa
 	if (!resetPosition) {
 		m_position = position;
 		VoxelChunkLocation positionChunk(
-				(int) position.x / VOXEL_CHUNK_SIZE,
-				(int) position.y / VOXEL_CHUNK_SIZE,
-				(int) position.z / VOXEL_CHUNK_SIZE
+				(int) roundf(position.x) / VOXEL_CHUNK_SIZE,
+				(int) roundf(position.y) / VOXEL_CHUNK_SIZE,
+				(int) roundf(position.z) / VOXEL_CHUNK_SIZE
 		);
 		if (!m_positionValid || positionChunk != m_positionChunk) {
 			m_positionChunk = positionChunk;
@@ -114,9 +114,9 @@ bool ClientConnection::setPendingChunk() {
 		auto nearestIt = m_pendingChunks.end();
 		float nearestDistance = INFINITY;
 		for (auto it = m_pendingChunks.begin(); it != m_pendingChunks.end(); ++it) {
-			float dx = (float) it->x - position.x;
-			float dy = (float) it->y - position.y;
-			float dz = (float) it->z - position.z;
+			float dx = (float) it->x - floorf(roundf(position.x) / VOXEL_CHUNK_SIZE);
+			float dy = (float) it->y - floorf(roundf(position.y) / VOXEL_CHUNK_SIZE);
+			float dz = (float) it->z - floorf(roundf(position.z) / VOXEL_CHUNK_SIZE);
 			float distance = dx * dx + dy * dy + dz * dz;
 			if (distance < nearestDistance) {
 				nearestDistance = distance;
@@ -144,4 +144,34 @@ void ClientConnection::chunkInvalidated(const VoxelChunkLocation &location) {
 	m_pendingChunks.emplace(location);
 	lock.unlock();
 	newPendingChunk();
+}
+
+void ClientConnection::digVoxel(const VoxelLocation &location) {
+	logger().debug("[Client %v] Dig voxel at x=%v,y=%v,z=%v", this, location.x, location.y, location.z);
+	auto chunkLocation = location.chunk();
+	auto chunk = transport().engine()->voxelWorld().mutableChunk(chunkLocation);
+	if (!chunk) {
+		logger().warn(
+				"[Client %v] Attempt to dig voxel at absent chunk x=%v,y=%v,z=%v",
+				this, chunkLocation.x, chunkLocation.y, chunkLocation.z
+		);
+		return;
+	}
+	chunk.at(location.inChunk()).setType(EmptyVoxelType::INSTANCE);
+	chunk.markDirty();
+}
+
+void ClientConnection::placeVoxel(const VoxelLocation &location) {
+	logger().debug("[Client %v] Place voxel at x=%v,y=%v,z=%v", this, location.x, location.y, location.z);
+	auto chunkLocation = location.chunk();
+	auto chunk = transport().engine()->voxelWorld().mutableChunk(chunkLocation);
+	if (!chunk) {
+		logger().warn(
+				"[Client %v] Attempt to place voxel at absent chunk x=%v,y=%v,z=%v",
+				this, chunkLocation.x, chunkLocation.y, chunkLocation.z
+		);
+		return;
+	}
+	chunk.at(location.inChunk()).setType(transport().engine()->voxelTypeRegistry().get("grass"));
+	chunk.markDirty();
 }

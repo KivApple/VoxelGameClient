@@ -6,6 +6,7 @@
 #include "ShaderProgram.h"
 #include "client/ui/TextRenderer.h"
 #include "ui/UIRoot.h"
+#include "ui/VoxelOutline.h"
 #include "world/VoxelTypeRegistry.h"
 #include "world/VoxelWorld.h"
 #include "client/world/VoxelWorldRenderer.h"
@@ -43,10 +44,14 @@ class GameEngine: VoxelChunkListener {
 	std::unique_ptr<VoxelTypeRegistry> m_voxelTypeRegistry;
 	std::unique_ptr<VoxelWorld> m_voxelWorld;
 	std::unique_ptr<VoxelWorldRenderer> m_voxelWorldRenderer;
+	std::unique_ptr<VoxelOutline> m_voxelOutline;
 	glm::mat4 m_projection = glm::mat4(1.0f);
 	std::unique_ptr<Entity> m_player;
 	std::chrono::milliseconds m_lastPlayerPositionUpdateTime = std::chrono::milliseconds(0);
 	glm::vec3 m_playerSpeed = glm::vec3(0.0f);
+	std::string m_debugStr;
+	bool m_mouseClicked = false;
+	bool m_mouseSecondaryClicked = false;
 	
 	std::unique_ptr<GLTexture> m_cowTexture;
 	std::unique_ptr<Model> m_cowModel;
@@ -66,7 +71,7 @@ public:
 	GameEngine();
 	GameEngine(const GameEngine&) = delete;
 	GameEngine &operator=(const GameEngine&) = delete;
-	~GameEngine();
+	~GameEngine() override;
 	
 	bool init();
 	virtual int run() = 0;
@@ -80,6 +85,7 @@ public:
 	void updatePlayerDirection(float dx, float dy);
 	void updatePlayerMovement(const float *dx, const float *dy, const float *dz);
 	void updatePlayerPosition();
+	void updatePointingAt(const glm::mat4 &view);
 	void setPlayerPosition(const glm::vec3 &position);
 	void updateDebugInfo();
 	

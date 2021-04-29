@@ -3,6 +3,7 @@
 #include <easylogging++.h>
 #include "GameEngine.h"
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/intersect.hpp>
 #include <GL/glew.h>
 
 GameEngine *GameEngine::s_instance = nullptr;
@@ -45,6 +46,7 @@ bool GameEngine::init() {
 	m_voxelTypeRegistry = std::make_unique<VoxelTypeRegistry>();
 	m_voxelWorld = std::make_unique<VoxelWorld>(nullptr, static_cast<VoxelChunkListener*>(this));
 	m_voxelWorldRenderer = std::make_unique<VoxelWorldRenderer>(*m_voxelWorld);
+	m_voxelOutline = std::make_unique<VoxelOutline>();
 	
 	m_player = std::make_unique<Entity>(
 			glm::vec3(1.0f, 1.0f, -1.0f),
@@ -115,7 +117,10 @@ void GameEngine::render() {
 	);
 	
 	m_cowEntity->render(view, m_projection);
+	
 	m_voxelWorldRenderer->render(playerPosition, 2, view, m_projection);
+	updatePointingAt(view);
+	m_voxelOutline->render(view, m_projection);
 	
 	glDisable(GL_DEPTH_TEST);
 	
@@ -134,17 +139,57 @@ void GameEngine::render() {
 	updateDebugInfo();
 }
 
+void GameEngine::updatePointingAt(const glm::mat4 &view) {
+	m_debugStr.clear();
+	auto playerPosition = m_player->position();
+	glm::vec3 playerDirection = m_player->direction(true);
+	VoxelChunkRef chunk;
+	VoxelLocation prevLocation;
+	for (float r = 0.0f; r < 4.0f; r += 0.1f) {
+		auto position = playerPosition + playerDirection * r;
+		VoxelLocation location((int) roundf(position.x), (int) roundf(position.y), (int) roundf(position.z));
+		if (r == 0.0f || location != prevLocation) {
+			prevLocation = location;
+		} else {
+			continue;
+		}
+		
+		auto chunkLocation = location.chunk();
+		if (!chunk || chunk.location() != chunkLocation) {
+			chunk = m_voxelWorld->chunk(chunkLocation);
+		}
+		if (!chunk) {
+			break;
+		}
+
+		auto &voxel = chunk.at(location.inChunk());
+		if (m_voxelOutline->set(voxel, location, playerPosition, playerDirection)) {
+			break;
+		}
+	}
+	if (chunk) {
+		chunk.unlock();
+	}
+}
+
 void GameEngine::updateDebugInfo() {
 	std::stringstream ss;
 	ss << "FPS: " << m_framePerSecond << "\n";
 	ss << "X=" << m_player->position().x << ", Y=" << m_player->position().y << ", Z=" << m_player->position().z;
 	VoxelChunkLocation playerChunkLocation(
-			(int) m_player->position().x / VOXEL_CHUNK_SIZE,
-			(int) m_player->position().y / VOXEL_CHUNK_SIZE,
-			(int) m_player->position().z / VOXEL_CHUNK_SIZE
+			(int) roundf(m_player->position().x) / VOXEL_CHUNK_SIZE,
+			(int) roundf(m_player->position().y) / VOXEL_CHUNK_SIZE,
+			(int) roundf(m_player->position().z) / VOXEL_CHUNK_SIZE
 	);
-	ss << ", (chunk X=" << playerChunkLocation.x << ", Y=" << playerChunkLocation.y <<
-			", Z=" << playerChunkLocation.z << "\n";
+	ss << " (chunk X=" << playerChunkLocation.x << ", Y=" << playerChunkLocation.y <<
+			", Z=" << playerChunkLocation.z << ") ";
+	ss << "yaw=" << m_player->yaw() << ", pitch=" << m_player->pitch() << "\n";
+	if (m_voxelOutline->voxelDetected()) {
+		auto &l = m_voxelOutline->voxelLocation();
+		ss << "Pointing at X=" << l.x << ",Y=" << l.y << ",Z=" << l.z << ": " << m_voxelOutline->text();
+		auto &d = m_voxelOutline->direction();
+		ss << " (direction X=" << d.x << ",Y=" << d.y << ",Z=" << d.z << ")\n";
+	}
 	ss << "Loaded " << m_voxelWorld->chunkCount() << " chunks";
 	ss << " (" << m_voxelWorldRenderer->queueSize() << " chunk(s) in mesh build queue)\n";
 	ss << "Used " << m_voxelWorldRenderer->usedBufferCount() << " voxel mesh buffers";
@@ -152,9 +197,12 @@ void GameEngine::updateDebugInfo() {
 	ss << "World render time (ms): " << m_voxelWorldRenderer->renderPerformanceCounter() << "\n";
 	ss << "Chunk mesh build time (ms): " << m_voxelWorldRenderer->buildPerformanceCounter() << "\n";
 	if (m_transport && m_transport->isConnected()) {
-		ss << "Connected to the server";
+		ss << "Connected to the server\n";
 	} else {
-		ss << "!!! NOT CONNECTED TO THE SERVER !!!";
+		ss << "!!! NOT CONNECTED TO THE SERVER !!!\n";
+	}
+	if (!m_debugStr.empty()) {
+		ss << m_debugStr;
 	}
 	m_debugTextRenderer->setText(ss.str(), glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 }
@@ -170,12 +218,39 @@ void GameEngine::keyDown(KeyCode keyCode) {
 			m_voxelWorldRenderer->buildPerformanceCounter().reset();
 			m_voxelWorldRenderer->reset();
 			break;
+		case KeyCode::PRIMARY_CLICK:
+			if (m_mouseClicked) break;
+			m_mouseClicked = true;
+			if (!m_voxelOutline->voxelDetected()) break;
+			if (!m_transport) break;
+			m_transport->digVoxel(m_voxelOutline->voxelLocation());
+			break;
+		case KeyCode::SECONDARY_CLICK:
+			if (m_mouseSecondaryClicked) break;
+			m_mouseSecondaryClicked = true;
+			if (!m_voxelOutline->voxelDetected()) break;
+			if (!m_transport) break;
+			m_transport->placeVoxel(VoxelLocation(
+				m_voxelOutline->voxelLocation().x + (int) m_voxelOutline->direction().x,
+				m_voxelOutline->voxelLocation().y + (int) m_voxelOutline->direction().y,
+				m_voxelOutline->voxelLocation().z + (int) m_voxelOutline->direction().z
+			));
+			break;
 		default:;
 	}
 }
 
 void GameEngine::keyUp(KeyCode keyCode) {
 	m_pressedKeys.erase(keyCode);
+	switch (keyCode) {
+		case KeyCode::PRIMARY_CLICK:
+			m_mouseClicked = false;
+			break;
+		case KeyCode::SECONDARY_CLICK:
+			m_mouseSecondaryClicked = false;
+			break;
+		default:;
+	}
 }
 
 void GameEngine::updatePlayerDirection(float dx, float dy) {

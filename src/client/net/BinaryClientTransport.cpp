@@ -57,3 +57,17 @@ void BinaryClientTransport::sendPlayerPosition(const glm::vec3 &position, float 
 		(uint8_t) viewRadius
 	}));
 }
+
+void BinaryClientTransport::digVoxel(const VoxelLocation &location) {
+	LOG(DEBUG) << "Dig voxel at x=" << location.x << ",y=" << location.y << ",z=" << location.z;
+	serializeAndSendMessage(ClientMessage<ClientMessageData::DigVoxel>({
+		location
+	}));
+}
+
+void BinaryClientTransport::placeVoxel(const VoxelLocation &location) {
+	LOG(DEBUG) << "Place voxel at x=" << location.x << ",y=" << location.y << ",z=" << location.z;
+	serializeAndSendMessage(ClientMessage<ClientMessageData::PlaceVoxel>({
+		location
+	}));
+}

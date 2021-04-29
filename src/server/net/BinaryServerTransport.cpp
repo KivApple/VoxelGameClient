@@ -13,6 +13,18 @@ void BinaryServerTransport::Connection::deserializeAndHandleMessage(const std::s
 			updatePosition({msg.data.x, msg.data.y, msg.data.z}, msg.data.yaw, msg.data.pitch, msg.data.viewRadius);
 			break;
 		}
+		case ClientMessageType::DIG_VOXEL: {
+			ClientMessage<ClientMessageData::DigVoxel> msg;
+			deserialize(payload, msg);
+			digVoxel(msg.data.location);
+			break;
+		}
+		case ClientMessageType::PLACE_VOXEL: {
+			ClientMessage<ClientMessageData::PlaceVoxel> msg;
+			deserialize(payload, msg);
+			placeVoxel(msg.data.location);
+			break;
+		}
 		default:
 			logger().warn(
 					"[Client %v] Unknown message received from client: %v",

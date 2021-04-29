@@ -39,6 +39,8 @@ protected:
 	virtual void discardChunks(const std::vector<VoxelChunkLocation> &locations) = 0;
 	virtual void newPendingChunk() = 0;
 	bool setPendingChunk();
+	void digVoxel(const VoxelLocation &location);
+	void placeVoxel(const VoxelLocation &location);
 
 public:
 	explicit ClientConnection(ServerTransport &transport);
