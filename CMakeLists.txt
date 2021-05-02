@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.12)
 project(VoxelGameClient)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 20)
 add_library(easyloggingpp::easyloggingpp INTERFACE IMPORTED)
 target_include_directories(easyloggingpp::easyloggingpp INTERFACE lib/easyloggingpp/src)
 target_compile_definitions(easyloggingpp::easyloggingpp INTERFACE ELPP_THREAD_SAFE ELPP_NO_DEFAULT_LOG_FILE)
-target_sources(easyloggingpp::easyloggingpp INTERFACE lib/easyloggingpp/src/easylogging++.cc)
+target_sources(easyloggingpp::easyloggingpp INTERFACE ${CMAKE_CURRENT_LIST_DIR}/lib/easyloggingpp/src/easylogging++.cc)
 
 add_subdirectory(lib/glm)
 add_subdirectory(lib/bitsery)
