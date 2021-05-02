@@ -42,7 +42,7 @@ Model::Model(
 					int ti = std::stoi(part.substr(vStopPos + 1, tStopPos - vStopPos - 1)) - 1;
 					auto &t = texCoords[ti];
 	
-					vertexData.insert(vertexData.end(), {v.x, v.y, v.z, t.x, t.y});
+					vertexData.insert(vertexData.end(), {v.x, v.y, v.z, t.x, t.y, 1.0f});
 					
 					minCoords.x = std::min(minCoords.x, v.x);
 					minCoords.y = std::min(minCoords.y, v.y);
@@ -59,7 +59,7 @@ Model::Model(
 	}
 	
 	m_buffer.setData(vertexData.data(), vertexData.size() * sizeof(float), GL_STATIC_DRAW);
-	m_vertexCount = vertexData.size() / 5;
+	m_vertexCount = vertexData.size() / 6;
 	m_dimensions = maxCoords - minCoords;
 }
 
@@ -76,12 +76,17 @@ void Model::render(const glm::mat4 &model, const glm::mat4 &view, const glm::mat
 	m_program.setPositions(m_buffer.pointer(
 			GL_FLOAT,
 			0,
-			5 * sizeof(float)
+			6 * sizeof(float)
+	));
+	m_program.setLightLevels(m_buffer.pointer(
+			GL_FLOAT,
+			5 * sizeof(float),
+			6 * sizeof(float)
 	));
 	m_program.setTexCoords(m_buffer.pointer(
 			GL_FLOAT,
 			3 * sizeof(float),
-			5 * sizeof(float)
+			6 * sizeof(float)
 	));
 	
 	glDrawArrays(GL_TRIANGLES, 0, m_vertexCount);

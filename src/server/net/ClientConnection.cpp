@@ -131,6 +131,9 @@ bool ClientConnection::setPendingChunk() {
 		m_loadedChunks.emplace(location);
 		lock.unlock();
 		chunk = transport().engine()->voxelWorld().chunk(location, VoxelWorld::MissingChunkPolicy::LOAD_ASYNC);
+		if (chunk && !chunk.lightComputed()) {
+			chunk.unlock(false);
+		}
 	} while (!chunk);
 	setChunk(chunk);
 	return true;
@@ -157,7 +160,7 @@ void ClientConnection::digVoxel(const VoxelLocation &location) {
 		);
 		return;
 	}
-	chunk.at(location.inChunk()).setType(EmptyVoxelType::INSTANCE);
+	chunk.at(location.inChunk()).setType(transport().engine()->voxelTypeRegistry().get("air"));
 	chunk.markDirty();
 }
 

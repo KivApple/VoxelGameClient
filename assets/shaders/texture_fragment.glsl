@@ -3,7 +3,9 @@ precision highp float;
 uniform sampler2D texImage;
 
 varying vec2 vTexCoord;
+varying float vLightLevel;
 
 void main() {
-	gl_FragColor = texture2D(texImage, vTexCoord);
+	vec4 color = texture2D(texImage, vTexCoord);
+	gl_FragColor = vec4(color.rgb * vLightLevel, color.a);
 }

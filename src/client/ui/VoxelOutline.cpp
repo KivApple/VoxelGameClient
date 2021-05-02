@@ -105,10 +105,10 @@ void VoxelOutline::render(const glm::mat4 &view, const glm::mat4 &projection) {
 	program.setView(view);
 	program.setProjection(projection);
 	
-	program.setColorUniform(glm::vec4(1.0f, 1.0f, 1.0f, 0.3f));
+	program.setColorUniform(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 	
 	program.setPositions(m_buffer.pointer(GL_FLOAT, 0, 7 * sizeof(float)));
 	program.setColors(m_buffer.pointer(GL_FLOAT, 3 * sizeof(float), 7 * sizeof(float)));
 	
-	glDrawArrays(GL_TRIANGLES, 0, m_vertexData.size());
+	glDrawArrays(GL_LINE_STRIP, 0, m_vertexData.size());
 }

@@ -59,7 +59,7 @@ class GameEngine: VoxelChunkListener {
 	
 	std::unique_ptr<ClientTransport> m_transport;
 	
-	void chunkInvalidated(const VoxelChunkLocation &location) override;
+	void chunkInvalidated(const VoxelChunkLocation &location, bool lightComputed) override;
 
 protected:
 	virtual bool platformInit() = 0;

@@ -45,6 +45,10 @@ constexpr int VoxelWorldRenderer::shaderProviderPriority(const VoxelShaderProvid
 	return shaderProvider != nullptr ? shaderProvider->priority() : INT_MIN;
 }
 
+constexpr float VoxelWorldRenderer::convertLightLevel(VoxelLightLevel level) {
+	return std::max(std::min((float) level / MAX_VOXEL_LIGHT_LEVEL, 1.0f), 0.05f);
+}
+
 constexpr bool VoxelWorldRenderer::almostEqual(float a, float b) {
 	return fabsf(a - b) < 0.001f;
 }
@@ -59,30 +63,36 @@ void VoxelWorldRenderer::build(
 	auto curPriority = shaderProviderPriority(shaderProvider);
 	if (curPriority < 0) return;
 	
-	auto prevX = shaderProviderPriority(
-			chunk.extendedAt({location.x - 1, location.y, location.z}).shaderProvider()
-	);
-	auto prevY = shaderProviderPriority(
-			chunk.extendedAt({location.x, location.y - 1, location.z}).shaderProvider()
-	);
-	auto prevZ = shaderProviderPriority(
-			chunk.extendedAt({location.x, location.y, location.z - 1}).shaderProvider()
-	);
+	auto &prevX = chunk.extendedAt({location.x - 1, location.y, location.z});
+	auto &prevY = chunk.extendedAt({location.x, location.y - 1, location.z});
+	auto &prevZ = chunk.extendedAt({location.x, location.y, location.z - 1});
+
+	auto &nextX = chunk.extendedAt({location.x + 1, location.y, location.z});
+	auto &nextY = chunk.extendedAt({location.x, location.y + 1, location.z});
+	auto &nextZ = chunk.extendedAt({location.x, location.y, location.z + 1});
+
+	auto prevXPriority = shaderProviderPriority(prevX.shaderProvider());
+	auto prevYPriority = shaderProviderPriority(prevY.shaderProvider());
+	auto prevZPriority = shaderProviderPriority(prevZ.shaderProvider());
 	
-	auto nextX = shaderProviderPriority(
-			chunk.extendedAt({location.x + 1, location.y, location.z}).shaderProvider()
-	);
-	auto nextY = shaderProviderPriority(
-			chunk.extendedAt({location.x, location.y + 1, location.z}).shaderProvider()
-	);
-	auto nextZ = shaderProviderPriority(
-			chunk.extendedAt({location.x, location.y, location.z + 1}).shaderProvider()
-	);
+	auto nextXPriority = shaderProviderPriority(nextX.shaderProvider());
+	auto nextYPriority = shaderProviderPriority(nextY.shaderProvider());
+	auto nextZPriority = shaderProviderPriority(nextZ.shaderProvider());
 	
 	if (
-			curPriority == nextX && curPriority == nextY && curPriority == nextZ &&
-			curPriority == prevX && curPriority == prevY && curPriority == prevZ
+			curPriority == nextXPriority && curPriority == nextYPriority && curPriority == nextZPriority &&
+			curPriority == prevXPriority && curPriority == prevYPriority && curPriority == prevZPriority
 	) return;
+	
+	auto curLightLevel = convertLightLevel(cur.lightLevel());
+
+	auto prevXLightLevel = convertLightLevel(prevX.lightLevel());
+	auto prevYLightLevel = convertLightLevel(prevY.lightLevel());
+	auto prevZLightLevel = convertLightLevel(prevZ.lightLevel());
+
+	auto nextXLightLevel = convertLightLevel(nextX.lightLevel());
+	auto nextYLightLevel = convertLightLevel(nextY.lightLevel());
+	auto nextZLightLevel = convertLightLevel(nextZ.lightLevel());
 	
 	m_vertexDataBuffer.clear();
 	cur.buildVertexData(m_vertexDataBuffer);
@@ -102,33 +112,47 @@ void VoxelWorldRenderer::build(
 		auto &v0 = m_vertexDataBuffer[i];
 		auto &v1 = m_vertexDataBuffer[i + 1];
 		auto &v2 = m_vertexDataBuffer[i + 2];
+
+		auto lightLevel = curLightLevel;
 		
 		if (almostEqual(v0.x, v1.x) && almostEqual(v1.x, v2.x)) {
 			if (almostEqual(v0.x , -0.5f)) {
-				if (prevX >= curPriority) continue;
+				if (&prevX.type() == &EmptyVoxelType::INSTANCE) continue;
+				if (prevXPriority >= curPriority) continue;
+				lightLevel = std::max(lightLevel, prevXLightLevel);
 			} else if (almostEqual(v0.x, 0.5f)) {
-				if (nextX >= curPriority) continue;
+				if (&nextX.type() == &EmptyVoxelType::INSTANCE) continue;
+				if (nextXPriority >= curPriority) continue;
+				lightLevel = std::max(lightLevel, nextXLightLevel);
 			}
 		}
 		if (almostEqual(v0.y, v1.y) && almostEqual(v1.y, v2.y)) {
 			if (almostEqual(v0.y , -0.5f)) {
-				if (prevY >= curPriority) continue;
+				if (&prevY.type() == &EmptyVoxelType::INSTANCE) continue;
+				if (prevYPriority >= curPriority) continue;
+				lightLevel = std::max(lightLevel, prevYLightLevel);
 			} else if (almostEqual(v0.y, 0.5f)) {
-				if (nextY >= curPriority) continue;
+				if (&nextY.type() == &EmptyVoxelType::INSTANCE) continue;
+				if (nextYPriority >= curPriority) continue;
+				lightLevel = std::max(lightLevel, nextYLightLevel);
 			}
 		}
 		if (almostEqual(v0.z, v1.z) && almostEqual(v1.z, v2.z)) {
 			if (almostEqual(v0.z , -0.5f)) {
-				if (prevZ >= curPriority) continue;
+				if (&prevZ.type() == &EmptyVoxelType::INSTANCE) continue;
+				if (prevZPriority >= curPriority && &prevZ.type() != &EmptyVoxelType::INSTANCE) continue;
+				lightLevel = std::max(lightLevel, prevZLightLevel);
 			} else if (almostEqual(v0.z, 0.5f)) {
-				if (nextZ >= curPriority) continue;
+				if (&nextZ.type() == &EmptyVoxelType::INSTANCE) continue;
+				if (nextZPriority >= curPriority && &nextZ.type() != &EmptyVoxelType::INSTANCE) continue;
+				lightLevel = std::max(lightLevel, nextZLightLevel);
 			}
 		}
 		
 		outData.insert(outData.end(), {
-			x0 + v0.x, y0 + v0.y, z0 + v0.z, v0.u, v0.v,
-			x0 + v1.x, y0 + v1.y, z0 + v1.z, v1.u, v1.v,
-			x0 + v2.x, y0 + v2.y, z0 + v2.z, v2.u, v2.v
+			x0 + v0.x, y0 + v0.y, z0 + v0.z, v0.u, v0.v, lightLevel,
+			x0 + v1.x, y0 + v1.y, z0 + v1.z, v1.u, v1.v, lightLevel,
+			x0 + v2.x, y0 + v2.y, z0 + v2.z, v2.u, v2.v, lightLevel
 		});
 	}
 }
@@ -221,11 +245,11 @@ void VoxelWorldRenderer::updateBuffersAndScheduleRender(
 				if (it2 == mesh.buffers.end()) {
 					mesh.buffers.emplace(part.first, VoxelMeshPart {
 							allocateBuffer(),
-							(unsigned int) part.second.size() / 5
+							(unsigned int) part.second.size() / 6
 					});
 					it2 = mesh.buffers.find(part.first);
 				} else {
-					it2->second.vertexCount = (unsigned int) part.second.size() / 5;
+					it2->second.vertexCount = (unsigned int) part.second.size() / 6;
 				}
 				it2->second.buffer.setData(
 						part.second.data(),
@@ -341,12 +365,17 @@ void VoxelWorldRenderer::renderScheduled(const glm::mat4 &view, const glm::mat4 
 		program.setPositions(step.part->buffer.pointer(
 				GL_FLOAT,
 				0,
-				sizeof(float) * 5
+				sizeof(float) * 6
+		));
+		program.setLightLevels(step.part->buffer.pointer(
+				GL_FLOAT,
+				sizeof(float) * 5,
+				sizeof(float) * 6
 		));
 		program.setTexCoords(step.part->buffer.pointer(
 				GL_FLOAT,
 				sizeof(float) * 3,
-				sizeof(float) * 5
+				sizeof(float) * 6
 		));
 		glDrawArrays(GL_TRIANGLES, 0, step.part->vertexCount);
 	}

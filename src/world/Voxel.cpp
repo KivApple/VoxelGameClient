@@ -7,12 +7,18 @@
 #ifndef HEADLESS
 VoxelTextureShaderProvider::VoxelTextureShaderProvider(const GLTexture &texture): m_texture(texture) {
 }
+#endif
 
 VoxelTextureShaderProvider::VoxelTextureShaderProvider(
 		const std::string &fileName
-): m_texture(std::make_unique<GLTexture>(fileName)) {
+)
+#ifndef HEADLESS
+: m_texture(std::make_unique<GLTexture>(fileName))
+#endif
+{
 }
 
+#ifndef HEADLESS
 const CommonShaderProgram &VoxelTextureShaderProvider::get() const {
 	return GameEngine::instance().commonShaderPrograms().texture;
 }
@@ -66,13 +72,15 @@ std::string EmptyVoxelType::toString(const Voxel &voxel) {
 	return "empty";
 }
 
-#ifndef HEADLESS
 const VoxelShaderProvider *EmptyVoxelType::shaderProvider(const Voxel &voxel) {
 	return nullptr;
 }
-#endif
 
 void EmptyVoxelType::buildVertexData(const Voxel &voxel, std::vector<VoxelVertexData> &data) {
+}
+
+VoxelLightLevel EmptyVoxelType::lightLevel(const Voxel &voxel) {
+	return 0;
 }
 
 void VoxelHolder::serialize(VoxelDeserializer &deserializer) {
@@ -86,11 +94,7 @@ void VoxelHolder::serialize(VoxelDeserializer &deserializer) {
 SimpleVoxelType::SimpleVoxelType(
 		std::string name,
 		const std::string &textureFileName
-): m_name(std::move(name))
-#ifndef HEADLESS
-	, VoxelTextureShaderProvider(textureFileName)
-#endif
-{
+): m_name(std::move(name)), VoxelTextureShaderProvider(textureFileName) {
 }
 
 #ifndef HEADLESS
@@ -105,11 +109,9 @@ std::string SimpleVoxelType::toString(const Voxel &voxel) {
 	return m_name;
 }
 
-#ifndef HEADLESS
 const VoxelShaderProvider *SimpleVoxelType::shaderProvider(const Voxel &voxel) {
 	return this;
 }
-#endif
 
 void SimpleVoxelType::buildVertexData(const Voxel &voxel, std::vector<VoxelVertexData> &data) {
 	data.insert(data.end(), {
@@ -150,4 +152,8 @@ void SimpleVoxelType::buildVertexData(const Voxel &voxel, std::vector<VoxelVerte
 			{0.5, 0.5, -0.5, 0.0, 1.0},
 			{0.5, -0.5, -0.5, 0.0, 0.0}
 	});
+}
+
+VoxelLightLevel SimpleVoxelType::lightLevel(const Voxel &voxel) {
+	return 0;
 }

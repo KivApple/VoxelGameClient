@@ -11,8 +11,9 @@ CommonShaderProgram::CommonShaderProgram(
 	m_projectionLocation = uniformLocation("projection", true);
 	m_texImageLocation = uniformLocation("texImage");
 	m_colorUniformLocation = uniformLocation("uColor");
-	
+
 	m_positionLocation = attribLocation("position", true);
+	m_lightLevelLocation = attribLocation("lightLevel");
 	m_texCoordLocation = attribLocation("texCoord");
 	m_colorLocation = attribLocation("color");
 }
@@ -46,6 +47,10 @@ void CommonShaderProgram::setColorUniform(const glm::vec4 &color) const {
 
 void CommonShaderProgram::setPositions(const GLBufferPointer &pointer) const {
 	pointer.bind(m_positionLocation, 3);
+}
+
+void CommonShaderProgram::setLightLevels(const GLBufferPointer &pointer) const {
+	pointer.bind(m_lightLevelLocation, 1, true);
 }
 
 void CommonShaderProgram::setTexCoords(const GLBufferPointer &pointer) const {

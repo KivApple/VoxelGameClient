@@ -18,8 +18,10 @@ class VoxelWorldGenerator: public VoxelChunkLoader {
 	};
 	
 	VoxelTypeRegistry &m_registry;
+	VoxelType &m_air;
 	VoxelType &m_grass;
 	VoxelType &m_dirt;
+	VoxelType &m_stone;
 	std::atomic<bool> m_running = true;
 	std::deque<Job> m_queue;
 	std::mutex m_queueMutex;
@@ -31,7 +33,11 @@ class VoxelWorldGenerator: public VoxelChunkLoader {
 public:
 	explicit VoxelWorldGenerator(VoxelTypeRegistry &registry);
 	~VoxelWorldGenerator() override;
-	void loadAsync(VoxelWorld &world, const VoxelChunkLocation &location) override;
 	void load(VoxelChunkMutableRef &chunk) override;
+	void loadAsync(VoxelWorld &world, const VoxelChunkLocation &location) override;
+	void cancelLoadAsync(VoxelWorld &world, const VoxelChunkLocation &location) override;
+	VoxelType &air() {
+		return m_air;
+	}
 	
 };

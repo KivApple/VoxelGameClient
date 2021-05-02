@@ -19,7 +19,15 @@ public:
 		return "test";
 	}
 	
+	const VoxelShaderProvider *shaderProvider(const Voxel &voxel) {
+		return nullptr;
+	}
+	
 	void buildVertexData(const MyVoxel &voxel, std::vector<VoxelVertexData> &data) {
+	}
+
+	VoxelLightLevel lightLevel(const MyVoxel &voxel) {
+		return 0;
 	}
 	
 };

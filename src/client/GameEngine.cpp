@@ -1,10 +1,11 @@
 #include <stdexcept>
 #include <sstream>
 #include <easylogging++.h>
-#include "GameEngine.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/intersect.hpp>
 #include <GL/glew.h>
+#include "GameEngine.h"
+#include "world/VoxelTypes.h"
 
 GameEngine *GameEngine::s_instance = nullptr;
 
@@ -64,8 +65,10 @@ bool GameEngine::init() {
 			m_cowModel.get()
 	);
 	
+	m_voxelTypeRegistry->make<AirVoxelType>("air");
 	m_voxelTypeRegistry->make<SimpleVoxelType>("grass", "grass", "assets/textures/grass_top.png");
 	m_voxelTypeRegistry->make<SimpleVoxelType>("dirt", "dirt", "assets/textures/mud.png");
+	m_voxelTypeRegistry->make<SimpleVoxelType>("stone", "stone", "assets/textures/stone.png");
 	
 	LOG(INFO) << "Game engine initialized";
 	return true;
@@ -176,14 +179,22 @@ void GameEngine::updateDebugInfo() {
 	std::stringstream ss;
 	ss << "FPS: " << m_framePerSecond << "\n";
 	ss << "X=" << m_player->position().x << ", Y=" << m_player->position().y << ", Z=" << m_player->position().z;
-	VoxelChunkLocation playerChunkLocation(
-			(int) roundf(m_player->position().x) / VOXEL_CHUNK_SIZE,
-			(int) roundf(m_player->position().y) / VOXEL_CHUNK_SIZE,
-			(int) roundf(m_player->position().z) / VOXEL_CHUNK_SIZE
+	VoxelLocation playerLocation(
+			(int) roundf(m_player->position().x),
+			(int) roundf(m_player->position().y),
+			(int) roundf(m_player->position().z)
 	);
+	auto playerChunkLocation = playerLocation.chunk();
+	VoxelLightLevel lightLevel = MAX_VOXEL_LIGHT_LEVEL;
+	{
+		auto chunk = m_voxelWorld->chunk(playerChunkLocation);
+		if (chunk) {
+			lightLevel = chunk.at(playerLocation.inChunk()).lightLevel();
+		}
+	}
 	ss << " (chunk X=" << playerChunkLocation.x << ", Y=" << playerChunkLocation.y <<
-			", Z=" << playerChunkLocation.z << ") ";
-	ss << "yaw=" << m_player->yaw() << ", pitch=" << m_player->pitch() << "\n";
+			", Z=" << playerChunkLocation.z << ") lightLevel=" << (int) lightLevel;
+	ss << " yaw=" << m_player->yaw() << ", pitch=" << m_player->pitch() << "\n";
 	if (m_voxelOutline->voxelDetected()) {
 		auto &l = m_voxelOutline->voxelLocation();
 		ss << "Pointing at X=" << l.x << ",Y=" << l.y << ",Z=" << l.z << ": " << m_voxelOutline->text();
@@ -317,7 +328,7 @@ void GameEngine::setTransport(std::unique_ptr<ClientTransport> transport) {
 	m_transport->start();
 }
 
-void GameEngine::chunkInvalidated(const VoxelChunkLocation &location) {
+void GameEngine::chunkInvalidated(const VoxelChunkLocation &location, bool lightComputed) {
 	m_voxelWorldRenderer->invalidate(location);
 	m_voxelWorldRenderer->invalidate({location.x - 1, location.y, location.z});
 	m_voxelWorldRenderer->invalidate({location.x, location.y - 1, location.z});

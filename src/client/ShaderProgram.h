@@ -11,6 +11,7 @@ class CommonShaderProgram: public ShaderProgram {
 	int m_colorUniformLocation;
 	
 	int m_positionLocation;
+	int m_lightLevelLocation;
 	int m_texCoordLocation;
 	int m_colorLocation;
 
@@ -25,6 +26,7 @@ public:
 	void setColorUniform(const glm::vec4 &color) const;
 	
 	void setPositions(const GLBufferPointer &pointer) const;
+	void setLightLevels(const GLBufferPointer &pointer) const;
 	void setTexCoords(const GLBufferPointer &pointer) const;
 	void setColors(const GLBufferPointer &pointer) const;
 	

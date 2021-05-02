@@ -12,28 +12,18 @@ WebSocketServerTransport::Connection::Connection(
 }
 
 WebSocketServerTransport::Connection::~Connection() {
-	if (m_closed) return;
-	m_closed = true;
-	logger().warn("[Client %v] Closed", this);
-	/* auto conn = webSocketTransport().m_server.get_con_from_hdl(m_connection);
-	conn->set_message_handler(nullptr);
-	conn->set_close_handler(nullptr);
-	conn->close(1000, "CLOSE_NORMAL"); */
-	webSocketTransport().m_server.close(m_connection, 1000, "CLOSE_NORMAL");
+	if (!m_closed) {
+		m_closed = true;
+		logger().warn("[Client %v] Closed", this);
+		/* auto conn = webSocketTransport().m_server.get_con_from_hdl(m_connection);
+		conn->set_message_handler(nullptr);
+		conn->set_close_handler(nullptr);
+		conn->close(1000, "CLOSE_NORMAL"); */
+		webSocketTransport().m_server.close(m_connection, 1000, "CLOSE_NORMAL");
+	}
 	
 	// Prevent potential use after free (if input data is currently processed)
-	std::mutex mutex;
-	std::condition_variable condVar;
-	std::unique_lock<std::mutex> lock(mutex);
-	std::function<void()> callback = [this, &condVar, &callback]{
-		if (m_connection.expired()) {
-			condVar.notify_one();
-		} else {
-			asio::post(callback);
-		}
-	};
-	asio::post(callback);
-	condVar.wait(lock);
+	while (m_destructorLocks.load() > 0);
 }
 
 void WebSocketServerTransport::Connection::handleWriteComplete(const websocketpp::lib::error_code &errorCode) {
@@ -46,11 +36,13 @@ void WebSocketServerTransport::Connection::handleWriteComplete(const websocketpp
 		return;
 	}
 	logger().trace("[Client %v] Connection idle detected", this);
+	m_destructorLocks.fetch_add(1);
 	asio::post([this]() {
 		m_sendingPendingChunks = setPendingChunk();
 		if (!m_sendingPendingChunks) {
 			logger().trace("[Client %v] Finished sending chunks", this);
 		}
+		m_destructorLocks.fetch_sub(1);
 	});
 }
 
@@ -82,13 +74,16 @@ void WebSocketServerTransport::Connection::sendMessage(const void *data, size_t 
 
 void WebSocketServerTransport::Connection::newPendingChunk() {
 	if (m_closed) return;
+	m_destructorLocks.fetch_add(1);
 	asio::post([this]() {
-		if (m_sendingPendingChunks) return;
-		logger().trace("[Client %v] Started sending chunks", this);
-		m_sendingPendingChunks = setPendingChunk();
 		if (!m_sendingPendingChunks) {
-			logger().trace("[Client %v] Finished sending chunks", this);
+			logger().trace("[Client %v] Started sending chunks", this);
+			m_sendingPendingChunks = setPendingChunk();
+			if (!m_sendingPendingChunks) {
+				logger().trace("[Client %v] Finished sending chunks", this);
+			}
 		}
+		m_destructorLocks.fetch_sub(1);
 	});
 }
 

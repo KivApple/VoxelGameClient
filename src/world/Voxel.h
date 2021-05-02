@@ -22,29 +22,35 @@ struct VoxelVertexData {
 	float u, v;
 };
 
-#ifndef HEADLESS
+static const int MAX_VOXEL_SHADER_PRIORITY = INT_MAX;
+
 class VoxelShaderProvider {
 public:
 	virtual ~VoxelShaderProvider() = default;
 	[[nodiscard]] virtual int priority() const {
-		return INT_MAX;
+		return MAX_VOXEL_SHADER_PRIORITY;
 	}
+#ifndef HEADLESS
 	[[nodiscard]] virtual const CommonShaderProgram &get() const = 0;
 	virtual void setup(const CommonShaderProgram &program) const = 0;
-	
+#endif
+
 };
 
 class VoxelTextureShaderProvider: public VoxelShaderProvider {
+#ifndef HEADLESS
 	std::variant<std::unique_ptr<GLTexture>, std::reference_wrapper<const GLTexture>> m_texture;
+#endif
 
 public:
 	explicit VoxelTextureShaderProvider(const std::string &fileName);
+#ifndef HEADLESS
 	explicit VoxelTextureShaderProvider(const GLTexture &texture);
 	[[nodiscard]] const CommonShaderProgram &get() const override;
 	void setup(const CommonShaderProgram &program) const override;
-	
-};
 #endif
+
+};
 
 struct Voxel;
 class VoxelTypeRegistry;
@@ -52,6 +58,9 @@ class VoxelTypeSerializationContext;
 
 typedef bitsery::Serializer<bitsery::OutputBufferAdapter<std::string>, const VoxelTypeSerializationContext> VoxelSerializer;
 typedef bitsery::Deserializer<bitsery::InputBufferAdapter<std::string>, const VoxelTypeSerializationContext> VoxelDeserializer;
+
+typedef int8_t VoxelLightLevel;
+static const VoxelLightLevel MAX_VOXEL_LIGHT_LEVEL = 16;
 
 class VoxelType {
 public:
@@ -64,10 +73,9 @@ public:
 	virtual void invokeSerialize(const Voxel &voxel, VoxelSerializer &serializer) = 0;
 	virtual void invokeDeserialize(Voxel &voxel, VoxelDeserializer &deserializer) = 0;
 	virtual std::string invokeToString(const Voxel &voxel) = 0;
-#ifndef HEADLESS
 	virtual const VoxelShaderProvider *invokeShaderProvider(const Voxel &voxel) = 0;
-#endif
 	virtual void invokeBuildVertexData(const Voxel &voxel, std::vector<VoxelVertexData> &data) = 0;
+	virtual VoxelLightLevel invokeLightLevel(const Voxel &voxel) = 0;
 	
 };
 
@@ -149,9 +157,11 @@ namespace bitsery::traits {
 
 struct Voxel {
 	VoxelType *type;
+	VoxelLightLevel lightLevel = MAX_VOXEL_LIGHT_LEVEL;
 	
 	template<typename S> void serialize(S& s) {
 		s.ext(type, VoxelTypeSerializationHelper {});
+		s.value1b(lightLevel);
 	}
 	
 };
@@ -180,14 +190,16 @@ public:
 		return static_cast<T*>(this)->T::toString(static_cast<const Data&>(voxel));
 	}
 
-#ifndef HEADLESS
 	const VoxelShaderProvider *invokeShaderProvider(const Voxel &voxel) override {
 		return static_cast<T*>(this)->T::shaderProvider(static_cast<const Data&>(voxel));
 	}
-#endif
 	
 	void invokeBuildVertexData(const Voxel &voxel, std::vector<VoxelVertexData> &data) override {
 		static_cast<T*>(this)->T::buildVertexData(static_cast<const Data&>(voxel), data);
+	}
+
+	VoxelLightLevel invokeLightLevel(const Voxel &voxel) override {
+		return static_cast<T*>(this)->T::lightLevel(static_cast<const Data&>(voxel));
 	}
 	
 	void invokeSerialize(const Voxel &voxel, VoxelSerializer &serializer) override {
@@ -206,10 +218,9 @@ public:
 	static EmptyVoxelType INSTANCE;
 	
 	std::string toString(const Voxel &voxel);
-#ifndef HEADLESS
 	const VoxelShaderProvider *shaderProvider(const Voxel &voxel);
-#endif
 	void buildVertexData(const Voxel &voxel, std::vector<VoxelVertexData> &data);
+	VoxelLightLevel lightLevel(const Voxel &voxel);
 	
 };
 
@@ -248,21 +259,35 @@ public:
 		assert(checkVoxelType<T>(*reinterpret_cast<const Voxel*>(m_data)));
 		return *reinterpret_cast<T*>(m_data);
 	}
-	
+
+	[[nodiscard]] VoxelType &type() const {
+		return *get().type;
+	}
+
 	void setType(VoxelType &newType) {
 		get().type->invokeDestroy(get());
 		newType.invokeInit(m_data);
+	}
+
+	[[nodiscard]] VoxelLightLevel lightLevel() const {
+		return get().lightLevel;
+	}
+
+	void setLightLevel(VoxelLightLevel level) {
+		get().lightLevel = level;
+	}
+
+	[[nodiscard]] VoxelLightLevel typeLightLevel() const {
+		return get().type->invokeLightLevel(get());
 	}
 	
 	[[nodiscard]] std::string toString() const {
 		return get().type->invokeToString(get());
 	}
 
-#ifndef HEADLESS
 	[[nodiscard]] const VoxelShaderProvider *shaderProvider() const {
 		return get().type->invokeShaderProvider(get());
 	}
-#endif
 	
 	void buildVertexData(std::vector<VoxelVertexData> &data) const {
 		get().type->invokeBuildVertexData(get(), data);
@@ -276,11 +301,7 @@ public:
 	
 };
 
-class SimpleVoxelType: public VoxelTypeHelper<SimpleVoxelType>
-#ifndef HEADLESS
-	, public VoxelTextureShaderProvider
-#endif
-{
+class SimpleVoxelType: public VoxelTypeHelper<SimpleVoxelType>, public VoxelTextureShaderProvider {
 	std::string m_name;
 
 public:
@@ -290,9 +311,8 @@ public:
 	SimpleVoxelType(std::string name, const GLTexture &texture);
 #endif
 	std::string toString(const Voxel &voxel);
-#ifndef HEADLESS
 	const VoxelShaderProvider *shaderProvider(const Voxel &voxel);
-#endif
 	void buildVertexData(const Voxel &voxel, std::vector<VoxelVertexData> &data);
+	VoxelLightLevel lightLevel(const Voxel &voxel);
 	
 };

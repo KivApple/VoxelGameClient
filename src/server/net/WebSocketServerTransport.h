@@ -11,6 +11,7 @@ class WebSocketServerTransport: public BinaryServerTransport, std::thread {
 		websocketpp::connection_hdl m_connection;
 		std::atomic<bool> m_closed = false;
 		bool m_sendingPendingChunks = false;
+		std::atomic<int> m_destructorLocks = 0;
 		
 		[[nodiscard]] WebSocketServerTransport &webSocketTransport() const {
 			return (WebSocketServerTransport&) transport();

@@ -23,8 +23,16 @@ public:
 		return "test";
 	}
 	
+	const VoxelShaderProvider *shaderProvider(const Voxel &voxel) {
+		return nullptr;
+	}
+	
 	void buildVertexData(const TestVoxel &voxel, std::vector<VoxelVertexData> &data) {
 		buildVertexDataCalled();
+	}
+
+	VoxelLightLevel lightLevel(const TestVoxel &voxel) {
+		return 0;
 	}
 	
 	MOCK_METHOD0(buildVertexDataCalled, void());

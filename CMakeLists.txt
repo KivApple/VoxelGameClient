@@ -94,7 +94,7 @@ else()
 			VoxelGameServer
 			src/server/main.cpp src/server/GameServerEngine.cpp src/server/net/WebSocketServerTransport.cpp
 			src/server/net/ClientConnection.cpp src/server/net/BinaryServerTransport.cpp
-			src/server/world/VoxelWorldGenerator.cpp
+			src/server/world/VoxelWorldGenerator.cpp src/server/world/VoxelLightComputer.cpp
 			${COMMON_SRC}
 	)
 	target_compile_definitions(VoxelGameServer PUBLIC HEADLESS)
