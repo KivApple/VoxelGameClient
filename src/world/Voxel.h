@@ -265,8 +265,10 @@ public:
 	}
 
 	void setType(VoxelType &newType) {
+		auto savedLightLevel = lightLevel();
 		get().type->invokeDestroy(get());
 		newType.invokeInit(m_data);
+		setLightLevel(savedLightLevel);
 	}
 
 	[[nodiscard]] VoxelLightLevel lightLevel() const {

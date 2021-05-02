@@ -1,7 +1,41 @@
+#include <vector>
 #include <easylogging++.h>
 #include "VoxelWorld.h"
 
 #define TRACE_LOCKS 0
+
+class VoxelInvalidationNotifier {
+	VoxelWorld &m_world;
+	VoxelChunkLocation m_chunkLocation;
+	bool m_dirty;
+	std::vector<InChunkVoxelLocation> m_locations;
+	bool m_lightComputed;
+	
+public:
+	explicit VoxelInvalidationNotifier(
+			SharedVoxelChunk &chunk, bool enabled
+	): m_world(chunk.world()), m_chunkLocation(chunk.location()), m_dirty(
+			enabled && chunk.dirty()
+	), m_lightComputed(chunk.lightComputed() && chunk.dirtyLocations().empty()) {
+		if (enabled) {
+			m_locations.reserve(chunk.dirtyLocations().size());
+			for (auto &location : chunk.dirtyLocations()) {
+				m_locations.emplace_back(location);
+			}
+			chunk.clearDirty();
+			chunk.setLightComputed(m_lightComputed);
+		}
+	}
+	
+	void notify() {
+		if (!m_dirty) return;
+		auto &l = m_chunkLocation;
+		LOG(TRACE) << "Chunk at x=" << l.x << ",y=" << l.y << ",z=" << l.z << " invalidated";
+		m_world.m_chunkListener->chunkInvalidated(m_chunkLocation, std::move(m_locations), m_lightComputed);
+		m_dirty = false;
+	}
+	
+};
 
 /* SharedVoxelChunk */
 
@@ -74,26 +108,14 @@ VoxelChunkRef::~VoxelChunkRef() {
 
 void VoxelChunkRef::unlock(bool notify) {
 	if (m_chunk) {
-		auto &world = m_chunk->world();
-		VoxelChunkLocation l;
-		auto lightComputed = m_chunk->lightComputed();
-		auto dirty = notify && m_chunk->dirty();
-		if (dirty) {
-			l = location();
-			m_chunk->clearDirty();
-		}
+		VoxelInvalidationNotifier notifier(*m_chunk, notify);
 		{
 			auto &l2 = m_chunk->location();
 			LOG_IF(TRACE_LOCKS, TRACE) << "Unlock shared x=" << l2.x << ",y=" << l2.y << ",z=" << l2.z;
 		}
 		m_chunk->mutex().unlock_shared();
 		m_chunk = nullptr;
-		if (dirty) {
-			LOG(TRACE) << "Chunk at x=" << l.x << ",y=" << l.y << ",z=" << l.z << " invalidated";
-			if (world.m_chunkListener) {
-				world.m_chunkListener->chunkInvalidated(l, lightComputed);
-			}
-		}
+		notifier.notify();
 	}
 }
 
@@ -230,22 +252,10 @@ VoxelChunkMutableRef::~VoxelChunkMutableRef() {
 
 void VoxelChunkMutableRef::unlock(bool notify) {
 	if (m_chunk) {
-		auto &world = m_chunk->world();
-		VoxelChunkLocation l;
-		auto lightComputed = m_chunk->lightComputed();
-		auto dirty = notify && m_chunk->dirty();
-		if (dirty) {
-			l = location();
-			m_chunk->clearDirty();
-		}
+		VoxelInvalidationNotifier notifier(*m_chunk, notify);
 		m_chunk->mutex().unlock();
 		m_chunk = nullptr;
-		if (dirty) {
-			LOG(TRACE) << "Chunk at x=" << l.x << ",y=" << l.y << ",z=" << l.z << " invalidated";
-			if (world.m_chunkListener) {
-				world.m_chunkListener->chunkInvalidated(l, lightComputed);
-			}
-		}
+		notifier.notify();
 	}
 	VoxelChunkExtendedRef::unlock();
 }

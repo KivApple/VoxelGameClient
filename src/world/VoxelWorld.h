@@ -12,7 +12,7 @@ class SharedVoxelChunk: public VoxelChunk {
 	SharedVoxelChunk *m_neighbors[3 * 3 * 3] = {};
 	std::shared_mutex m_mutex;
 	bool m_dirty = false;
-	//std::unordered_set<InChunkVoxelLocation> m_dirtyLocations;
+	std::unordered_set<InChunkVoxelLocation> m_dirtyLocations;
 	
 public:
 	SharedVoxelChunk(VoxelWorld &world, const VoxelChunkLocation &location): VoxelChunk(location), m_world(world) {
@@ -32,23 +32,26 @@ public:
 	}
 	
 	[[nodiscard]] bool dirty() const {
-		return m_dirty;
+		return m_dirty || !m_dirtyLocations.empty();
 	}
 	
-	/* void markDirty(const InChunkVoxelLocation &location) {
+	[[nodiscard]] const std::unordered_set<InChunkVoxelLocation> &dirtyLocations() const {
+		return m_dirtyLocations;
+	}
+	
+	void markDirty(const InChunkVoxelLocation &location) {
 		m_dirtyLocations.emplace(location);
-		m_dirty = true;
-		setLightComputed(false);
-	} */
+	}
 	
 	void markDirty(bool lightComputed = false) {
-		//m_dirtyLocations.clear();
 		m_dirty = true;
 		setLightComputed(lightComputed);
+		m_dirtyLocations.clear();
 	}
 	
 	void clearDirty() {
 		m_dirty = false;
+		m_dirtyLocations.clear();
 	}
 	
 };
@@ -131,6 +134,9 @@ public:
 	void markDirty(bool lightComputed = false) {
 		m_chunk->markDirty(lightComputed);
 	}
+	void markDirty(const InChunkVoxelLocation &location) {
+		m_chunk->markDirty(location);
+	}
 
 	template<typename S> void serialize(S &s) {
 		s.object(*m_chunk);
@@ -169,7 +175,11 @@ public:
 class VoxelChunkListener {
 public:
 	virtual ~VoxelChunkListener() = default;
-	virtual void chunkInvalidated(const VoxelChunkLocation &location, bool lightComputed) = 0;
+	virtual void chunkInvalidated(
+			const VoxelChunkLocation &chunkLocation,
+			std::vector<InChunkVoxelLocation> &&locations,
+			bool lightComputed
+	) = 0;
 
 };
 
@@ -182,8 +192,7 @@ class VoxelWorld {
 	template<typename T> T createChunk(const VoxelChunkLocation &location);
 	template<typename T> T createAndLoadChunk(const VoxelChunkLocation &location);
 	
-	friend class VoxelChunkRef;
-	friend class VoxelChunkMutableRef;
+	friend class VoxelInvalidationNotifier;
 	
 public:
 	enum class MissingChunkPolicy {

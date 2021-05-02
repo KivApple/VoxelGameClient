@@ -328,12 +328,16 @@ void GameEngine::setTransport(std::unique_ptr<ClientTransport> transport) {
 	m_transport->start();
 }
 
-void GameEngine::chunkInvalidated(const VoxelChunkLocation &location, bool lightComputed) {
-	m_voxelWorldRenderer->invalidate(location);
-	m_voxelWorldRenderer->invalidate({location.x - 1, location.y, location.z});
-	m_voxelWorldRenderer->invalidate({location.x, location.y - 1, location.z});
-	m_voxelWorldRenderer->invalidate({location.x, location.y, location.z - 1});
-	m_voxelWorldRenderer->invalidate({location.x + 1, location.y, location.z});
-	m_voxelWorldRenderer->invalidate({location.x, location.y + 1, location.z});
-	m_voxelWorldRenderer->invalidate({location.x, location.y, location.z + 1});
+void GameEngine::chunkInvalidated(
+		const VoxelChunkLocation &chunkLocation,
+		std::vector<InChunkVoxelLocation> &&locations,
+		bool lightComputed
+) {
+	m_voxelWorldRenderer->invalidate(chunkLocation);
+	m_voxelWorldRenderer->invalidate({chunkLocation.x - 1, chunkLocation.y, chunkLocation.z});
+	m_voxelWorldRenderer->invalidate({chunkLocation.x, chunkLocation.y - 1, chunkLocation.z});
+	m_voxelWorldRenderer->invalidate({chunkLocation.x, chunkLocation.y, chunkLocation.z - 1});
+	m_voxelWorldRenderer->invalidate({chunkLocation.x + 1, chunkLocation.y, chunkLocation.z});
+	m_voxelWorldRenderer->invalidate({chunkLocation.x, chunkLocation.y + 1, chunkLocation.z});
+	m_voxelWorldRenderer->invalidate({chunkLocation.x, chunkLocation.y, chunkLocation.z + 1});
 }

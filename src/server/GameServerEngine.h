@@ -22,7 +22,11 @@ class GameServerEngine: VoxelChunkListener {
 	std::shared_mutex m_connectionsMutex;
 	std::atomic<bool> m_running = true;
 	
-	void chunkInvalidated(const VoxelChunkLocation &location, bool lightComputed) override;
+	void chunkInvalidated(
+			const VoxelChunkLocation &chunkLocation,
+			std::vector<InChunkVoxelLocation> &&locations,
+			bool lightComputed
+	) override;
 	
 public:
 	GameServerEngine();
@@ -35,6 +39,9 @@ public:
 	}
 	VoxelWorld &voxelWorld() {
 		return m_voxelWorld;
+	}
+	VoxelLightComputer &voxelLightComputer() {
+		return m_voxelLightComputer;
 	}
 	
 	void registerConnection(std::unique_ptr<ClientConnection> connection);

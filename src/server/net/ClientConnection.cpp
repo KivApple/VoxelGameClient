@@ -134,6 +134,7 @@ bool ClientConnection::setPendingChunk() {
 		if (chunk && !chunk.lightComputed()) {
 			chunk.unlock(false);
 		}
+		transport().engine()->voxelLightComputer().computeAsync(transport().engine()->voxelWorld(), location);
 	} while (!chunk);
 	setChunk(chunk);
 	return true;
@@ -160,8 +161,9 @@ void ClientConnection::digVoxel(const VoxelLocation &location) {
 		);
 		return;
 	}
-	chunk.at(location.inChunk()).setType(transport().engine()->voxelTypeRegistry().get("air"));
-	chunk.markDirty();
+	auto l = location.inChunk();
+	chunk.at(l).setType(transport().engine()->voxelTypeRegistry().get("air"));
+	chunk.markDirty(l);
 }
 
 void ClientConnection::placeVoxel(const VoxelLocation &location) {
@@ -175,6 +177,7 @@ void ClientConnection::placeVoxel(const VoxelLocation &location) {
 		);
 		return;
 	}
-	chunk.at(location.inChunk()).setType(transport().engine()->voxelTypeRegistry().get("stone"));
-	chunk.markDirty();
+	auto l = location.inChunk();
+	chunk.at(l).setType(transport().engine()->voxelTypeRegistry().get("stone"));
+	chunk.markDirty(l);
 }
