@@ -189,6 +189,7 @@ void VoxelLightComputer::run() {
 			}
 		}
 		while (chunk) {
+			chunk.markDirty();
 			auto it = m_chunkQueues.find(chunk.location());
 			if (it != m_chunkQueues.end()) {
 				auto &queue = *it->second;
@@ -198,17 +199,16 @@ void VoxelLightComputer::run() {
 				m_visitedChunks.emplace(chunk.location());
 			}
 			chunk.unlock(false);
-			for (it = m_chunkQueues.begin(); it != m_chunkQueues.end(); ++it) {
-				if (it->second->empty()) continue;
+			it = m_chunkQueues.begin();
+			while (it != m_chunkQueues.end()) {
+				if (it->second->empty()) {
+					it++;
+					continue;
+				}
 				auto &l = it->first;
 				LOG(TRACE) << "Changing chunk to x=" << l.x << ",y=" << l.y << ",z=" << l.z;
 				bool created = false;
 				chunk = job.world->extendedMutableChunk(l, VoxelWorld::MissingChunkPolicy::LOAD, &created);
-				if (chunk.lightComputed()) {
-					LOG(TRACE) << "Chunk x=" << l.x << ",y=" << l.y << ",z=" << l.z << " has already computed light";
-					m_visitedChunks.emplace(chunk.location());
-					continue;
-				}
 				if (created) {
 					computeInitialLightLevels(chunk, false);
 				}
