@@ -93,15 +93,17 @@ void VoxelHolder::serialize(VoxelDeserializer &deserializer) {
 
 SimpleVoxelType::SimpleVoxelType(
 		std::string name,
-		const std::string &textureFileName
-): m_name(std::move(name)), VoxelTextureShaderProvider(textureFileName) {
+		const std::string &textureFileName,
+		bool unwrap
+): m_name(std::move(name)), m_unwrap(unwrap), VoxelTextureShaderProvider(textureFileName) {
 }
 
 #ifndef HEADLESS
 SimpleVoxelType::SimpleVoxelType(
 		std::string
-		name, const GLTexture &texture
-): m_name(std::move(name)), VoxelTextureShaderProvider(texture) {
+		name, const GLTexture &texture,
+		bool unwrap
+): m_name(std::move(name)), m_unwrap(unwrap), VoxelTextureShaderProvider(texture) {
 }
 #endif
 
@@ -114,7 +116,47 @@ const VoxelShaderProvider *SimpleVoxelType::shaderProvider(const Voxel &voxel) {
 }
 
 void SimpleVoxelType::buildVertexData(const Voxel &voxel, std::vector<VoxelVertexData> &data) {
-	data.insert(data.end(), {
+	if (m_unwrap) {
+		data.insert(data.end(),{
+				{-0.5, 0.5, -0.5, 1.0, 0.0},
+				{0.5, 0.5, 0.5, 0.666667, 0.333333},
+				{0.5, 0.5, -0.5, 0.666667, 0.0},
+				{0.5, 0.5, 0.5, 0.333333, 0.333333},
+				{-0.5, -0.5, 0.5, 0.0, 0.0},
+				{0.5, -0.5, 0.5, 0.333333, 0.0},
+				{-0.5, 0.5, 0.5, 0.333333, 0.666667},
+				{-0.5, -0.5, -0.5, 0.0, 0.333333},
+				{-0.5, -0.5, 0.5, 0.333333, 0.333333},
+				{0.5, -0.5, -0.5, 0.666667, 0.0},
+				{-0.5, -0.5, 0.5, 0.333333, 0.333333},
+				{-0.5, -0.5, -0.5, 0.333333, 0.0},
+				{0.5, 0.5, -0.5, 0.666667, 0.666667},
+				{0.5, -0.5, 0.5, 0.333333, 0.333333},
+				{0.5, -0.5, -0.5, 0.666667, 0.333333},
+				{-0.5, 0.5, -0.5, 0.333333, 1.0},
+				{0.5, -0.5, -0.5, 0.0, 0.666667},
+				{-0.5, -0.5, -0.5, 0.333333, 0.666667},
+				{-0.5, 0.5, -0.5, 1.0, 0.0},
+				{-0.5, 0.5, 0.5, 1.0, 0.333333},
+				{0.5, 0.5, 0.5, 0.666667, 0.333333},
+				{0.5, 0.5, 0.5, 0.333333, 0.333333},
+				{-0.5, 0.5, 0.5, 0.0, 0.333333},
+				{-0.5, -0.5, 0.5, 0.0, 0.0},
+				{-0.5, 0.5, 0.5, 0.333333, 0.666667},
+				{-0.5, 0.5, -0.5, 0.0, 0.666667},
+				{-0.5, -0.5, -0.5, 0.0, 0.333333},
+				{0.5, -0.5, -0.5, 0.666667, 0.0},
+				{0.5, -0.5, 0.5, 0.666667, 0.333333},
+				{-0.5, -0.5, 0.5, 0.333333, 0.333333},
+				{0.5, 0.5, -0.5, 0.666667, 0.666667},
+				{0.5, 0.5, 0.5, 0.333333, 0.666667},
+				{0.5, -0.5, 0.5, 0.333333, 0.333333},
+				{-0.5, 0.5, -0.5, 0.333333, 1.0},
+				{0.5, 0.5, -0.5, 0.0, 1.0},
+				{0.5, -0.5, -0.5, 0.0, 0.666667}
+		});
+	} else {
+		data.insert(data.end(), {
 			{-0.5, 0.5, -0.5, 1.0, 1.0},
 			{0.5, 0.5, 0.5, 0.0, 0.0},
 			{0.5, 0.5, -0.5, 1.0, 0.0},
@@ -151,7 +193,8 @@ void SimpleVoxelType::buildVertexData(const Voxel &voxel, std::vector<VoxelVerte
 			{-0.5, 0.5, -0.5, 1.0, 1.0},
 			{0.5, 0.5, -0.5, 0.0, 1.0},
 			{0.5, -0.5, -0.5, 0.0, 0.0}
-	});
+		});
+	}
 }
 
 VoxelLightLevel SimpleVoxelType::lightLevel(const Voxel &voxel) {

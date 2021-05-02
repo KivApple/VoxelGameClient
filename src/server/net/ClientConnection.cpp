@@ -175,6 +175,6 @@ void ClientConnection::placeVoxel(const VoxelLocation &location) {
 		);
 		return;
 	}
-	chunk.at(location.inChunk()).setType(transport().engine()->voxelTypeRegistry().get("grass"));
+	chunk.at(location.inChunk()).setType(transport().engine()->voxelTypeRegistry().get("stone"));
 	chunk.markDirty();
 }

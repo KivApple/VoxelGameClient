@@ -7,7 +7,7 @@ VoxelWorldGenerator::VoxelWorldGenerator(
 ): m_registry(registry), m_air(
 		m_registry.make<AirVoxelType>("air")
 ), m_grass(
-		m_registry.make<SimpleVoxelType>("grass", "grass", "assets/textures/grass_top.png")
+		m_registry.make<SimpleVoxelType>("grass", "grass", "assets/textures/grass.png", true)
 ), m_dirt(
 		m_registry.make<SimpleVoxelType>("dirt", "dirt", "assets/textures/mud.png")
 ), m_stone(

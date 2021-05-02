@@ -303,12 +303,13 @@ public:
 
 class SimpleVoxelType: public VoxelTypeHelper<SimpleVoxelType>, public VoxelTextureShaderProvider {
 	std::string m_name;
+	bool m_unwrap;
 
 public:
-	SimpleVoxelType(std::string name, const std::string &textureFileName);
+	SimpleVoxelType(std::string name, const std::string &textureFileName, bool unwrap = false);
 
 #ifndef HEADLESS
-	SimpleVoxelType(std::string name, const GLTexture &texture);
+	SimpleVoxelType(std::string name, const GLTexture &texture, bool unwrap = false);
 #endif
 	std::string toString(const Voxel &voxel);
 	const VoxelShaderProvider *shaderProvider(const Voxel &voxel);

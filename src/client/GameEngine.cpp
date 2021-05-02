@@ -66,7 +66,7 @@ bool GameEngine::init() {
 	);
 	
 	m_voxelTypeRegistry->make<AirVoxelType>("air");
-	m_voxelTypeRegistry->make<SimpleVoxelType>("grass", "grass", "assets/textures/grass_top.png");
+	m_voxelTypeRegistry->make<SimpleVoxelType>("grass", "grass", "assets/textures/grass.png", true);
 	m_voxelTypeRegistry->make<SimpleVoxelType>("dirt", "dirt", "assets/textures/mud.png");
 	m_voxelTypeRegistry->make<SimpleVoxelType>("stone", "stone", "assets/textures/stone.png");
 	

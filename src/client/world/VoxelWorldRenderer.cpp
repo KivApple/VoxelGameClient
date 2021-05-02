@@ -150,9 +150,9 @@ void VoxelWorldRenderer::build(
 		}
 		
 		outData.insert(outData.end(), {
-			x0 + v0.x, y0 + v0.y, z0 + v0.z, v0.u, v0.v, lightLevel,
-			x0 + v1.x, y0 + v1.y, z0 + v1.z, v1.u, v1.v, lightLevel,
-			x0 + v2.x, y0 + v2.y, z0 + v2.z, v2.u, v2.v, lightLevel
+			x0 + v0.x, y0 + v0.y, z0 + v0.z, v0.u, 1.0f - v0.v, lightLevel,
+			x0 + v1.x, y0 + v1.y, z0 + v1.z, v1.u, 1.0f - v1.v, lightLevel,
+			x0 + v2.x, y0 + v2.y, z0 + v2.z, v2.u, 1.0f - v2.v, lightLevel
 		});
 	}
 }
