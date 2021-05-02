@@ -24,6 +24,7 @@ VoxelLightComputer::VoxelLightComputer() {
 
 VoxelLightComputer::~VoxelLightComputer() {
 	m_running = false;
+	m_queueCondVar.notify_one();
 	m_thread.join();
 }
 
