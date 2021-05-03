@@ -10,7 +10,6 @@ target_sources(easyloggingpp::easyloggingpp INTERFACE ${CMAKE_CURRENT_LIST_DIR}/
 
 add_library(sqlite::sqlite INTERFACE IMPORTED)
 target_include_directories(sqlite::sqlite INTERFACE lib/sqlite)
-target_compile_definitions(sqlite::sqlite INTERFACE SQLITE_THREADSAFE=2)
 target_sources(sqlite::sqlite INTERFACE ${CMAKE_CURRENT_LIST_DIR}/lib/sqlite/sqlite3.c)
 if(UNIX)
 	target_link_libraries(sqlite::sqlite INTERFACE dl)
