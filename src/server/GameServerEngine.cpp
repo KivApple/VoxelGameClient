@@ -38,6 +38,26 @@ int GameServerEngine::run() {
 	}
 	while (m_running) {
 		std::this_thread::sleep_for(std::chrono::seconds(1));
+		std::unordered_set<VoxelChunkLocation> locations;
+		m_voxelWorld.forEachChunkLocation([&locations](const VoxelChunkLocation &location) {
+			locations.emplace(location);
+		});
+		std::unique_lock<std::shared_mutex> lock(m_connectionsMutex);
+		for (auto &connection : m_connections) {
+			auto p = connection.second->positionChunk();
+			for (int z = -p.second - 1; z <= p.second + 1; z++) {
+				for (int y = -p.second - 1; y <= p.second + 1; y++) {
+					for (int x = -p.second - 1; x <= p.second + 1; x++) {
+						locations.erase({p.first.x + x, p.first.y + y, p.first.z + z});
+					}
+				}
+			}
+		}
+		lock.unlock();
+		if (!locations.empty()) {
+			m_voxelWorld.unloadChunks(std::vector<VoxelChunkLocation>(locations.begin(), locations.end()));
+			LOG(INFO) << "Unloaded " << locations.size() << " chunk(s)";
+		}
 	}
 	for (auto &&transport : m_transports) {
 		transport->shutdown();

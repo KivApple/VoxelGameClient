@@ -150,6 +150,11 @@ void ClientConnection::chunkInvalidated(const VoxelChunkLocation &location) {
 	newPendingChunk();
 }
 
+std::pair<VoxelChunkLocation, int> ClientConnection::positionChunk() {
+	std::shared_lock<std::shared_mutex> sharedLock(m_positionMutex);
+	return std::make_pair(m_positionChunk, m_viewRadius);
+}
+
 void ClientConnection::digVoxel(const VoxelLocation &location) {
 	logger().debug("[Client %v] Dig voxel at x=%v,y=%v,z=%v", this, location.x, location.y, location.z);
 	auto chunkLocation = location.chunk();

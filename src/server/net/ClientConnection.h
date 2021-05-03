@@ -49,5 +49,6 @@ public:
 		return m_transport;
 	}
 	void chunkInvalidated(const VoxelChunkLocation &location);
+	std::pair<VoxelChunkLocation, int> positionChunk();
 	
 };

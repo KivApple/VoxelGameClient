@@ -232,5 +232,11 @@ public:
 	size_t chunkCount() const {
 		return m_chunks.size();
 	}
+	template<typename Callable> void forEachChunkLocation(Callable callable) {
+		std::shared_lock<std::shared_mutex> lock(m_mutex);
+		for (auto &chunk : m_chunks) {
+			callable(chunk.first);
+		}
+	}
 	
 };
