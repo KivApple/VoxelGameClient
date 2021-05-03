@@ -157,8 +157,9 @@ void VoxelWorldStorage::run() {
 		}
 	}
 	std::unique_lock<std::shared_mutex> stmtsLock(m_loadChunkStmtsMutex);
-	for (auto &pair : m_loadChunkStmts) {
+	for (auto &&pair : m_loadChunkStmts) {
 		sqlite3_finalize(pair.second);
+		pair.second = nullptr;
 	}
 	stmtsLock.unlock();
 	closeDatabase();
