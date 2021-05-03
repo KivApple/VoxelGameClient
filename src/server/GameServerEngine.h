@@ -8,6 +8,7 @@
 #include "world/VoxelWorld.h"
 #include "world/VoxelTypeRegistry.h"
 #include "world/VoxelWorldGenerator.h"
+#include "world/VoxelWorldStorage.h"
 #include "world/VoxelLightComputer.h"
 #include "net/ServerTransport.h"
 #include "net/ClientConnection.h"
@@ -15,6 +16,7 @@
 class GameServerEngine: VoxelChunkListener {
 	VoxelTypeRegistry m_voxelTypeRegistry;
 	VoxelWorldGenerator m_voxelWorldGenerator;
+	VoxelWorldStorage m_voxelWorldStorage;
 	VoxelLightComputer m_voxelLightComputer;
 	VoxelWorld m_voxelWorld;
 	std::vector<std::unique_ptr<ServerTransport>> m_transports;

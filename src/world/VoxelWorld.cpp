@@ -530,7 +530,25 @@ void VoxelWorld::unloadChunks(const std::vector<VoxelChunkLocation> &locations) 
 			std::unique_lock<std::shared_mutex> chunkLock(it->second->mutex());
 			it->second->unsetNeighbors();
 			chunkLock.unlock();
+			if (m_chunkLoader != nullptr) {
+				m_chunkLoader->unloadChunkAsync(std::move(it->second));
+			}
 			m_chunks.erase(it);
 		}
+	}
+}
+
+void VoxelWorld::unload() {
+	LOG(INFO) << "Unloading world";
+	std::unique_lock<std::shared_mutex> lock(m_mutex);
+	auto it = m_chunks.begin();
+	while (it != m_chunks.end()) {
+		std::unique_lock<std::shared_mutex> chunkLock(it->second->mutex());
+		it->second->unsetNeighbors();
+		chunkLock.unlock();
+		if (m_chunkLoader != nullptr) {
+			m_chunkLoader->unloadChunkAsync(std::move(it->second));
+		}
+		it = m_chunks.erase(it);
 	}
 }

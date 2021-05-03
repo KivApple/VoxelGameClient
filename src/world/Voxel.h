@@ -89,6 +89,11 @@ public:
 	int typeId(const VoxelType &type) const;
 	VoxelType &findTypeById(int id) const;
 	std::vector<std::string> names() const;
+	void setTypeId(int id, const std::string &name);
+	[[nodiscard]] int size() const {
+		return m_types.size();
+	}
+	void update();
 
 	template<typename S> void serialize(S &s) const {
 		s.ext(*this, SerializationHelper {});

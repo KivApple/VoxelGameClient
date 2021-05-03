@@ -32,6 +32,116 @@ public:
 	
 };
 
+TEST(VoxelSerialization, contextBasic) {
+	VoxelTypeRegistry typeRegistry;
+	VoxelTypeSerializationContext typeSerializationContext(typeRegistry);
+	
+	EXPECT_EQ(typeSerializationContext.size(), 1);
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("empty")), 0);
+	
+	typeSerializationContext.setTypeId(2, "test3");
+	EXPECT_EQ(typeSerializationContext.size(), 3);
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("empty")), 0);
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("test3")), 2);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(2), &typeRegistry.get("test3"));
+	
+	typeSerializationContext.setTypeId(0, "empty");
+	EXPECT_EQ(typeSerializationContext.size(), 3);
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("empty")), 0);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(0), &typeRegistry.get("empty"));
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("test3")), 2);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(2), &typeRegistry.get("test3"));
+	
+	typeSerializationContext.setTypeId(1, "test1");
+	EXPECT_EQ(typeSerializationContext.size(), 3);
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("empty")), 0);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(0), &typeRegistry.get("empty"));
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("test1")), 1);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(1), &typeRegistry.get("test1"));
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("test3")), 2);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(2), &typeRegistry.get("test3"));
+	
+	typeSerializationContext.setTypeId(3, "test3");
+	EXPECT_EQ(typeSerializationContext.size(), 4);
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("empty")), 0);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(0), &typeRegistry.get("empty"));
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("test1")), 1);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(1), &typeRegistry.get("test1"));
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("test3")), 3);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(3), &typeRegistry.get("test3"));
+	
+	typeSerializationContext.setTypeId(2, "test2");
+	EXPECT_EQ(typeSerializationContext.size(), 4);
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("empty")), 0);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(0), &typeRegistry.get("empty"));
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("test1")), 1);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(1), &typeRegistry.get("test1"));
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("test2")), 2);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(2), &typeRegistry.get("test2"));
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("test3")), 3);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(3), &typeRegistry.get("test3"));
+	
+	typeSerializationContext.setTypeId(1, "test2");
+	typeSerializationContext.setTypeId(2, "test3");
+	typeSerializationContext.setTypeId(3, "test1");
+	EXPECT_EQ(typeSerializationContext.size(), 4);
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("empty")), 0);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(0), &typeRegistry.get("empty"));
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("test2")), 1);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(1), &typeRegistry.get("test2"));
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("test3")), 2);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(2), &typeRegistry.get("test3"));
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("test1")), 3);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(3), &typeRegistry.get("test1"));
+	
+	typeSerializationContext.setTypeId(1, "test4");
+	EXPECT_EQ(typeSerializationContext.size(), 5);
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("empty")), 0);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(0), &typeRegistry.get("empty"));
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("test1")), 3);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(3), &typeRegistry.get("test1"));
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("test2")), 4);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(4), &typeRegistry.get("test2"));
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("test3")), 2);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(2), &typeRegistry.get("test3"));
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("test4")), 1);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(1), &typeRegistry.get("test4"));
+	
+	typeSerializationContext.setTypeId(5, "test5");
+	EXPECT_EQ(typeSerializationContext.size(), 6);
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("empty")), 0);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(0), &typeRegistry.get("empty"));
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("test1")), 3);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(3), &typeRegistry.get("test1"));
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("test2")), 4);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(4), &typeRegistry.get("test2"));
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("test3")), 2);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(2), &typeRegistry.get("test3"));
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("test4")), 1);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(1), &typeRegistry.get("test4"));
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("test5")), 5);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(5), &typeRegistry.get("test5"));
+	
+	typeRegistry.get("test6");
+	
+	typeSerializationContext.update();
+	EXPECT_EQ(typeSerializationContext.size(), 7);
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("empty")), 0);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(0), &typeRegistry.get("empty"));
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("test1")), 3);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(3), &typeRegistry.get("test1"));
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("test2")), 4);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(4), &typeRegistry.get("test2"));
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("test3")), 2);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(2), &typeRegistry.get("test3"));
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("test4")), 1);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(1), &typeRegistry.get("test4"));
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("test5")), 5);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(5), &typeRegistry.get("test5"));
+	EXPECT_EQ(typeSerializationContext.typeId(typeRegistry.get("test6")), 6);
+	EXPECT_EQ(&typeSerializationContext.findTypeById(6), &typeRegistry.get("test6"));
+}
+
 TEST(VoxelSerialization, context) {
 	std::string buffer;
 	

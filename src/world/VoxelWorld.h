@@ -169,6 +169,8 @@ public:
 	virtual void load(VoxelChunkMutableRef &chunk) = 0;
 	virtual void loadAsync(VoxelWorld &world, const VoxelChunkLocation &location) = 0;
 	virtual void cancelLoadAsync(VoxelWorld &world, const VoxelChunkLocation &location) = 0;
+	virtual void unloadChunkAsync(std::unique_ptr<SharedVoxelChunk> chunk) {
+	}
 	
 };
 
@@ -226,6 +228,7 @@ public:
 			bool *created = nullptr
 	);
 	void unloadChunks(const std::vector<VoxelChunkLocation> &locations);
+	void unload();
 	size_t chunkCount() const {
 		return m_chunks.size();
 	}

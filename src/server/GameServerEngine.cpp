@@ -3,7 +3,10 @@
 #include "GameServerEngine.h"
 
 GameServerEngine::GameServerEngine(
-): m_voxelWorldGenerator(m_voxelTypeRegistry), m_voxelWorld(&m_voxelWorldGenerator, this) {
+): m_voxelWorldGenerator(m_voxelTypeRegistry),
+	m_voxelWorldStorage("world.sqlite", m_voxelTypeRegistry, m_voxelWorldGenerator),
+	m_voxelWorld(&m_voxelWorldStorage, this)
+{
 }
 
 void GameServerEngine::addTransport(std::unique_ptr<ServerTransport> transport) {
@@ -41,6 +44,7 @@ int GameServerEngine::run() {
 	}
 	std::unique_lock<std::shared_mutex> lock(m_connectionsMutex);
 	m_connections.clear();
+	m_voxelWorld.unload();
 	return 0;
 }
 

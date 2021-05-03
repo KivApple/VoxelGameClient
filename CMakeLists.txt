@@ -8,6 +8,14 @@ target_include_directories(easyloggingpp::easyloggingpp INTERFACE lib/easyloggin
 target_compile_definitions(easyloggingpp::easyloggingpp INTERFACE ELPP_THREAD_SAFE ELPP_NO_DEFAULT_LOG_FILE)
 target_sources(easyloggingpp::easyloggingpp INTERFACE ${CMAKE_CURRENT_LIST_DIR}/lib/easyloggingpp/src/easylogging++.cc)
 
+add_library(sqlite::sqlite INTERFACE IMPORTED)
+target_include_directories(sqlite::sqlite INTERFACE lib/sqlite)
+target_compile_definitions(sqlite::sqlite INTERFACE SQLITE_THREADSAFE=2)
+target_sources(sqlite::sqlite INTERFACE ${CMAKE_CURRENT_LIST_DIR}/lib/sqlite/sqlite3.c)
+if(UNIX)
+	target_link_libraries(sqlite::sqlite INTERFACE dl)
+endif()
+
 add_subdirectory(lib/glm)
 add_subdirectory(lib/bitsery)
 
@@ -94,13 +102,15 @@ else()
 			VoxelGameServer
 			src/server/main.cpp src/server/GameServerEngine.cpp src/server/net/WebSocketServerTransport.cpp
 			src/server/net/ClientConnection.cpp src/server/net/BinaryServerTransport.cpp
-			src/server/world/VoxelWorldGenerator.cpp src/server/world/VoxelLightComputer.cpp
+			src/server/world/VoxelWorldGenerator.cpp src/server/world/VoxelWorldStorage.cpp
+			src/server/world/VoxelLightComputer.cpp
 			${COMMON_SRC}
 	)
 	target_compile_definitions(VoxelGameServer PUBLIC HEADLESS)
 	target_link_libraries(
 			VoxelGameServer
-			easyloggingpp::easyloggingpp glm::glm Bitsery::bitsery websocketpp::websocketpp asio::asio Threads::Threads
+			easyloggingpp::easyloggingpp glm::glm Bitsery::bitsery websocketpp::websocketpp asio::asio
+			sqlite::sqlite Threads::Threads
 	)
 	if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
 		target_link_libraries(VoxelGameServer ws2_32 wsock32)

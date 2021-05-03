@@ -1,3 +1,4 @@
+#include <easylogging++.h>
 #include "Voxel.h"
 #include "VoxelTypeRegistry.h"
 #ifndef HEADLESS
@@ -41,10 +42,65 @@ void VoxelTextureShaderProvider::setup(const CommonShaderProgram &program) const
 #endif
 
 VoxelTypeSerializationContext::VoxelTypeSerializationContext(VoxelTypeRegistry &registry): m_registry(registry) {
-	registry.forEach([this] (const std::string &name, VoxelType &type) {
-		m_types.emplace_back(name, type);
-		m_typeMap.emplace(&type, (int) (m_types.size() - 1));
+	update();
+}
+
+void VoxelTypeSerializationContext::update() {
+	m_registry.forEach([this] (const std::string &name, VoxelType &type) {
+		if (m_typeMap.emplace(&type, (int) m_types.size()).second) {
+			m_types.emplace_back(name, type);
+		}
 	});
+}
+
+void VoxelTypeSerializationContext::setTypeId(int id, const std::string &name) {
+	if (id < 0 || id > UINT16_MAX) return;
+	if (id == 0 && name != "empty") return;
+	auto &type = m_registry.get(name);
+	//LOG(TRACE) << "Registering type \"" << name << "\" " << &type << " with id=" << id;
+	auto it = m_typeMap.find(&type);
+	if (it != m_typeMap.end()) {
+		if (it->second == id) {
+			//LOG(TRACE) << "Type \"" << name << "\" already has id=" << id;
+			return;
+		} else {
+			//LOG(TRACE) << "Type \"" << name << "\" has id=" << it->second;
+		}
+	}
+	if (id >= m_types.size()) {
+		m_types.reserve(id + 1);
+		while (m_types.size() < id) {
+			//LOG(TRACE) << "Adding empty voxel type with id=" << m_types.size();
+			m_types.emplace_back("empty", EmptyVoxelType::INSTANCE);
+		}
+		//LOG(TRACE) << "Adding \"" << name << "\"" << " at the end (id=" << m_types.size() << ")";
+		m_types.emplace_back(name, type);
+		if (it != m_typeMap.end()) {
+			auto prevId = it->second;
+			//LOG(TRACE) << "Removing \"" << m_types[prevId].first << "\" with id=" << prevId;
+			m_types[prevId].first = "empty";
+			m_types[prevId].second = EmptyVoxelType::INSTANCE;
+		}
+	} else {
+		auto &oldType = m_types[id].second.get();
+		if (&oldType != &EmptyVoxelType::INSTANCE) {
+			if (it != m_typeMap.end()) {
+				auto prevId = it->second;
+				//LOG(TRACE) << "Move \"" << m_types[id].first << "\" " << &type << " into id=" << prevId;
+				m_typeMap[&oldType] = prevId;
+				m_types[prevId] = std::move(m_types[id]);
+			} else {
+				auto newId = m_types.size();
+				//LOG(TRACE) << "Move \"" << m_types[id].first << "\" into id=" << newId << " (push_back)";
+				m_typeMap[&oldType] = newId;
+				m_types.emplace_back(std::move(m_types[id]));
+			}
+		}
+		m_types[id].first = name;
+		m_types[id].second = type;
+		//LOG(TRACE) << "Set \"" << name << "\" into id=" << id;
+	}
+	m_typeMap[&type] = id;
 }
 
 int VoxelTypeSerializationContext::typeId(const VoxelType &type) const {
