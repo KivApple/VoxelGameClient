@@ -110,8 +110,13 @@ void VoxelWorldStorage::openDatabase() {
 
 void VoxelWorldStorage::closeDatabase() {
 	if (m_database == nullptr) return;
+	if (m_storeChunkStmt != nullptr) {
+		sqlite3_finalize(m_storeChunkStmt);
+		m_storeChunkStmt = nullptr;
+	}
 	sqlite3_close(m_database);
 	m_database = nullptr;
+	LOG(DEBUG) << "Database closed";
 }
 
 void VoxelWorldStorage::run() {
@@ -161,6 +166,7 @@ void VoxelWorldStorage::run() {
 		sqlite3_finalize(pair.second);
 		pair.second = nullptr;
 	}
+	LOG(DEBUG) << m_loadChunkStmts.size() << " database statement(s) finalized";
 	stmtsLock.unlock();
 	closeDatabase();
 	LOG(INFO) << "Voxel world storage thread stopped";
