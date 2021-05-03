@@ -1,4 +1,5 @@
 #include <csignal>
+#include <exception>
 #include "net/WebSocketServerTransport.h"
 #include "GameServerEngine.h"
 
@@ -30,6 +31,11 @@ int main(int argc, char *argv[]) {
 		);
 		el::Loggers::setDefaultConfigurations(conf, true);
 	}
+	std::set_terminate([]() {
+		LOG(ERROR) << "std::terminate() called";
+		el::Helpers::logCrashReason(SIGABRT, true);
+		el::Helpers::crashAbort(SIGABRT);
+	});
 	
 	GameServerEngine engine;
 	engineInstance = &engine;

@@ -12,8 +12,8 @@ VoxelWorldStorage::VoxelWorldStorage(
 }
 
 VoxelWorldStorage::~VoxelWorldStorage() {
-	m_running = false;
 	std::unique_lock<std::mutex> lock(m_queueMutex);
+	m_running = false;
 	m_queueCondVar.notify_one();
 	lock.unlock();
 	m_thread.join();
@@ -124,7 +124,10 @@ void VoxelWorldStorage::run() {
 			if (!m_running) break;
 			m_queueCondVar.wait(lock);
 		}
-		if (m_queue.empty()) continue;
+		if (m_queue.empty()) {
+			lock.unlock();
+			continue;
+		}
 		auto job = std::move(m_queue.front());
 		m_queue.pop_front();
 		lock.unlock();

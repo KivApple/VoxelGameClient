@@ -106,12 +106,16 @@ else()
 			src/server/world/VoxelLightComputer.cpp
 			${COMMON_SRC}
 	)
-	target_compile_definitions(VoxelGameServer PUBLIC HEADLESS)
+	target_compile_definitions(VoxelGameServer PUBLIC HEADLESS ELPP_FEATURE_CRASH_LOG)
 	target_link_libraries(
 			VoxelGameServer
 			easyloggingpp::easyloggingpp glm::glm Bitsery::bitsery websocketpp::websocketpp asio::asio
 			sqlite::sqlite Threads::Threads
 	)
+	if(UNIX)
+		target_compile_options(VoxelGameServer PUBLIC -g -rdynamic)
+		target_link_options(VoxelGameServer PUBLIC -g -rdynamic)
+	endif()
 	if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
 		target_link_libraries(VoxelGameServer ws2_32 wsock32)
 	endif()
