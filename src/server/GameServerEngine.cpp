@@ -5,8 +5,13 @@
 GameServerEngine::GameServerEngine(
 ): m_voxelWorldGenerator(m_voxelTypeRegistry),
 	m_voxelWorldStorage("world.sqlite", m_voxelTypeRegistry, m_voxelWorldGenerator),
-	m_voxelWorld(&m_voxelWorldStorage, this)
+	m_voxelWorld(this)
 {
+	m_voxelWorld.setChunkLoader(&m_voxelWorldStorage);
+}
+
+GameServerEngine::~GameServerEngine() {
+	m_voxelWorld.setChunkLoader(nullptr);
 }
 
 void GameServerEngine::addTransport(std::unique_ptr<ServerTransport> transport) {

@@ -45,7 +45,7 @@ bool GameEngine::init() {
 	m_userInterface = std::make_unique<UserInterface>();
 
 	m_voxelTypeRegistry = std::make_unique<VoxelTypeRegistry>();
-	m_voxelWorld = std::make_unique<VoxelWorld>(nullptr, static_cast<VoxelChunkListener*>(this));
+	m_voxelWorld = std::make_unique<VoxelWorld>(static_cast<VoxelChunkListener*>(this));
 	m_voxelWorldRenderer = std::make_unique<VoxelWorldRenderer>(*m_voxelWorld);
 	m_voxelOutline = std::make_unique<VoxelOutline>();
 	

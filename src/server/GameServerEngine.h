@@ -15,10 +15,10 @@
 
 class GameServerEngine: VoxelChunkListener {
 	VoxelTypeRegistry m_voxelTypeRegistry;
+	VoxelWorld m_voxelWorld;
 	VoxelWorldGenerator m_voxelWorldGenerator;
 	VoxelWorldStorage m_voxelWorldStorage;
 	VoxelLightComputer m_voxelLightComputer;
-	VoxelWorld m_voxelWorld;
 	std::vector<std::unique_ptr<ServerTransport>> m_transports;
 	std::unordered_map<ClientConnection*, std::unique_ptr<ClientConnection>> m_connections;
 	std::shared_mutex m_connectionsMutex;
@@ -32,6 +32,7 @@ class GameServerEngine: VoxelChunkListener {
 	
 public:
 	GameServerEngine();
+	~GameServerEngine();
 	void addTransport(std::unique_ptr<ServerTransport> transport);
 	int run();
 	void shutdown();

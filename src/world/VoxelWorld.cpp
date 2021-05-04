@@ -251,13 +251,16 @@ VoxelChunkMutableRef::~VoxelChunkMutableRef() {
 }
 
 void VoxelChunkMutableRef::unlock(bool notify) {
+	std::optional<VoxelInvalidationNotifier> notifier;
 	if (m_chunk) {
-		VoxelInvalidationNotifier notifier(*m_chunk, notify);
+		notifier.emplace(*m_chunk, notify);
 		m_chunk->mutex().unlock();
 		m_chunk = nullptr;
-		notifier.notify();
 	}
 	VoxelChunkExtendedRef::unlock();
+	if (notifier.has_value()) {
+		notifier->notify();
+	}
 }
 
 VoxelHolder &VoxelChunkMutableRef::at(int x, int y, int z) const {
@@ -352,16 +355,20 @@ VoxelHolder &VoxelChunkExtendedMutableRef::extendedAt(
 
 /* VoxelWorld */
 
-VoxelWorld::VoxelWorld(
-		VoxelChunkLoader *chunkLoader,
-		VoxelChunkListener *chunkListener
-): m_chunkLoader(chunkLoader), m_chunkListener(chunkListener) {
+VoxelWorld::VoxelWorld(VoxelChunkListener *chunkListener): m_chunkListener(chunkListener) {
+}
+
+void VoxelWorld::setChunkLoader(VoxelChunkLoader *chunkLoader) {
+	std::unique_lock<std::shared_mutex> lock(m_mutex);
+	m_chunkLoader = chunkLoader;
 }
 
 template<typename T> T VoxelWorld::createChunk(const VoxelChunkLocation &location) {
+	std::shared_lock<std::shared_mutex> sharedLock(m_mutex);
 	if (m_chunkLoader) {
 		m_chunkLoader->cancelLoadAsync(*this, location);
 	}
+	sharedLock.unlock();
 	std::unique_lock<std::shared_mutex> lock(m_mutex);
 	auto it = m_chunks.find(location);
 	if (it != m_chunks.end()) {
@@ -376,6 +383,7 @@ template<typename T> T VoxelWorld::createChunk(const VoxelChunkLocation &locatio
 
 template<typename T> T VoxelWorld::createAndLoadChunk(const VoxelChunkLocation &location) {
 	auto chunk = createChunk<T>(location);
+	std::shared_lock<std::shared_mutex> lock(m_mutex);
 	m_chunkLoader->load(chunk);
 	return chunk;
 }

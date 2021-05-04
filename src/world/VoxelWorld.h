@@ -186,7 +186,7 @@ public:
 };
 
 class VoxelWorld {
-	VoxelChunkLoader *m_chunkLoader;
+	VoxelChunkLoader *m_chunkLoader = nullptr;
 	VoxelChunkListener *m_chunkListener;
 	std::unordered_map<VoxelChunkLocation, std::unique_ptr<SharedVoxelChunk>> m_chunks;
 	std::shared_mutex m_mutex;
@@ -204,9 +204,10 @@ public:
 		LOAD_ASYNC
 	};
 	
-	explicit VoxelWorld(VoxelChunkLoader *chunkLoader = nullptr, VoxelChunkListener *chunkListener = nullptr);
+	explicit VoxelWorld(VoxelChunkListener *chunkListener = nullptr);
 	VoxelWorld(const VoxelWorld &world) = delete;
 	VoxelWorld &operator=(const VoxelWorld &world) = delete;
+	void setChunkLoader(VoxelChunkLoader *chunkLoader);
 	VoxelChunkRef chunk(
 			const VoxelChunkLocation &location,
 			MissingChunkPolicy policy = MissingChunkPolicy::NONE,
