@@ -43,6 +43,7 @@ class VoxelWorldStorage: public VoxelChunkLoader {
 public:
 	VoxelWorldStorage(std::string fileName, VoxelTypeRegistry &registry, VoxelChunkLoader &generator);
 	~VoxelWorldStorage() override;
+	void shutdown();
 	void load(VoxelChunkMutableRef &chunk) override;
 	void loadAsync(VoxelWorld &world, const VoxelChunkLocation &location) override;
 	void cancelLoadAsync(VoxelWorld &world, const VoxelChunkLocation &location) override;

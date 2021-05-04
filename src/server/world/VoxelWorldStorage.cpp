@@ -12,7 +12,12 @@ VoxelWorldStorage::VoxelWorldStorage(
 }
 
 VoxelWorldStorage::~VoxelWorldStorage() {
+	shutdown();
+}
+
+void VoxelWorldStorage::shutdown() {
 	std::unique_lock<std::mutex> lock(m_queueMutex);
+	if (!m_running) return;
 	m_running = false;
 	m_queueCondVar.notify_one();
 	lock.unlock();
