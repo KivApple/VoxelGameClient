@@ -61,6 +61,9 @@ int GameServerEngine::run() {
 		}
 		lock.unlock();
 		if (!locations.empty()) {
+			for (auto &location : locations) {
+				m_voxelLightComputer.cancelComputeAsync(m_voxelWorld, location);
+			}
 			m_voxelWorld.unloadChunks(std::vector<VoxelChunkLocation>(locations.begin(), locations.end()));
 			LOG(INFO) << "Unloaded " << locations.size() << " chunk(s)";
 		}

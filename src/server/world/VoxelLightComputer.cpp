@@ -261,3 +261,15 @@ void VoxelLightComputer::computeAsync(
 	m_queue.emplace_back(&world, location, std::move(voxels));
 	m_queueCondVar.notify_one();
 }
+
+void VoxelLightComputer::cancelComputeAsync(VoxelWorld &world, const VoxelChunkLocation &location) {
+	std::unique_lock<std::mutex> lock(m_queueMutex);
+	auto it = m_queue.begin();
+	while (it != m_queue.end()) {
+		if (it->world == &world && it->chunkLocation == location) {
+			it = m_queue.erase(it);
+		} else{
+			++it;
+		}
+	}
+}

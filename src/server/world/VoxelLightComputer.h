@@ -70,5 +70,6 @@ public:
 			const VoxelChunkLocation &location,
 			std::vector<InChunkVoxelLocation> &&voxels
 	);
+	void cancelComputeAsync(VoxelWorld &world, const VoxelChunkLocation &location);
 	
 };
