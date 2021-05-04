@@ -1,11 +1,20 @@
 #pragma once
 
+#include <shared_mutex>
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/server.hpp>
 
 template<typename config> class WebSocketAsioConnection: public websocketpp::transport::asio::connection<config> {
 	websocketpp::transport::asio::handler_allocator m_writeHandlerWrapperAllocator;
 	websocketpp::lib::function<void(const websocketpp::lib::error_code&)> m_writeCompleteHandler;
+	std::shared_mutex m_writeCompleteHandlerMutex;
+	
+	void callWriteCompleteHandler(const websocketpp::lib::error_code errorCode) {
+		std::shared_lock<std::shared_mutex> lock(m_writeCompleteHandlerMutex);
+		if (m_writeCompleteHandler) {
+			m_writeCompleteHandler(errorCode);
+		}
+	}
 	
 public:
 	typedef WebSocketAsioConnection<config> type;
@@ -17,6 +26,7 @@ public:
 	}
 	
 	void setWriteCompleteHandler(websocketpp::lib::function<void(const websocketpp::lib::error_code&)> handler) {
+		std::unique_lock<std::shared_mutex> lock(m_writeCompleteHandlerMutex);
 		m_writeCompleteHandler = handler;
 	}
 	
@@ -30,9 +40,7 @@ public:
 				buf,
 				len,
 				make_custom_alloc_handler(m_writeHandlerWrapperAllocator, [this, handler](auto &errorCode) {
-					if (m_writeCompleteHandler) {
-						m_writeCompleteHandler(errorCode);
-					}
+					callWriteCompleteHandler(errorCode);
 					handler(errorCode);
 				})
 		);
@@ -46,9 +54,7 @@ public:
 		connection<config>::async_write(
 				bufs,
 				make_custom_alloc_handler(m_writeHandlerWrapperAllocator, [this, handler](auto &errorCode) {
-					if (m_writeCompleteHandler) {
-						m_writeCompleteHandler(errorCode);
-					}
+					callWriteCompleteHandler(errorCode);
 					handler(errorCode);
 				})
 		);
