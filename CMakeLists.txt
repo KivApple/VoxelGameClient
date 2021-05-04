@@ -45,6 +45,7 @@ else()
 	target_compile_definitions(websocketpp::websocketpp INTERFACE _WEBSOCKETPP_CPP11_THREAD_)
 	
 	add_subdirectory(lib/googletest)
+	add_subdirectory(lib/zlib)
 	
 	if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
 		message("Detected Windows")
@@ -89,7 +90,7 @@ target_link_libraries(VoxelGameClient easyloggingpp::easyloggingpp glm::glm Bits
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Emscripten")
 	target_link_libraries(VoxelGameClient websocket.js)
 else()
-	target_link_libraries(VoxelGameClient GLEW::GLEW websocketpp::websocketpp asio::asio Threads::Threads)
+	target_link_libraries(VoxelGameClient GLEW::GLEW websocketpp::websocketpp zlibstatic asio::asio Threads::Threads)
 	
 	if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
 		target_link_libraries(VoxelGameClient SDL2::SDL2 opengl32 ws2_32 wsock32)
@@ -108,7 +109,7 @@ else()
 	target_compile_definitions(VoxelGameServer PUBLIC HEADLESS ELPP_FEATURE_CRASH_LOG)
 	target_link_libraries(
 			VoxelGameServer
-			easyloggingpp::easyloggingpp glm::glm Bitsery::bitsery websocketpp::websocketpp asio::asio
+			easyloggingpp::easyloggingpp glm::glm Bitsery::bitsery websocketpp::websocketpp asio::asio zlibstatic
 			sqlite::sqlite Threads::Threads
 	)
 	if(UNIX)

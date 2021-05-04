@@ -2,6 +2,7 @@
 
 #include <shared_mutex>
 #include <websocketpp/config/asio_no_tls.hpp>
+#include <websocketpp/extensions/permessage_deflate/enabled.hpp>
 #include <websocketpp/server.hpp>
 
 template<typename config> class WebSocketAsioConnection: public websocketpp::transport::asio::connection<config> {
@@ -70,6 +71,10 @@ public:
 
 struct WebSocketConfig: public websocketpp::config::asio {
 	typedef WebSocketAsioEndpoint<transport_config> transport_type;
+	
+	struct permessage_deflate_config {};
+	
+	typedef websocketpp::extensions::permessage_deflate::enabled <permessage_deflate_config> permessage_deflate_type;
 };
 
 typedef websocketpp::server<WebSocketConfig> WebSocketServer;

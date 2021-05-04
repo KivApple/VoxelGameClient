@@ -23,7 +23,7 @@ void WebSocketClientTransport::start() {
 	connection->set_fail_handler([this] (auto connection) { handleError(); });
 	connection->set_open_handler([this] (auto connection) { handleOpen(); });
 	connection->set_close_handler([this] (auto connection) { handleClose(); });
-	connection->set_message_handler([this] (auto connection, client_t::message_ptr message) {
+	connection->set_message_handler([this] (auto connection, WebSocketClient::message_ptr message) {
 		handleMessage(message->get_payload());
 	});
 	m_client.connect(connection);

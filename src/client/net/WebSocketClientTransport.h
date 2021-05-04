@@ -4,6 +4,7 @@
 #include <string>
 #ifndef __EMSCRIPTEN__
 #include <websocketpp/config/asio_no_tls_client.hpp>
+#include <websocketpp/extensions/permessage_deflate/enabled.hpp>
 #include <websocketpp/client.hpp>
 #else
 #include <emscripten/websocket.h>
@@ -12,9 +13,15 @@
 
 class WebSocketClientTransport: public BinaryClientTransport {
 #ifndef __EMSCRIPTEN__
-	typedef websocketpp::client<websocketpp::config::asio_client> client_t;
+	struct WebSocketConfig: public websocketpp::config::asio_client {
+		struct permessage_deflate_config {};
+		
+		typedef websocketpp::extensions::permessage_deflate::enabled <permessage_deflate_config> permessage_deflate_type;
+	};
 	
-	client_t m_client;
+	typedef websocketpp::client<WebSocketConfig> WebSocketClient;
+	
+	WebSocketClient m_client;
 	websocketpp::connection_hdl m_connection;
 	std::thread m_thread;
 	

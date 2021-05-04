@@ -55,17 +55,13 @@ void WebSocketServerTransport::Connection::handleClose() {
 
 void WebSocketServerTransport::Connection::sendMessage(const void *data, size_t dataSize) {
 	if (m_closed) return;
-	std::error_code errorCode;
-	webSocketTransport().m_server.send(
-			m_connection,
-			(void*) data,
-			dataSize,
-			websocketpp::frame::opcode::binary,
-			errorCode
-	);
-	if (errorCode) {
-		logger().error("[Client %v] Send failed: %v", this, errorCode.message().c_str());
+	auto conn = webSocketTransport().m_server.get_con_from_hdl(m_connection);
+	if (conn->buffered_amount() > 512 * 1024) {
+		logger().warn("[Client %v] Connection is too slow. Closing...", this);
+		conn->close(websocketpp::close::status::omit_handshake, "Too slow connection");
+		return;
 	}
+	conn->send((void*) data, dataSize, websocketpp::frame::opcode::binary);
 }
 
 void WebSocketServerTransport::Connection::newPendingChunk() {

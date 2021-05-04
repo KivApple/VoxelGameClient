@@ -16,3 +16,6 @@
 [submodule "lib/easyloggingpp"]
 	path = lib/easyloggingpp
 	url = https://github.com/amrayn/easyloggingpp
+[submodule "lib/zlib"]
+	path = lib/zlib
+	url = https://github.com/madler/zlib
