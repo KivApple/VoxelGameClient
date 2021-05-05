@@ -36,6 +36,7 @@ void WebSocketServerTransport::Connection::handleWriteComplete(const websocketpp
 		return;
 	}
 	logger().trace("[Client %v] Connection idle detected", this);
+	std::unique_lock<std::mutex> lock(m_sendingPendingChunksMutex);
 	m_sendingPendingChunks = setPendingChunk();
 	if (!m_sendingPendingChunks) {
 		logger().trace("[Client %v] Finished sending chunks", this);
@@ -66,6 +67,7 @@ void WebSocketServerTransport::Connection::sendMessage(const void *data, size_t 
 
 void WebSocketServerTransport::Connection::newPendingChunk() {
 	if (m_closed) return;
+	std::unique_lock<std::mutex> lock(m_sendingPendingChunksMutex);
 	if (!m_sendingPendingChunks) {
 		logger().trace("[Client %v] Started sending chunks", this);
 		m_sendingPendingChunks = setPendingChunk();

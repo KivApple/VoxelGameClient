@@ -10,6 +10,7 @@ class WebSocketServerTransport: public BinaryServerTransport, std::thread {
 	class Connection: public BinaryServerTransport::Connection {
 		websocketpp::connection_hdl m_connection;
 		std::atomic<bool> m_closed = false;
+		std::mutex m_sendingPendingChunksMutex;
 		bool m_sendingPendingChunks = false;
 		
 		[[nodiscard]] WebSocketServerTransport &webSocketTransport() const {
