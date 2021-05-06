@@ -40,6 +40,7 @@ public:
 	}
 	
 	void markDirty(const InChunkVoxelLocation &location) {
+		if (m_dirty) return;
 		m_dirtyLocations.emplace(location);
 	}
 	

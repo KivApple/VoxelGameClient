@@ -25,6 +25,7 @@ class SDLGameEngine: public GameEngine {
 	void handleMouseMotionEvent(SDL_MouseMotionEvent &event);
 	void handleMouseButtonDownEvent(SDL_MouseButtonEvent &event);
 	void handleMouseButtonUpEvent(SDL_MouseButtonEvent &event);
+	void handleMouseWheelEvent(SDL_MouseWheelEvent &event);
 	void handleTouchFingerDownEvent(SDL_TouchFingerEvent &event);
 	void handleTouchFingerMotionEvent(SDL_TouchFingerEvent &event);
 	void handleTouchFingerUpEvent(SDL_TouchFingerEvent &event);

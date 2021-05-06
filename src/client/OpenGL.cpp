@@ -6,12 +6,16 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
 
+/* GLBufferPointer */
+
 void GLBufferPointer::bind(int attribLocation, int size, bool normalized) const {
 	if (attribLocation < 0) return;
 	m_buffer.bind();
 	glVertexAttribPointer(attribLocation, size, m_type, normalized, m_stride, (const void*) m_offset);
 	glEnableVertexAttribArray(attribLocation);
 }
+
+/* GLBuffer */
 
 GLBuffer::GLBuffer(unsigned int target): m_id(0), m_target(target) {
 	glGenBuffers(1, &m_id);
@@ -43,6 +47,8 @@ void GLBuffer::setData(const void *data, size_t dataSize, unsigned int usage) co
 	glBufferData(m_target, dataSize, data, usage);
 }
 
+/* GLTexture */
+
 GLTexture::GLTexture(): m_id(0), m_width(0), m_height(0) {
 	glGenTextures(1, &m_id);
 }
@@ -69,6 +75,17 @@ GLTexture::GLTexture(
 	texture.m_id = 0;
 }
 
+GLTexture::GLTexture(int width, int height, bool filter): GLTexture() {
+	m_width = width;
+	m_height = height;
+	bind();
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter ? GL_LINEAR : GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter ? GL_LINEAR : GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D,0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+}
+
 GLTexture &GLTexture::operator=(GLTexture &&texture) noexcept {
 	m_id = texture.m_id;
 	m_width = texture.m_width;
@@ -86,6 +103,72 @@ GLTexture::~GLTexture() {
 void GLTexture::bind() const {
 	glBindTexture(GL_TEXTURE_2D, m_id);
 }
+
+/* Framebuffer */
+
+Framebuffer::Framebuffer(
+		unsigned int width,
+		unsigned int height,
+		bool depth
+): m_id(0), m_renderBufferId(0), m_width(width), m_height(height) {
+	glGenFramebuffers(1, &m_id);
+	glBindFramebuffer(GL_FRAMEBUFFER, m_id);
+	if (depth) {
+		glGenRenderbuffers(1, &m_renderBufferId);
+		glBindRenderbuffer(GL_RENDERBUFFER, m_renderBufferId);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, m_width, m_height);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_renderBufferId);
+	}
+}
+
+Framebuffer::Framebuffer(GLTexture &texture, bool depth): Framebuffer(texture.width(), texture.height(), depth) {
+	setTexture(texture);
+}
+
+Framebuffer::Framebuffer(
+		Framebuffer &&framebuffer
+) noexcept: m_id(framebuffer.m_id), m_renderBufferId(framebuffer.m_renderBufferId),
+	m_width(framebuffer.m_width), m_height(framebuffer.m_height)
+{
+	framebuffer.m_id = 0;
+	framebuffer.m_renderBufferId = 0;
+}
+
+Framebuffer &Framebuffer::operator=(Framebuffer &&framebuffer) noexcept {
+	m_id = framebuffer.m_id;
+	m_renderBufferId = framebuffer.m_renderBufferId;
+	m_width = framebuffer.m_width;
+	m_height = framebuffer.m_height;
+	framebuffer.m_id = 0;
+	framebuffer.m_renderBufferId = 0;
+	return *this;
+}
+
+Framebuffer::~Framebuffer() {
+	if (m_renderBufferId > 0) {
+		glDeleteRenderbuffers(1, &m_renderBufferId);
+	}
+	if (m_id > 0) {
+		glDeleteFramebuffers(1, &m_id);
+	}
+}
+
+void Framebuffer::setTexture(GLTexture &texture) const {
+	assert(m_width == texture.width());
+	assert(m_height == texture.height());
+	
+	glBindFramebuffer(GL_FRAMEBUFFER, m_id);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture.id(), 0);
+	GLenum drawBuffers[1] = {GL_COLOR_ATTACHMENT0};
+	glDrawBuffers(1, drawBuffers);
+}
+
+void Framebuffer::bind() const {
+	glBindFramebuffer(GL_FRAMEBUFFER, m_id);
+	glViewport(0, 0, m_width, m_height);
+}
+
+/* Shader */
 
 static std::string loadStringFromFile(const std::string &fileName) {
 	std::ifstream file(fileName);
@@ -143,6 +226,8 @@ Shader::~Shader() {
 	if (!m_id) return;
 	glDeleteShader(m_id);
 }
+
+/* ShaderProgram */
 
 ShaderProgram::ShaderProgram(
 		std::string name,

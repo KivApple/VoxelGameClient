@@ -51,6 +51,7 @@ class GLTexture {
 public:
 	GLTexture();
 	explicit GLTexture(const std::string &fileName);
+	GLTexture(int width, int height, bool filter);
 	GLTexture(GLTexture &&texture) noexcept;
 	GLTexture &operator=(GLTexture &&texture) noexcept;
 	~GLTexture();
@@ -63,6 +64,23 @@ public:
 	[[nodiscard]] unsigned int height() const {
 		return m_height;
 	}
+	void bind() const;
+
+};
+
+class Framebuffer {
+	unsigned int m_id;
+	unsigned int m_renderBufferId;
+	unsigned int m_width;
+	unsigned int m_height;
+
+public:
+	Framebuffer(unsigned int width, unsigned int height, bool depth);
+	Framebuffer(GLTexture &texture, bool depth);
+	Framebuffer(Framebuffer &&framebuffer) noexcept;
+	Framebuffer &operator=(Framebuffer &&framebuffer) noexcept;
+	~Framebuffer();
+	void setTexture(GLTexture &texture) const;
 	void bind() const;
 
 };

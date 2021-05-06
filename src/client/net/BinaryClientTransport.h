@@ -38,9 +38,8 @@ protected:
 
 public:
 	explicit BinaryClientTransport(GameEngine &engine);
-	
+	void updateActiveInventoryItem(int index) override;
 	void digVoxel(const VoxelLocation &location) override;
-	
 	void placeVoxel(const VoxelLocation &location) override;
 	
 };

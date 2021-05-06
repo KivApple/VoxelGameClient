@@ -22,7 +22,15 @@ SDLGameEngine::SDLGameEngine(): m_keyMap({
 		{SDLK_F1, KeyCode::TOGGLE_DEBUG_INFO},
 		{SDLK_F2, KeyCode::RESET_PERFORMANCE_COUNTERS},
 		{SDLK_LCTRL, KeyCode::SPEEDUP},
-		{SDLK_RCTRL, KeyCode::SPEEDUP}
+		{SDLK_RCTRL, KeyCode::SPEEDUP},
+		{SDLK_1, KeyCode::INVENTORY_1},
+		{SDLK_2, KeyCode::INVENTORY_2},
+		{SDLK_3, KeyCode::INVENTORY_3},
+		{SDLK_4, KeyCode::INVENTORY_4},
+		{SDLK_5, KeyCode::INVENTORY_5},
+		{SDLK_6, KeyCode::INVENTORY_6},
+		{SDLK_7, KeyCode::INVENTORY_7},
+		{SDLK_8, KeyCode::INVENTORY_8}
 }) {
 }
 
@@ -50,7 +58,10 @@ bool SDLGameEngine::platformInit() {
 	
 	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 2 );
 	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 0 );
-	SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+	SDL_GL_SetAttribute(
+			SDL_GL_CONTEXT_PROFILE_MASK,
+			SDL_GL_CONTEXT_PROFILE_ES | SDL_GL_CONTEXT_PROFILE_COMPATIBILITY
+	);
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 	m_glContext = SDL_GL_CreateContext(m_window);
 	if (m_glContext == nullptr) {
@@ -175,6 +186,10 @@ void SDLGameEngine::handleMouseButtonUpEvent(SDL_MouseButtonEvent &event) {
 	}
 }
 
+void SDLGameEngine::handleMouseWheelEvent(SDL_MouseWheelEvent &event) {
+	mouseWheel(event.y);
+}
+
 void SDLGameEngine::handleTouchFingerDownEvent(SDL_TouchFingerEvent &event) {
 	if (userInterface().touchStart(event.fingerId, glm::vec2(
 			(float) event.x * 2.0f - 1.0f,
@@ -241,6 +256,9 @@ void SDLGameEngine::handleEvents() {
 				break;
 			case SDL_MOUSEBUTTONUP:
 				handleMouseButtonUpEvent(event.button);
+				break;
+			case SDL_MOUSEWHEEL:
+				handleMouseWheelEvent(event.wheel);
 				break;
 			case SDL_FINGERDOWN:
 				handleTouchFingerDownEvent(event.tfinger);

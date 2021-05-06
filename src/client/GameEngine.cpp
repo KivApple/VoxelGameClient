@@ -88,12 +88,10 @@ void GameEngine::handleResize(int width, int height) {
 	m_viewportHeight = height;
 	LOG(INFO) << "Viewport set to " << width << "x" << height;
 	
-	glViewport(0, 0, m_viewportWidth, m_viewportHeight);
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	
 	glDepthFunc(GL_LEQUAL);
 	
-	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
 	m_projection = glm::perspective(
@@ -105,8 +103,11 @@ void GameEngine::handleResize(int width, int height) {
 }
 
 void GameEngine::render() {
+	m_userInterface->inventory().update();
 	updatePlayerPosition();
 	
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glViewport(0, 0, m_viewportWidth, m_viewportHeight);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
 	glEnable(GL_DEPTH_TEST);
@@ -126,6 +127,7 @@ void GameEngine::render() {
 	m_voxelOutline->render(view, m_projection);
 	
 	glDisable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
 	
 	m_userInterface->render();
 	if (m_showDebugInfo) {
@@ -247,6 +249,19 @@ void GameEngine::keyDown(KeyCode keyCode) {
 				m_voxelOutline->voxelLocation().z + (int) m_voxelOutline->direction().z
 			));
 			break;
+		case KeyCode::INVENTORY_1:
+		case KeyCode::INVENTORY_2:
+		case KeyCode::INVENTORY_3:
+		case KeyCode::INVENTORY_4:
+		case KeyCode::INVENTORY_5:
+		case KeyCode::INVENTORY_6:
+		case KeyCode::INVENTORY_7:
+		case KeyCode::INVENTORY_8:
+			m_userInterface->inventory().setActive((int) keyCode - (int) KeyCode::INVENTORY_1);
+			if (m_transport) {
+				m_transport->updateActiveInventoryItem(m_userInterface->inventory().activeIndex());
+			}
+			break;
 		default:;
 	}
 }
@@ -261,6 +276,18 @@ void GameEngine::keyUp(KeyCode keyCode) {
 			m_mouseSecondaryClicked = false;
 			break;
 		default:;
+	}
+}
+
+void GameEngine::mouseWheel(int delta) {
+	auto &inventory = m_userInterface->inventory();
+	if (delta < 0) {
+		inventory.setActive(inventory.activeIndex() < inventory.size() - 1 ? inventory.activeIndex() + 1 : 0);
+	} else if (delta > 0) {
+		inventory.setActive(inventory.activeIndex() > 0 ? inventory.activeIndex() - 1 : inventory.size() - 1);
+	}
+	if (m_transport) {
+		m_transport->updateActiveInventoryItem(m_userInterface->inventory().activeIndex());
 	}
 }
 

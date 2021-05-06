@@ -2,6 +2,26 @@
 #include "VoxelWorldGenerator.h"
 #include "world/VoxelTypes.h"
 
+VoxelWorldGeneratorJob::VoxelWorldGeneratorJob(
+		VoxelWorldGenerator *generator,
+		VoxelWorld *world,
+		const VoxelChunkLocation &location
+): generator(generator), world(world), location(location) {
+}
+
+bool VoxelWorldGeneratorJob::operator==(const VoxelWorldGeneratorJob &job) const {
+	return world == job.world && location == job.location;
+}
+
+void VoxelWorldGeneratorJob::operator()() const {
+	bool created = false;
+	auto chunk = world->mutableChunk(location, VoxelWorld::MissingChunkPolicy::CREATE, &created);
+	if (!created) {
+		chunk.unlock(false);
+	}
+	generator->load(chunk);
+}
+
 VoxelWorldGenerator::VoxelWorldGenerator(
 		VoxelTypeRegistry &registry
 ): m_registry(registry), m_air(
@@ -12,55 +32,19 @@ VoxelWorldGenerator::VoxelWorldGenerator(
 		m_registry.make<SimpleVoxelType>("dirt", "dirt", "assets/textures/mud.png")
 ), m_stone(
 		m_registry.make<SimpleVoxelType>("stone", "stone", "assets/textures/stone.png")
-) {
-	m_thread = std::thread(std::bind(&VoxelWorldGenerator::run, this));
+), Worker("VoxelWorldGenerator") {
 }
 
 VoxelWorldGenerator::~VoxelWorldGenerator() {
-	m_running = false;
-	m_queueCondVar.notify_one();
-	m_thread.join();
-}
-
-void VoxelWorldGenerator::run() {
-	LOG(INFO) << "Voxel world generator thread started";
-	std::unique_lock<std::mutex> lock(m_queueMutex, std::defer_lock);
-	while (m_running) {
-		lock.lock();
-		if (m_queue.empty()) {
-			m_queueCondVar.wait(lock);
-		}
-		if (m_queue.empty()) continue;
-		auto job = m_queue.front();
-		m_queue.erase(m_queue.begin());
-		lock.unlock();
-		bool created = false;
-		auto chunk = job.world->mutableChunk(job.location, VoxelWorld::MissingChunkPolicy::CREATE, &created);
-		if (!created) {
-			chunk.unlock(false);
-			continue;
-		}
-		load(chunk);
-	}
-	LOG(INFO) << "Voxel world generator thread stopped";
+	shutdown();
 }
 
 void VoxelWorldGenerator::loadAsync(VoxelWorld &world, const VoxelChunkLocation &location) {
-	std::unique_lock<std::mutex> lock(m_queueMutex);
-	m_queue.emplace_back(&world, location);
-	m_queueCondVar.notify_one();
+	post(this, &world, location);
 }
 
 void VoxelWorldGenerator::cancelLoadAsync(VoxelWorld &world, const VoxelChunkLocation &location) {
-	std::unique_lock<std::mutex> lock(m_queueMutex);
-	auto it = m_queue.begin();
-	while (it != m_queue.end()) {
-		if (it->world == &world && it->location == location) {
-			it = m_queue.erase(it);
-		} else {
-			++it;
-		}
-	}
+	cancel(VoxelWorldGeneratorJob(this, &world, location), false);
 }
 
 void VoxelWorldGenerator::load(VoxelChunkMutableRef &chunk) {

@@ -4,24 +4,25 @@
 #include "UIJoystick.h"
 #include "client/GameEngine.h"
 
-const float UIJoystick::s_bufferData[] = {
-		-1.0f,  1.0f, 0.0f, /**/ 1.0f, 1.0f, 1.0f, 1.0f,
-		1.0f,  1.0f, 0.0f, /**/ 1.0f, 1.0f, 1.0f, 1.0f,
+const float UIJoystick::BUFFER_DATA[] = {
+		-1.0f, 1.0f, 0.0f, /**/ 1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 0.0f, /**/ 1.0f, 1.0f, 1.0f, 1.0f,
 		-1.0f, -1.0f, 0.0f, /**/ 1.0f, 1.0f, 1.0f, 1.0f,
 		
 		-1.0f, -1.0f, 0.0f, /**/ 1.0f, 1.0f, 1.0f, 1.0f,
-		1.0f,  1.0f, 0.0f, /**/ 1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 0.0f, /**/ 1.0f, 1.0f, 1.0f, 1.0f,
 		1.0f, -1.0f, 0.0f, /**/ 1.0f, 1.0f, 1.0f, 1.0f
 };
 
 UIJoystick::UIJoystick(
 		bool vertical,
 		std::function<void(const glm::vec2&)> callback
-): m_buffer(GL_ARRAY_BUFFER), m_vertical(vertical), m_callback(std::move(callback)) {
-	m_buffer.setData(s_bufferData, sizeof(s_bufferData), GL_STATIC_DRAW);
+): m_vertical(vertical), m_callback(std::move(callback)) {
 }
 
 void UIJoystick::render(const glm::mat4 &transform) {
+	auto &buffer = staticBufferInstance(BUFFER_DATA, sizeof(BUFFER_DATA));
+	
 	auto &program = GameEngine::instance().commonShaderPrograms().color;
 	
 	program.use();
@@ -32,10 +33,10 @@ void UIJoystick::render(const glm::mat4 &transform) {
 	
 	program.setColorUniform(glm::vec4(0.5f, 0.5f, 0.5f, 0.5f));
 	
-	program.setPositions(m_buffer.pointer(GL_FLOAT, 0, 7 * sizeof(float)));
-	program.setColors(m_buffer.pointer(GL_FLOAT, 3 * sizeof(float), 7 * sizeof(float)));
+	program.setPositions(buffer.pointer(GL_FLOAT, 0, 7 * sizeof(float)));
+	program.setColors(buffer.pointer(GL_FLOAT, 3 * sizeof(float), 7 * sizeof(float)));
 	
-	glDrawArrays(GL_TRIANGLES, 0, sizeof(s_bufferData) / sizeof(float) / 7);
+	glDrawArrays(GL_TRIANGLES, 0, sizeof(BUFFER_DATA) / sizeof(float) / 7);
 	
 	program.setColorUniform(
 			m_active ?
@@ -47,7 +48,7 @@ void UIJoystick::render(const glm::mat4 &transform) {
 			glm::vec3(0.3f, 0.3f, 1.0f))
 	);
 	
-	glDrawArrays(GL_TRIANGLES, 0, sizeof(s_bufferData) / sizeof(float) / 7);
+	glDrawArrays(GL_TRIANGLES, 0, sizeof(BUFFER_DATA) / sizeof(float) / 7);
 }
 
 bool UIJoystick::mouseDown(const glm::vec2 &position) {

@@ -1,27 +1,55 @@
-#include <sqlite3.h>
 #include <easylogging++.h>
+#include <sqlite3.h>
 #include "VoxelWorldStorage.h"
 #include "world/VoxelTypeRegistry.h"
+
+VoxelWorldStorageJob::VoxelWorldStorageJob(
+		VoxelWorldStorage *storage,
+		VoxelWorld *world,
+		const VoxelChunkLocation &location
+): storage(storage), world(world), location(location) {
+}
+
+VoxelWorldStorageJob::VoxelWorldStorageJob(
+		VoxelWorldStorage *storage,
+		std::unique_ptr<SharedVoxelChunk> chunk
+): storage(storage), world(nullptr), chunk(std::move(chunk)) {
+}
+
+bool VoxelWorldStorageJob::operator==(const VoxelWorldStorageJob &job) const {
+	return world == job.world && location == job.location && chunk == job.chunk;
+}
+
+void VoxelWorldStorageJob::operator()() {
+	if (!storage->m_database) return;
+	if (world && !chunk) {
+		auto ref = world->mutableChunk(location, VoxelWorld::MissingChunkPolicy::CREATE);
+		storage->load(ref);
+	} else if (chunk) {
+		storage->unload(std::move(chunk));
+	}
+}
 
 VoxelWorldStorage::VoxelWorldStorage(
 		std::string fileName,
 		VoxelTypeRegistry &registry,
 		VoxelChunkLoader &generator
-): m_fileName(std::move(fileName)), m_registry(registry), m_generator(generator), m_serializationContext(registry) {
-	m_thread = std::thread(&VoxelWorldStorage::run, this);
+): Worker("VoxelWorldStorage"), m_fileName(std::move(fileName)),
+	m_registry(registry), m_generator(generator), m_serializationContext(registry)
+{
+	openDatabase();
 }
 
 VoxelWorldStorage::~VoxelWorldStorage() {
-	shutdown();
-}
-
-void VoxelWorldStorage::shutdown() {
-	std::unique_lock<std::mutex> lock(m_queueMutex);
-	if (!m_running) return;
-	m_running = false;
-	m_queueCondVar.notify_one();
-	lock.unlock();
-	m_thread.join();
+	shutdown(true);
+	std::unique_lock<std::shared_mutex> stmtsLock(m_loadChunkStmtsMutex);
+	for (auto &&pair : m_loadChunkStmts) {
+		sqlite3_finalize(pair.second);
+		pair.second = nullptr;
+	}
+	LOG(DEBUG) << m_loadChunkStmts.size() << " database statement(s) finalized";
+	stmtsLock.unlock();
+	closeDatabase();
 }
 
 void VoxelWorldStorage::openDatabase() {
@@ -124,63 +152,10 @@ void VoxelWorldStorage::closeDatabase() {
 	LOG(DEBUG) << "Database closed";
 }
 
-void VoxelWorldStorage::run() {
-	LOG(INFO) << "Voxel world storage thread started";
-	openDatabase();
-	std::unique_lock<std::mutex> lock(m_queueMutex, std::defer_lock);
-	while (true) {
-		lock.lock();
-		if (m_queue.empty()) {
-			if (!m_running) break;
-			m_queueCondVar.wait(lock);
-		}
-		if (m_queue.empty()) {
-			lock.unlock();
-			continue;
-		}
-		auto job = std::move(m_queue.front());
-		m_queue.pop_front();
-		lock.unlock();
-		
-		if (m_database == nullptr) continue;
-		if (std::holds_alternative<ChunkLoadTask>(job)) {
-			auto &task = std::get<ChunkLoadTask>(job);
-			auto chunk = task.world->mutableChunk(task.location, VoxelWorld::MissingChunkPolicy::CREATE);
-			load(chunk);
-		} else if (std::holds_alternative<std::unique_ptr<SharedVoxelChunk>>(job)) {
-			auto &chunk = *std::get<std::unique_ptr<SharedVoxelChunk>>(job);
-			if (!chunk.lightComputed()) continue;
-			auto &l = chunk.location();
-			LOG(DEBUG) << "Storing chunk at x=" << l.x << ",y=" << l.y << ",z=" << l.z;
-			std::string buffer;
-			VoxelSerializer serializer(m_serializationContext, buffer);
-			serializer.object(chunk);
-			sqlite3_bind_int(m_storeChunkStmt, 1, l.x);
-			sqlite3_bind_int(m_storeChunkStmt, 2, l.y);
-			sqlite3_bind_int(m_storeChunkStmt, 3, l.z);
-			sqlite3_bind_blob(m_storeChunkStmt, 4, buffer.data(), buffer.size(), SQLITE_STATIC);
-			if (sqlite3_step(m_storeChunkStmt) != SQLITE_DONE) {
-				LOG(ERROR) << "Failed to store chunk at x=" << l.x << ",y=" << l.y << ",z=" << l.z << ": " <<
-					sqlite3_errmsg(m_database);
-			}
-			sqlite3_reset(m_storeChunkStmt);
-		}
-	}
-	std::unique_lock<std::shared_mutex> stmtsLock(m_loadChunkStmtsMutex);
-	for (auto &&pair : m_loadChunkStmts) {
-		sqlite3_finalize(pair.second);
-		pair.second = nullptr;
-	}
-	LOG(DEBUG) << m_loadChunkStmts.size() << " database statement(s) finalized";
-	stmtsLock.unlock();
-	closeDatabase();
-	LOG(INFO) << "Voxel world storage thread stopped";
-}
-
 void VoxelWorldStorage::load(VoxelChunkMutableRef &chunk) {
 	sqlite3_stmt *stmt = nullptr;
 	std::shared_lock<std::shared_mutex> sharedLock(m_loadChunkStmtsMutex);
-	if (m_running && m_database != nullptr) {
+	if (m_database != nullptr) {
 		auto threadId = std::this_thread::get_id();
 		auto it = m_loadChunkStmts.find(threadId);
 		if (it == m_loadChunkStmts.end()) {
@@ -199,7 +174,6 @@ void VoxelWorldStorage::load(VoxelChunkMutableRef &chunk) {
 			}
 			lock.unlock();
 			sharedLock.lock();
-			if (!m_running) return;
 		} else {
 			stmt = it->second;
 		}
@@ -231,30 +205,31 @@ void VoxelWorldStorage::load(VoxelChunkMutableRef &chunk) {
 }
 
 void VoxelWorldStorage::loadAsync(VoxelWorld &world, const VoxelChunkLocation &location) {
-	std::unique_lock<std::mutex> lock(m_queueMutex);
-	m_queue.emplace_back(ChunkLoadTask(&world, location));
-	lock.unlock();
-	m_queueCondVar.notify_one();
+	post(this, &world, location);
 }
 
 void VoxelWorldStorage::cancelLoadAsync(VoxelWorld &world, const VoxelChunkLocation &location) {
-	std::unique_lock<std::mutex> lock(m_queueMutex);
-	auto it = m_queue.begin();
-	while (it != m_queue.end()) {
-		if (std::holds_alternative<ChunkLoadTask>(*it)) {
-			auto &task = std::get<ChunkLoadTask>(*it);
-			if (task.world == &world && task.location == location) {
-				it = m_queue.erase(it);
-				continue;
-			}
-		}
-		++it;
+	cancel(VoxelWorldStorageJob(this, &world, location), false);
+}
+
+void VoxelWorldStorage::unload(std::unique_ptr<SharedVoxelChunk> chunk) {
+	if (!chunk->lightComputed()) return;
+	auto &l = chunk->location();
+	LOG(DEBUG) << "Storing chunk at x=" << l.x << ",y=" << l.y << ",z=" << l.z;
+	std::string buffer;
+	VoxelSerializer serializer(m_serializationContext, buffer);
+	serializer.object(*chunk);
+	sqlite3_bind_int(m_storeChunkStmt, 1, l.x);
+	sqlite3_bind_int(m_storeChunkStmt, 2, l.y);
+	sqlite3_bind_int(m_storeChunkStmt, 3, l.z);
+	sqlite3_bind_blob(m_storeChunkStmt, 4, buffer.data(), buffer.size(), SQLITE_STATIC);
+	if (sqlite3_step(m_storeChunkStmt) != SQLITE_DONE) {
+		LOG(ERROR) << "Failed to store chunk at x=" << l.x << ",y=" << l.y << ",z=" << l.z << ": " <<
+			sqlite3_errmsg(m_database);
 	}
+	sqlite3_reset(m_storeChunkStmt);
 }
 
 void VoxelWorldStorage::unloadChunkAsync(std::unique_ptr<SharedVoxelChunk> chunk) {
-	std::unique_lock<std::mutex> lock(m_queueMutex);
-	m_queue.emplace_back(std::move(chunk));
-	lock.unlock();
-	m_queueCondVar.notify_one();
+	post(this, std::move(chunk));
 }

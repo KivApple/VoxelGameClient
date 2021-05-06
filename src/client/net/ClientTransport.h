@@ -20,6 +20,7 @@ protected:
 	void handleSetPosition(const glm::vec3 &position);
 	void handleSetChunk(const VoxelChunkLocation &location, VoxelDeserializer &deserializer);
 	void handleDiscardChunks(const std::vector<VoxelChunkLocation> &locations);
+	void handleSetInventory(std::unordered_map<uint8_t, VoxelHolder> &&changes, int active);
 	virtual void sendPlayerPosition(const glm::vec3 &position, float yaw, float pitch, int viewRadius) = 0;
 	
 public:
@@ -30,6 +31,7 @@ public:
 	virtual bool isConnected() = 0;
 	void updatePlayerPosition(const glm::vec3 &position, float yaw, float pitch, int viewRadius);
 	void sendPlayerPosition();
+	virtual void updateActiveInventoryItem(int index) = 0;
 	virtual void digVoxel(const VoxelLocation &location) = 0;
 	virtual void placeVoxel(const VoxelLocation &location) = 0;
 	

@@ -4,6 +4,10 @@
 
 ClientConnection::ClientConnection(ServerTransport &transport): m_transport(transport) {
 	m_logger = el::Loggers::getLogger("default");
+	m_inventory.resize(8);
+	m_inventory[0].setType(transport.engine()->voxelTypeRegistry().get("grass"));
+	m_inventory[1].setType(transport.engine()->voxelTypeRegistry().get("dirt"));
+	m_inventory[2].setType(transport.engine()->voxelTypeRegistry().get("stone"));
 }
 
 void ClientConnection::updatePosition(const glm::vec3 &position, float yaw, float pitch, int viewRadius) {
@@ -85,7 +89,7 @@ void ClientConnection::handleChunkChanged(const VoxelChunkLocation &location, in
 				dx < -(viewRadius + 1) || dx > (viewRadius + 1) ||
 				dy < -(viewRadius + 1) || dy > (viewRadius + 1) ||
 				dz < -(viewRadius + 1) || dz > (viewRadius + 1)
-		) {
+				) {
 			discardedChunks.emplace_back(*it);
 			it = m_loadedChunks.erase(it);
 		} else {
@@ -155,6 +159,24 @@ std::pair<VoxelChunkLocation, int> ClientConnection::positionChunk() {
 	return std::make_pair(m_positionChunk, m_viewRadius);
 }
 
+void ClientConnection::queryInventory(std::unordered_map<uint8_t, VoxelHolder> &inventory, int &active) {
+	std::shared_lock<std::shared_mutex> lock(m_inventoryMutex);
+	int i = 0;
+	for (auto &it : m_inventory) {
+		if (&it.type() != &EmptyVoxelType::INSTANCE) {
+			inventory.emplace(i, it);
+		}
+		i++;
+	}
+	active = m_activeInventoryIndex;
+}
+
+void ClientConnection::setActiveInventoryIndex(int active) {
+	logger().debug("[Client %v] Selected inventory item #%v", this, active);
+	std::unique_lock<std::shared_mutex> lock(m_inventoryMutex);
+	m_activeInventoryIndex = active;
+}
+
 void ClientConnection::digVoxel(const VoxelLocation &location) {
 	logger().debug("[Client %v] Dig voxel at x=%v,y=%v,z=%v", this, location.x, location.y, location.z);
 	auto chunkLocation = location.chunk();
@@ -172,6 +194,9 @@ void ClientConnection::digVoxel(const VoxelLocation &location) {
 }
 
 void ClientConnection::placeVoxel(const VoxelLocation &location) {
+	std::shared_lock<std::shared_mutex> lock(m_inventoryMutex);
+	auto &item = m_inventory[m_activeInventoryIndex];
+	if (&item.type() == &EmptyVoxelType::INSTANCE) return;
 	logger().debug("[Client %v] Place voxel at x=%v,y=%v,z=%v", this, location.x, location.y, location.z);
 	auto chunkLocation = location.chunk();
 	auto chunk = transport().engine()->voxelWorld().mutableChunk(chunkLocation);
@@ -183,6 +208,7 @@ void ClientConnection::placeVoxel(const VoxelLocation &location) {
 		return;
 	}
 	auto l = location.inChunk();
-	chunk.at(l).setType(transport().engine()->voxelTypeRegistry().get("stone"));
+	auto &voxel = chunk.at(l);
+	chunk.at(l) = m_inventory[m_activeInventoryIndex];
 	chunk.markDirty(l);
 }

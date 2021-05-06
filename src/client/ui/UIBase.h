@@ -6,9 +6,20 @@
 #include <glm/vec2.hpp>
 #include <glm/mat4x4.hpp>
 
+class UserInterface;
+class GLBuffer;
+class Framebuffer;
+
 class UIElement {
+	UserInterface *m_root = nullptr;
 	long long m_touchId = 0;
 	bool m_touchStarted = false;
+	
+	friend class UIElementGroup;
+	friend class UserInterface;
+
+protected:
+	virtual void setParent(UIElement *parent);
 	
 public:
 	virtual ~UIElement() = default;
@@ -25,6 +36,9 @@ public:
 	virtual bool touchStart(long long id, const glm::vec2 &position);
 	virtual void touchMotion(long long id, const glm::vec2 &position);
 	virtual void touchEnd(long long id, const glm::vec2 &position);
+	const GLBuffer &sharedBufferInstance();
+	const GLBuffer &staticBufferInstance(const void *data, size_t dataSize);
+	const Framebuffer &sharedFramebufferInstance(unsigned int width, unsigned int height, bool depth);
 	
 };
 
@@ -46,6 +60,12 @@ class UIElementGroup: public UIElement {
 	std::unordered_map<long long, const UIElementChild*> m_touchElements;
 	
 	const UIElementChild *findByPosition(const glm::vec2 &position);
+
+protected:
+	void setParent(UIElement *parent) override;
+	const std::vector<std::unique_ptr<UIElementChild>> &children() const {
+		return m_children;
+	}
 	
 public:
 	void render(const glm::mat4 &transform) override;

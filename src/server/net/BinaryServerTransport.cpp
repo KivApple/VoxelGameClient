@@ -13,6 +13,12 @@ void BinaryServerTransport::Connection::deserializeAndHandleMessage(const std::s
 			updatePosition({msg.data.x, msg.data.y, msg.data.z}, msg.data.yaw, msg.data.pitch, msg.data.viewRadius);
 			break;
 		}
+		case ClientMessageType::UPDATE_ACTIVE_INVENTORY_ITEM: {
+			ClientMessage<ClientMessageData::UpdateActiveInventoryItem> msg;
+			deserialize(payload, msg);
+			setActiveInventoryIndex(msg.data.active);
+			break;
+		}
 		case ClientMessageType::DIG_VOXEL: {
 			ClientMessage<ClientMessageData::DigVoxel> msg;
 			deserialize(payload, msg);
@@ -27,10 +33,17 @@ void BinaryServerTransport::Connection::deserializeAndHandleMessage(const std::s
 		}
 		default:
 			logger().warn(
-					"[Client %v] Unknown message received from client: %v",
-					this, (int) genericMessage.type
+					"[Client %v] Unknown message received from client: %v (%v bytes)",
+					this, (int) genericMessage.type, payload.size()
 			);
 	}
+}
+
+void BinaryServerTransport::Connection::sendHello() {
+	std::unordered_map<uint8_t, VoxelHolder> inventory;
+	int active;
+	queryInventory(inventory, active);
+	inventoryUpdated(std::move(inventory), active);
 }
 
 void BinaryServerTransport::Connection::setPosition(const glm::vec3 &position) {
@@ -53,13 +66,18 @@ void BinaryServerTransport::Connection::setVoxelTypes() {
 	logger().debug("[Client %v] Sent voxel types", this);
 }
 
-void BinaryServerTransport::Connection::setChunk(const VoxelChunkRef &chunk) {
+std::shared_lock<std::shared_mutex> BinaryServerTransport::Connection::ensureVoxelSerializationContext() {
 	std::shared_lock<std::shared_mutex> lock(m_voxelSerializationContextMutex);
 	while (!m_voxelSerializationContext) {
 		lock.unlock();
 		setVoxelTypes();
 		lock.lock();
 	}
+	return std::move(lock);
+}
+
+void BinaryServerTransport::Connection::setChunk(const VoxelChunkRef &chunk) {
+	auto lock = ensureVoxelSerializationContext();
 	logger().debug(
 			"[Client %v] Sending chunk x=%v,y=%v,z=%v",
 			this, chunk.location().x, chunk.location().y, chunk.location().z
@@ -73,4 +91,19 @@ void BinaryServerTransport::Connection::setChunk(const VoxelChunkRef &chunk) {
 
 void BinaryServerTransport::Connection::discardChunks(const std::vector<VoxelChunkLocation> &locations) {
 	serializeAndSendMessage(ServerMessage<ServerMessageData::DiscardChunks>({locations}));
+}
+
+void BinaryServerTransport::Connection::inventoryUpdated(
+		std::unordered_map<uint8_t, VoxelHolder> &&changes,
+		int active
+) {
+	auto lock = ensureVoxelSerializationContext();
+	logger().debug("[Client %v] Sending %v updated inventory item(s)", this, changes.size());
+	std::string buffer;
+	VoxelSerializer serializer(*m_voxelSerializationContext, buffer);
+	serializer.object(ServerMessage<ServerMessageData::SetInventory>({
+		std::move(changes),
+		(uint8_t) active
+	}));
+	sendMessage(buffer.data(), serializer.adapter().currentWritePos());
 }

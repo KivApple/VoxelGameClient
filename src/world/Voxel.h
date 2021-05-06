@@ -66,6 +66,8 @@ class VoxelType {
 public:
 	virtual ~VoxelType() = default;
 	virtual Voxel &invokeInit(void *ptr) = 0;
+	virtual Voxel &invokeInit(void *ptr, const Voxel &voxel) = 0;
+	virtual Voxel &invokeInit(void *ptr, Voxel &&voxel) = 0;
 	virtual void invokeDestroy(Voxel &voxel) = 0;
 	virtual bool invokeCheckType(const std::type_info &typeInfo) {
 		return false;
@@ -183,6 +185,16 @@ public:
 		return *(new (ptr) Data { this });
 	}
 	
+	Voxel &invokeInit(void *ptr, const Voxel &voxel) override {
+		static_assert(sizeof(Data) <= MAX_VOXEL_DATA_SIZE);
+		return *(new (ptr) Data(static_cast<const Data&>(voxel)));
+	}
+	
+	Voxel &invokeInit(void *ptr, Voxel &&voxel) override {
+		static_assert(sizeof(Data) <= MAX_VOXEL_DATA_SIZE);
+		return *(new (ptr) Data(std::move(static_cast<Data&>(voxel))));
+	}
+	
 	void invokeDestroy(Voxel &voxel) override {
 		(static_cast<Data&>(voxel)).~Data();
 	}
@@ -248,8 +260,34 @@ public:
 		type.invokeInit(m_data);
 	}
 	
-	VoxelHolder(VoxelHolder&) = delete;
-	VoxelHolder &operator=(VoxelHolder&) = delete;
+	VoxelHolder(const VoxelHolder& holder) {
+		holder.type().invokeInit(m_data, holder.get());
+	}
+	
+	VoxelHolder(VoxelHolder &&holder) noexcept {
+		holder.type().invokeInit(m_data, std::move(holder.get()));
+		holder.setType(EmptyVoxelType::INSTANCE);
+	}
+	
+	VoxelHolder &operator=(const VoxelHolder &holder) {
+		if (this != &holder) {
+			auto savedLightLevel = lightLevel();
+			get().type->invokeDestroy(get());
+			holder.type().invokeInit(m_data, holder.get());
+			setLightLevel(savedLightLevel);
+		}
+		return *this;
+	}
+	
+	VoxelHolder &operator=(VoxelHolder &&holder) noexcept {
+		if (this != &holder) {
+			auto savedLightLevel = lightLevel();
+			get().type->invokeDestroy(get());
+			holder.type().invokeInit(m_data, std::move(holder.get()));
+			setLightLevel(savedLightLevel);
+		}
+		return *this;
+	}
 	
 	~VoxelHolder() {
 		get().type->invokeDestroy(get());

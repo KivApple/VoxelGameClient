@@ -1,5 +1,6 @@
 #pragma once
 
+#include <bitsery/ext/std_map.h>
 #include "world/VoxelLocation.h"
 
 class VoxelTypeSerializationContext;
@@ -8,7 +9,8 @@ enum class ServerMessageType: uint16_t {
 	SET_POSITION,
 	SET_VOXEL_TYPES,
 	SET_CHUNK,
-	DISCARD_CHUNKS
+	DISCARD_CHUNKS,
+	SET_INVENTORY
 };
 
 template<typename T> struct ServerMessage {
@@ -72,6 +74,21 @@ namespace ServerMessageData {
 		
 		template<typename S> void serialize(S &s) {
 			s.container(locations, 65535);
+		}
+	};
+	
+	struct SetInventory {
+		static const ServerMessageType TYPE = ServerMessageType::SET_INVENTORY;
+		
+		std::unordered_map<uint8_t, VoxelHolder> voxels;
+		uint8_t active;
+		
+		template<typename S> void serialize(S &s) {
+			s.ext(voxels, bitsery::ext::StdMap(UINT8_MAX + 1), [](S &s, uint8_t &index, VoxelHolder &voxel) {
+				s.value1b(index);
+				s.object(voxel);
+			});
+			s.value1b(active);
 		}
 	};
 	

@@ -23,6 +23,14 @@ enum class KeyCode {
 	SPEEDUP,
 	TOGGLE_DEBUG_INFO,
 	RESET_PERFORMANCE_COUNTERS,
+	INVENTORY_1,
+	INVENTORY_2,
+	INVENTORY_3,
+	INVENTORY_4,
+	INVENTORY_5,
+	INVENTORY_6,
+	INVENTORY_7,
+	INVENTORY_8,
 	
 	PRIMARY_CLICK,
 	SECONDARY_CLICK
@@ -40,11 +48,11 @@ class GameEngine: VoxelChunkListener {
 	std::unique_ptr<TextRenderer> m_debugTextRenderer;
 	bool m_showDebugInfo = true;
 	std::unordered_set<KeyCode> m_pressedKeys;
-	std::unique_ptr<UserInterface> m_userInterface;
 	std::unique_ptr<VoxelTypeRegistry> m_voxelTypeRegistry;
 	std::unique_ptr<VoxelWorld> m_voxelWorld;
 	std::unique_ptr<VoxelWorldRenderer> m_voxelWorldRenderer;
 	std::unique_ptr<VoxelOutline> m_voxelOutline;
+	std::unique_ptr<UserInterface> m_userInterface;
 	glm::mat4 m_projection = glm::mat4(1.0f);
 	std::unique_ptr<Entity> m_player;
 	std::chrono::milliseconds m_lastPlayerPositionUpdateTime = std::chrono::milliseconds(0);
@@ -86,6 +94,7 @@ public:
 	
 	void keyDown(KeyCode keyCode);
 	void keyUp(KeyCode keyCode);
+	void mouseWheel(int delta);
 	void updatePlayerDirection(float dx, float dy);
 	void updatePlayerMovement(const float *dx, const float *dy, const float *dz);
 	void updatePlayerPosition();

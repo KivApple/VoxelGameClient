@@ -1,16 +1,17 @@
 #pragma once
 
+#include <functional>
 #include <unordered_set>
 #include <thread>
 #include "WebSocketServerConfig.h"
 #include "BinaryServerTransport.h"
 #include "ClientConnection.h"
+#include "Worker.h"
 
 class WebSocketServerTransport: public BinaryServerTransport, std::thread {
 	class Connection: public BinaryServerTransport::Connection {
 		websocketpp::connection_hdl m_connection;
 		std::atomic<bool> m_closed = false;
-		std::mutex m_sendingPendingChunksMutex;
 		bool m_sendingPendingChunks = false;
 		
 		[[nodiscard]] WebSocketServerTransport &webSocketTransport() const {
@@ -33,10 +34,20 @@ class WebSocketServerTransport: public BinaryServerTransport, std::thread {
 		
 	};
 	
+	struct ConnectionJob {
+		Connection *connection;
+		std::function<void()> action;
+		
+		ConnectionJob(Connection *connection, std::function<void()> action);
+		bool operator==(const ConnectionJob &job) const;
+		void operator()() const;
+	};
+	
 	uint16_t m_port;
 	WebSocketServer m_server;
 	std::thread m_thread;
 	GameServerEngine *m_engine = nullptr;
+	Worker<ConnectionJob> m_worker;
 	
 	void run();
 	void handleOpen(websocketpp::connection_hdl conn_ptr);

@@ -11,7 +11,8 @@ GameServerEngine::GameServerEngine(
 }
 
 GameServerEngine::~GameServerEngine() {
-	m_voxelWorldStorage.shutdown();
+	m_voxelLightComputer.shutdown();
+	m_voxelWorldStorage.shutdown(true);
 	m_voxelWorld.setChunkLoader(nullptr);
 }
 

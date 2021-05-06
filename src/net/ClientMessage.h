@@ -2,6 +2,7 @@
 
 enum class ClientMessageType: uint16_t {
 	UPDATE_POSITION,
+	UPDATE_ACTIVE_INVENTORY_ITEM,
 	DIG_VOXEL,
 	PLACE_VOXEL
 };
@@ -42,6 +43,16 @@ namespace ClientMessageData {
 			s.value4b(yaw);
 			s.value4b(pitch);
 			s.value1b(viewRadius);
+		}
+	};
+	
+	struct UpdateActiveInventoryItem {
+		static const ClientMessageType TYPE = ClientMessageType::UPDATE_ACTIVE_INVENTORY_ITEM;
+		
+		uint8_t active;
+		
+		template<typename S> void serialize(S &s) {
+			s.value1b(active);
 		}
 	};
 	

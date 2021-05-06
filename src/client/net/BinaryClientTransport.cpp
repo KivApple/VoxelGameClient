@@ -41,8 +41,17 @@ void BinaryClientTransport::handleMessage(const std::string &payload) {
 			handleDiscardChunks(msg.data.locations);
 			break;
 		}
+		case ServerMessageType::SET_INVENTORY: {
+			VoxelDeserializer deserializer(m_voxelTypeSerializationContext, payload.cbegin(), payload.cend());
+			ServerMessage<ServerMessageData::SetInventory> msg;
+			deserializer.object(msg);
+			LOG(DEBUG) << "Received " << msg.data.voxels.size() << " inventory change(s)";
+			handleSetInventory(std::move(msg.data.voxels), msg.data.active);
+			break;
+		}
 		default:
-			LOG(WARNING) << "Unknown server message type: " << (int) genericMessage.type;
+			LOG(WARNING) << "Unknown server message type: " << (int) genericMessage.type <<
+				" (" << payload.size() << " bytes)";
 	}
 }
 
@@ -55,6 +64,13 @@ void BinaryClientTransport::sendPlayerPosition(const glm::vec3 &position, float 
 		position.x, position.y, position.z,
 		yaw, pitch,
 		(uint8_t) viewRadius
+	}));
+}
+
+void BinaryClientTransport::updateActiveInventoryItem(int index) {
+	LOG(DEBUG) << "Selected inventory item #" << index;
+	serializeAndSendMessage(ClientMessage<ClientMessageData::UpdateActiveInventoryItem>({
+		(uint8_t) index
 	}));
 }
 

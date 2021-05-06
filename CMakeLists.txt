@@ -79,7 +79,7 @@ add_executable(
 		src/client/net/BinaryClientTransport.cpp src/client/net/WebSocketClientTransport.cpp
 		src/client/GameEngine.cpp src/client/net/ClientTransport.cpp
 		src/client/OpenGL.cpp src/client/ShaderProgram.cpp src/client/ui/TextRenderer.cpp src/client/world/Model.cpp
-		src/client/ui/UIBase.cpp src/client/ui/UIJoystick.cpp src/client/ui/UIRoot.cpp
+		src/client/ui/UIBase.cpp src/client/ui/UIJoystick.cpp src/client/ui/UIRoot.cpp src/client/ui/Inventory.cpp
 		src/client/ui/Crosshair.cpp src/client/ui/VoxelOutline.cpp
 		src/client/world/Entity.cpp
 		src/client/world/VoxelWorldRenderer.cpp

@@ -1,37 +1,34 @@
 #pragma once
 
-#include <atomic>
 #include <vector>
-#include <deque>
-#include <thread>
-#include <mutex>
-#include <variant>
-#include <condition_variable>
 #include <unordered_set>
 #include <unordered_map>
 #include "world/VoxelLocation.h"
 #include "world/Voxel.h"
+#include "Worker.h"
 
 class VoxelWorld;
 class VoxelChunkMutableRef;
+class VoxelLightComputer;
 
-class VoxelLightComputer {
-	struct Job {
-		VoxelWorld *world;
-		VoxelChunkLocation chunkLocation;
-		std::vector<InChunkVoxelLocation> voxelLocations;
-		
-		Job(VoxelWorld *world, const VoxelChunkLocation &location): world(world), chunkLocation(location) {
-		}
-		
-		Job(
-				VoxelWorld *world,
-				const VoxelChunkLocation &location,
-				std::vector<InChunkVoxelLocation> &&voxels
-		): world(world), chunkLocation(location), voxelLocations(std::move(voxels)) {
-		}
-	};
+struct VoxelLightComputerJob {
+	VoxelLightComputer *computer;
+	VoxelWorld *world;
+	VoxelChunkLocation chunkLocation;
+	std::vector<InChunkVoxelLocation> voxelLocations;
 	
+	VoxelLightComputerJob(VoxelLightComputer *computer, VoxelWorld *world, const VoxelChunkLocation &location);
+	VoxelLightComputerJob(
+			VoxelLightComputer *computer,
+			VoxelWorld *world,
+			const VoxelChunkLocation &location,
+			std::vector<InChunkVoxelLocation> &&voxels
+	);
+	bool operator==(const VoxelLightComputerJob &job) const;
+	void operator()() const;
+};
+
+class VoxelLightComputer: public Worker<VoxelLightComputerJob> {
 	struct ChunkQueue {
 		std::deque<InChunkVoxelLocation> queue;
 		std::unordered_set<InChunkVoxelLocation> set;
@@ -41,11 +38,6 @@ class VoxelLightComputer {
 		InChunkVoxelLocation pop();
 	};
 	
-	std::atomic<bool> m_running = true;
-	std::deque<Job> m_queue;
-	std::mutex m_queueMutex;
-	std::condition_variable m_queueCondVar;
-	std::thread m_thread;
 	std::unordered_map<VoxelChunkLocation, std::unique_ptr<ChunkQueue>> m_chunkQueues;
 	std::unordered_set<VoxelChunkLocation> m_visitedChunks;
 	int m_iterationCount = 0;
@@ -59,7 +51,9 @@ class VoxelLightComputer {
 			bool load
 	);
 	void computeInitialLightLevels(VoxelChunkMutableRef &chunk, bool load);
-	void run();
+	void runJob(const VoxelLightComputerJob &job);
+	
+	friend class VoxelLightComputerJob;
 
 public:
 	VoxelLightComputer();

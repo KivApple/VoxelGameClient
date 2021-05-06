@@ -6,6 +6,7 @@
 #include <shared_mutex>
 #include <easylogging++.h>
 #include <glm/vec3.hpp>
+#include "world/Voxel.h"
 #include "world/VoxelLocation.h"
 #include "ServerTransport.h"
 
@@ -26,6 +27,9 @@ class ClientConnection {
 	std::unordered_set<VoxelChunkLocation> m_loadedChunks;
 	std::unordered_set<VoxelChunkLocation> m_pendingChunks;
 	std::mutex m_pendingChunksMutex;
+	std::vector<VoxelHolder> m_inventory;
+	int m_activeInventoryIndex = 0;
+	std::shared_mutex m_inventoryMutex;
 	
 	void handleChunkChanged(const VoxelChunkLocation &location, int viewRadius);
 	
@@ -39,6 +43,9 @@ protected:
 	virtual void discardChunks(const std::vector<VoxelChunkLocation> &locations) = 0;
 	virtual void newPendingChunk() = 0;
 	bool setPendingChunk();
+	void queryInventory(std::unordered_map<uint8_t, VoxelHolder> &inventory, int &active);
+	virtual void inventoryUpdated(std::unordered_map<uint8_t, VoxelHolder> &&changes, int active) = 0;
+	void setActiveInventoryIndex(int active);
 	void digVoxel(const VoxelLocation &location);
 	void placeVoxel(const VoxelLocation &location);
 

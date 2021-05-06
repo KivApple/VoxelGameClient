@@ -32,7 +32,7 @@ class GameServerEngine: VoxelChunkListener {
 	
 public:
 	GameServerEngine();
-	~GameServerEngine();
+	~GameServerEngine() override;
 	void addTransport(std::unique_ptr<ServerTransport> transport);
 	int run();
 	void shutdown();

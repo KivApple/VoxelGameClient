@@ -22,6 +22,10 @@ void ClientTransport::handleDiscardChunks(const std::vector<VoxelChunkLocation> 
 	m_engine.voxelWorld().unloadChunks(locations);
 }
 
+void ClientTransport::handleSetInventory(std::unordered_map<uint8_t, VoxelHolder> &&changes, int active) {
+	m_engine.userInterface().inventory().setUpdate(std::move(changes), active);
+}
+
 void ClientTransport::sendPlayerPosition() {
 	std::unique_lock<std::mutex> lock(m_playerPositionMutex);
 	if (!m_playerPositionValid) return;

@@ -1,14 +1,19 @@
+#include <GL/glew.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include "UIRoot.h"
 #include "client/GameEngine.h"
 
 UserInterface::UserInterface(
-): m_joystick(false, [](const glm::vec2 &position) {
+): m_sharedBuffer(
+		GL_ARRAY_BUFFER
+), m_joystick(false, [](const glm::vec2 &position) {
 	GameEngine::instance().updatePlayerMovement(&position.x, nullptr, &position.y);
 }), m_verticalJoystick(true, [](const glm::vec2 &position) {
 	GameEngine::instance().updatePlayerMovement(nullptr, &position.y, nullptr);
-}) {
+}), m_inventory(8, 1) {
+	m_root = this;
 	addChild(&m_crosshair, glm::vec2(0.0f), glm::vec2(0.05f));
+	addChild(&m_inventory, glm::vec2(0.0f, -0.90f), glm::vec2(0.1f * 8, 0.1f));
 }
 
 glm::mat4 UserInterface::transformMatrix() {
@@ -74,4 +79,28 @@ void UserInterface::setJoystickVisible(bool visible) {
 		removeChild(&m_joystick);
 		removeChild(&m_verticalJoystick);
 	}
+}
+
+const GLBuffer &UserInterface::sharedBufferInstanceImpl() {
+	return m_sharedBuffer;
+}
+
+const GLBuffer &UserInterface::staticBufferInstanceImpl(const void *data, size_t dataSize) {
+	auto it = m_staticBuffers.find(data);
+	if (it == m_staticBuffers.end()) {
+		it = m_staticBuffers.emplace(data, std::make_unique<GLBuffer>(GL_ARRAY_BUFFER)).first;
+		it->second->setData(data, dataSize, GL_STATIC_DRAW);
+	}
+	return *it->second;
+}
+
+const Framebuffer &UserInterface::sharedFrameBufferInstanceImpl(unsigned int width, unsigned int height, bool depth) {
+	assert(width <= 32768);
+	assert(height <= 32768);
+	unsigned int id = width << 17 | height << 1 | (depth ? 1 : 0);
+	auto it = m_sharedFramebuffers.find(id);
+	if (it == m_sharedFramebuffers.end()) {
+		it = m_sharedFramebuffers.emplace(id, std::make_unique<Framebuffer>(width, height, depth)).first;
+	}
+	return *it->second;
 }

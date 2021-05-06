@@ -35,10 +35,13 @@ protected:
 			);
 			sendMessage(buffer.data(), count);
 		}
+		void sendHello();
 		void setPosition(const glm::vec3 &position) override;
 		void setVoxelTypes();
+		std::shared_lock<std::shared_mutex> ensureVoxelSerializationContext();
 		void setChunk(const VoxelChunkRef &chunk) override;
 		void discardChunks(const std::vector<VoxelChunkLocation> &locations) override;
+		void inventoryUpdated(std::unordered_map<uint8_t, VoxelHolder> &&changes, int active) override;
 	
 	public:
 		explicit Connection(BinaryServerTransport &transport): ClientConnection(transport) {

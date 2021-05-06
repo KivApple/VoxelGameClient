@@ -1,5 +1,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include "UIBase.h"
+#include "UIRoot.h"
+
+void UIElement::setParent(UIElement *parent) {
+	m_root = parent != nullptr ? parent->m_root : nullptr;
+}
 
 bool UIElement::touchStart(long long id, const glm::vec2 &position) {
 	if (m_touchStarted) return false;
@@ -21,6 +26,21 @@ void UIElement::touchEnd(long long id, const glm::vec2 &position) {
 	}
 }
 
+const GLBuffer &UIElement::sharedBufferInstance() {
+	assert(m_root != nullptr);
+	return m_root->sharedBufferInstanceImpl();
+}
+
+const GLBuffer &UIElement::staticBufferInstance(const void *data, size_t dataSize) {
+	assert(m_root != nullptr);
+	return m_root->staticBufferInstanceImpl(data, dataSize);
+}
+
+const Framebuffer &UIElement::sharedFramebufferInstance(unsigned int width, unsigned int height, bool depth) {
+	assert(m_root != nullptr);
+	return m_root->sharedFrameBufferInstanceImpl(width, height, depth);
+}
+
 void UIElementGroup::render(const glm::mat4 &transform) {
 	for (auto &child : m_children) {
 		child->element->render(
@@ -35,8 +55,16 @@ void UIElementGroup::render(const glm::mat4 &transform) {
 	}
 }
 
+void UIElementGroup::setParent(UIElement *parent) {
+	UIElement::setParent(parent);
+	for (auto &child : m_children) {
+		child->element->setParent(this);
+	}
+}
+
 void UIElementGroup::addChild(UIElement *element, const glm::vec2 &position, const glm::vec2 &size) {
 	m_children.emplace_back(std::make_unique<UIElementChild>(element, position, size));
+	element->setParent(this);
 }
 
 void UIElementGroup::removeChild(UIElement *element) {
@@ -57,6 +85,7 @@ void UIElementGroup::removeChild(UIElement *element) {
 			break;
 		}
 	}
+	element->setParent(nullptr);
 }
 
 const UIElementChild *UIElementGroup::findByPosition(const glm::vec2 &position) {

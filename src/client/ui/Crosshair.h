@@ -4,11 +4,9 @@
 #include "../OpenGL.h"
 
 class Crosshair: public UIElement {
-	static const float s_bufferData[];
-	GLBuffer m_buffer;
+	static const float BUFFER_DATA[];
 
 public:
-	Crosshair();
 	void render(const glm::mat4 &transform) override;
 	
 };
