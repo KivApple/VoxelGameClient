@@ -20,7 +20,7 @@
     <canvas id="canvas"></canvas>
     <script>
         const base = "cmake-build-debug-js/";
-        const suffix = "?1";
+        const suffix = "";
 
         var Module = {
             locateFile: (path, prefix) => {
@@ -40,6 +40,15 @@
         const script = document.createElement("script");
         script.src = base + "VoxelGameClient.js" + suffix;
         document.body.appendChild(script);
+        document.addEventListener("pointerlockchange", () => {
+            const locked = !!document.pointerLockElement;
+            Module.ccall(
+                "SDLGameEngine_pointerLockChanged",
+                "void",
+                ["boolean"],
+                [locked]
+            );
+        });
     </script>
 </body>
 </html>

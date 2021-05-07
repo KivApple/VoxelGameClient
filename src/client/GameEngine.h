@@ -124,6 +124,9 @@ public:
 	[[nodiscard]] VoxelWorldRenderer &voxelWorldRenderer() {
 		return *m_voxelWorldRenderer;
 	}
+	std::string &debugStr() {
+		return m_debugStr;
+	}
 	
 	void setTransport(std::unique_ptr<ClientTransport> transport);
 	

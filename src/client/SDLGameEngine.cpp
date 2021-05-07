@@ -5,6 +5,12 @@
 EM_JS(void, emscripten_reloadPage, (), {
 	window.location.reload();
 });
+
+extern "C" void SDLGameEngine_pointerLockChanged(bool locked) {
+	if (SDL_GetRelativeMouseMode() != (locked ? SDL_TRUE : SDL_FALSE)) {
+		SDL_SetRelativeMouseMode(locked ? SDL_TRUE : SDL_FALSE);
+	}
+}
 #endif
 
 SDLGameEngine::SDLGameEngine(): m_keyMap({
