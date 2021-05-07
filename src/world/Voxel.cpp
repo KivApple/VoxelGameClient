@@ -150,16 +150,22 @@ void VoxelHolder::serialize(VoxelDeserializer &deserializer) {
 SimpleVoxelType::SimpleVoxelType(
 		std::string name,
 		const std::string &textureFileName,
-		bool unwrap
-): m_name(std::move(name)), m_unwrap(unwrap), VoxelTextureShaderProvider(textureFileName) {
+		bool unwrap,
+		VoxelLightLevel lightLevel,
+		bool transparent
+): m_name(std::move(name)), m_unwrap(unwrap), m_lightLevel(lightLevel), m_transparent(transparent),
+	VoxelTextureShaderProvider(textureFileName) {
 }
 
 #ifndef HEADLESS
 SimpleVoxelType::SimpleVoxelType(
 		std::string
 		name, const GLTexture &texture,
-		bool unwrap
-): m_name(std::move(name)), m_unwrap(unwrap), VoxelTextureShaderProvider(texture) {
+		bool unwrap,
+		VoxelLightLevel lightLevel,
+		bool transparent
+): m_name(std::move(name)), m_unwrap(unwrap), m_lightLevel(lightLevel), m_transparent(transparent),
+	VoxelTextureShaderProvider(texture) {
 }
 #endif
 
@@ -254,5 +260,9 @@ void SimpleVoxelType::buildVertexData(const Voxel &voxel, std::vector<VoxelVerte
 }
 
 VoxelLightLevel SimpleVoxelType::lightLevel(const Voxel &voxel) {
-	return 0;
+	return m_lightLevel;
+}
+
+int SimpleVoxelType::priority() const {
+	return m_transparent ? MAX_VOXEL_SHADER_PRIORITY - 1 : MAX_VOXEL_SHADER_PRIORITY;
 }

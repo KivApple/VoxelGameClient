@@ -32,6 +32,23 @@ VoxelWorldGenerator::VoxelWorldGenerator(
 		m_registry.make<SimpleVoxelType>("dirt", "dirt", "assets/textures/mud.png")
 ), m_stone(
 		m_registry.make<SimpleVoxelType>("stone", "stone", "assets/textures/stone.png")
+), m_lava(
+		m_registry.make<SimpleVoxelType>(
+				"lava",
+				"lava",
+				"assets/textures/lava.png",
+				false,
+				MAX_VOXEL_LIGHT_LEVEL - 1
+		)
+), m_glass(
+		m_registry.make<SimpleVoxelType>(
+				"glass",
+				"glass",
+				"assets/textures/glass.png",
+				false,
+				0,
+				true
+		)
 ), Worker("VoxelWorldGenerator") {
 }
 

@@ -22,6 +22,8 @@ class VoxelWorldGenerator: public VoxelChunkLoader, public Worker<VoxelWorldGene
 	VoxelType &m_grass;
 	VoxelType &m_dirt;
 	VoxelType &m_stone;
+	VoxelType &m_lava;
+	VoxelType &m_glass;
 
 public:
 	explicit VoxelWorldGenerator(VoxelTypeRegistry &registry);

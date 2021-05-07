@@ -359,6 +359,13 @@ void VoxelWorldRenderer::renderScheduled(const glm::mat4 &view, const glm::mat4 
 				(float) (step.location.z * VOXEL_CHUNK_SIZE)
 		)));
 		if (prevShaderProvider != step.shaderProvider) {
+			if (prevShaderProvider == nullptr || prevShaderProvider->priority() == MAX_VOXEL_SHADER_PRIORITY) {
+				if (step.shaderProvider->priority() < MAX_VOXEL_SHADER_PRIORITY) {
+					//glDisable(GL_DEPTH_TEST);
+					glEnable(GL_BLEND);
+				}
+			}
+			
 			prevShaderProvider = step.shaderProvider;
 			step.shaderProvider->setup(program);
 		}

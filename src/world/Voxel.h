@@ -349,16 +349,31 @@ public:
 class SimpleVoxelType: public VoxelTypeHelper<SimpleVoxelType>, public VoxelTextureShaderProvider {
 	std::string m_name;
 	bool m_unwrap;
+	VoxelLightLevel m_lightLevel;
+	bool m_transparent;
 
 public:
-	SimpleVoxelType(std::string name, const std::string &textureFileName, bool unwrap = false);
+	SimpleVoxelType(
+			std::string name,
+			const std::string &textureFileName,
+			bool unwrap = false,
+			VoxelLightLevel lightLevel = 0,
+			bool transparent = false
+	);
 
 #ifndef HEADLESS
-	SimpleVoxelType(std::string name, const GLTexture &texture, bool unwrap = false);
+	SimpleVoxelType(
+			std::string name,
+			const GLTexture &texture,
+			bool unwrap = false,
+			VoxelLightLevel lightLevel = 0,
+			bool transparent = false
+	);
 #endif
 	std::string toString(const Voxel &voxel);
 	const VoxelShaderProvider *shaderProvider(const Voxel &voxel);
 	void buildVertexData(const Voxel &voxel, std::vector<VoxelVertexData> &data);
 	VoxelLightLevel lightLevel(const Voxel &voxel);
+	int priority() const override;
 	
 };

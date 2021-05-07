@@ -69,6 +69,21 @@ bool GameEngine::init() {
 	m_voxelTypeRegistry->make<SimpleVoxelType>("grass", "grass", "assets/textures/grass.png", true);
 	m_voxelTypeRegistry->make<SimpleVoxelType>("dirt", "dirt", "assets/textures/mud.png");
 	m_voxelTypeRegistry->make<SimpleVoxelType>("stone", "stone", "assets/textures/stone.png");
+	m_voxelTypeRegistry->make<SimpleVoxelType>(
+			"lava",
+			"lava",
+			"assets/textures/lava.png",
+			false,
+			MAX_VOXEL_LIGHT_LEVEL - 1
+	);
+	m_voxelTypeRegistry->make<SimpleVoxelType>(
+			"glass",
+			"glass",
+			"assets/textures/glass.png",
+			false,
+			0,
+			true
+	);
 	
 	LOG(INFO) << "Game engine initialized";
 	return true;
@@ -111,6 +126,7 @@ void GameEngine::render() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
 	glEnable(GL_DEPTH_TEST);
+	glDisable(GL_BLEND);
 	
 	const glm::vec3 playerDirection = m_player->direction(true);
 	const glm::vec3 playerPosition = m_player->position();
@@ -124,6 +140,9 @@ void GameEngine::render() {
 	
 	m_voxelWorldRenderer->render(playerPosition, 2, view, m_projection);
 	updatePointingAt(view);
+	
+	//glEnable(GL_DEPTH_TEST);
+	
 	m_voxelOutline->render(view, m_projection);
 	
 	glDisable(GL_DEPTH_TEST);
