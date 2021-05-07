@@ -24,8 +24,12 @@ WebSocketServerTransport::Connection::Connection(
 		WebSocketServerTransport &transport,
 		websocketpp::connection_hdl connection
 ): BinaryServerTransport::Connection(transport), m_connection(connection) {
-	logger().info("[Client %v] Connected", this);
 	auto conn = transport.m_server.get_con_from_hdl(connection);
+	logger().info(
+			"[Client %v] Connected from %v",
+			this,
+			conn->get_socket().remote_endpoint().address().to_string()
+	);
 	conn->setWriteCompleteHandler(std::bind(&Connection::handleWriteComplete, this, std::placeholders::_1));
 	conn->set_message_handler(std::bind(&Connection::handleWebSocketMessage, this, std::placeholders::_2));
 	conn->set_close_handler(std::bind(&Connection::handleClose, this));
