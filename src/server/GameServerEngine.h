@@ -10,11 +10,13 @@
 #include "world/VoxelWorldGenerator.h"
 #include "world/VoxelWorldStorage.h"
 #include "world/VoxelLightComputer.h"
+#include "world/VoxelTypes.h"
 #include "net/ServerTransport.h"
 #include "net/ClientConnection.h"
 
 class GameServerEngine: VoxelChunkListener {
 	VoxelTypeRegistry m_voxelTypeRegistry;
+	VoxelTypesRegistration m_voxelTypesRegistration;
 	VoxelWorld m_voxelWorld;
 	VoxelWorldGenerator m_voxelWorldGenerator;
 	VoxelWorldStorage m_voxelWorldStorage;

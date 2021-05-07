@@ -1,6 +1,5 @@
 #include <easylogging++.h>
 #include "VoxelWorldGenerator.h"
-#include "world/VoxelTypes.h"
 
 VoxelWorldGeneratorJob::VoxelWorldGeneratorJob(
 		VoxelWorldGenerator *generator,
@@ -24,32 +23,10 @@ void VoxelWorldGeneratorJob::operator()() const {
 
 VoxelWorldGenerator::VoxelWorldGenerator(
 		VoxelTypeRegistry &registry
-): m_registry(registry), m_air(
-		m_registry.make<AirVoxelType>("air")
-), m_grass(
-		m_registry.make<SimpleVoxelType>("grass", "grass", "assets/textures/grass.png", true)
-), m_dirt(
-		m_registry.make<SimpleVoxelType>("dirt", "dirt", "assets/textures/mud.png")
-), m_stone(
-		m_registry.make<SimpleVoxelType>("stone", "stone", "assets/textures/stone.png")
-), m_lava(
-		m_registry.make<SimpleVoxelType>(
-				"lava",
-				"lava",
-				"assets/textures/lava.png",
-				false,
-				MAX_VOXEL_LIGHT_LEVEL - 1
-		)
-), m_glass(
-		m_registry.make<SimpleVoxelType>(
-				"glass",
-				"glass",
-				"assets/textures/glass.png",
-				false,
-				0,
-				true
-		)
-), Worker("VoxelWorldGenerator") {
+): m_registry(registry), m_air(m_registry.get("air")), m_grass(m_registry.get("grass")),
+	m_dirt(m_registry.get("dirt")), m_stone(m_registry.get("stone")),
+	m_lava(m_registry.get("lava")), m_glass(m_registry.get("glass")),
+	Worker("VoxelWorldGenerator") {
 }
 
 VoxelWorldGenerator::~VoxelWorldGenerator() {

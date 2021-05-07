@@ -71,6 +71,7 @@ include_directories(src)
 set(
 		COMMON_SRC
 		src/world/Voxel.cpp src/world/VoxelChunk.cpp src/world/VoxelWorld.cpp src/world/VoxelTypeRegistry.cpp
+		src/world/VoxelTypes.cpp
 )
 
 add_executable(

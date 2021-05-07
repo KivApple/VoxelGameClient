@@ -45,6 +45,7 @@ bool GameEngine::init() {
 	m_userInterface = std::make_unique<UserInterface>();
 
 	m_voxelTypeRegistry = std::make_unique<VoxelTypeRegistry>();
+	registerVoxelTypes(*m_voxelTypeRegistry);
 	m_voxelWorld = std::make_unique<VoxelWorld>(static_cast<VoxelChunkListener*>(this));
 	m_voxelWorldRenderer = std::make_unique<VoxelWorldRenderer>(*m_voxelWorld);
 	m_voxelOutline = std::make_unique<VoxelOutline>();
@@ -63,26 +64,6 @@ bool GameEngine::init() {
 			0.0f,
 			0.0f,
 			m_cowModel.get()
-	);
-	
-	m_voxelTypeRegistry->make<AirVoxelType>("air");
-	m_voxelTypeRegistry->make<SimpleVoxelType>("grass", "grass", "assets/textures/grass.png", true);
-	m_voxelTypeRegistry->make<SimpleVoxelType>("dirt", "dirt", "assets/textures/mud.png");
-	m_voxelTypeRegistry->make<SimpleVoxelType>("stone", "stone", "assets/textures/stone.png");
-	m_voxelTypeRegistry->make<SimpleVoxelType>(
-			"lava",
-			"lava",
-			"assets/textures/lava.png",
-			false,
-			MAX_VOXEL_LIGHT_LEVEL - 1
-	);
-	m_voxelTypeRegistry->make<SimpleVoxelType>(
-			"glass",
-			"glass",
-			"assets/textures/glass.png",
-			false,
-			0,
-			true
 	);
 	
 	LOG(INFO) << "Game engine initialized";
