@@ -159,8 +159,8 @@ void Framebuffer::setTexture(GLTexture &texture) const {
 	
 	glBindFramebuffer(GL_FRAMEBUFFER, m_id);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture.id(), 0);
-	GLenum drawBuffers[1] = {GL_COLOR_ATTACHMENT0};
-	glDrawBuffers(1, drawBuffers);
+	/* GLenum drawBuffers[1] = {GL_COLOR_ATTACHMENT0};
+	glDrawBuffers(1, drawBuffers); */
 }
 
 void Framebuffer::bind() const {
