@@ -28,7 +28,7 @@ void ClientConnection::updatePosition(const glm::vec3 &position, float yaw, floa
 					"[Client %v] Player is moving too fast (dx=%v,dy=%v,dz=%v)",
 					this, delta.x, delta.y, delta.z
 			);
-			resetPosition = true;
+			//resetPosition = true;
 		}
 	}
 	bool chunkChanged = false;
