@@ -51,18 +51,28 @@ bool GameEngine::init() {
 	m_voxelOutline = std::make_unique<VoxelOutline>();
 	
 	m_player = std::make_unique<Entity>(
+			*m_voxelWorld,
 			glm::vec3(1.0f, 1.0f, -1.0f),
 			45.0f,
 			0.0f,
+			1,
+			2,
+			0.25f,
+			0.05f,
 			nullptr
 	);
 	
 	m_cowTexture = std::make_unique<GLTexture>("assets/textures/cow.png");
 	m_cowModel = std::make_unique<Model>("assets/models/cow.obj", commonShaderPrograms().texture, m_cowTexture.get());
 	m_cowEntity = std::make_unique<Entity>(
+			*m_voxelWorld,
 			glm::vec3(2.0f, 0.0f, 0.0f),
 			0.0f,
 			0.0f,
+			2,
+			2,
+			0.25f,
+			0.05f,
 			m_cowModel.get()
 	);
 	
@@ -109,9 +119,13 @@ void GameEngine::render() {
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_BLEND);
 	
-	const glm::vec3 playerDirection = m_player->direction(true);
-	const glm::vec3 playerPosition = m_player->position();
-	const glm::mat4 view = glm::lookAt(
+	auto playerDirection = m_player->direction(true);
+	auto playerPosition = m_player->position() + glm::vec3(
+			0.0f,
+			(float) m_player->height() - 0.75f - m_player->paddingY(),
+			0.0f
+	);
+	auto view = glm::lookAt(
 			playerPosition,
 			playerPosition + playerDirection,
 			m_player->upDirection()
@@ -146,7 +160,11 @@ void GameEngine::render() {
 
 void GameEngine::updatePointingAt(const glm::mat4 &view) {
 	m_debugStr.clear();
-	auto playerPosition = m_player->position();
+	auto playerPosition = m_player->position() + glm::vec3(
+			0.0f,
+			(float) m_player->height() - 0.75f - m_player->paddingY(),
+			0.0f
+	);
 	glm::vec3 playerDirection = m_player->direction(true);
 	VoxelChunkRef chunk;
 	VoxelLocation prevLocation;

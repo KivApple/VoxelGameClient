@@ -186,6 +186,10 @@ const VoxelHolder &VoxelChunkExtendedRef::extendedAt(int x, int y, int z, VoxelL
 }
 
 const VoxelHolder &VoxelChunkExtendedRef::extendedAt(const InChunkVoxelLocation &location, VoxelLocation *outLocation) const {
+	assert(location.x >= -VOXEL_CHUNK_SIZE && location.x < 2 * VOXEL_CHUNK_SIZE);
+	assert(location.y >= -VOXEL_CHUNK_SIZE && location.y < 2 * VOXEL_CHUNK_SIZE);
+	assert(location.z >= -VOXEL_CHUNK_SIZE && location.z < 2 * VOXEL_CHUNK_SIZE);
+	
 	const SharedVoxelChunk *chunk = m_chunk;
 	VoxelChunkLocation chunkLocation = this->location();
 	InChunkVoxelLocation correctedLocation = location;
@@ -313,6 +317,10 @@ VoxelHolder &VoxelChunkExtendedMutableRef::extendedAt(
 		const InChunkVoxelLocation &location,
 		VoxelLocation *outLocation
 ) const {
+	assert(location.x >= -VOXEL_CHUNK_SIZE && location.x < 2 * VOXEL_CHUNK_SIZE);
+	assert(location.y >= -VOXEL_CHUNK_SIZE && location.y < 2 * VOXEL_CHUNK_SIZE);
+	assert(location.z >= -VOXEL_CHUNK_SIZE && location.z < 2 * VOXEL_CHUNK_SIZE);
+	
 	SharedVoxelChunk *chunk = m_chunk;
 	VoxelChunkLocation chunkLocation = this->location();
 	InChunkVoxelLocation correctedLocation = location;
