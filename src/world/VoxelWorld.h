@@ -190,10 +190,10 @@ class VoxelWorld {
 	VoxelChunkLoader *m_chunkLoader = nullptr;
 	VoxelChunkListener *m_chunkListener;
 	std::unordered_map<VoxelChunkLocation, std::unique_ptr<SharedVoxelChunk>> m_chunks;
-	std::shared_mutex m_mutex;
+	std::mutex m_mutex;
 	
 	template<typename T> T createChunk(const VoxelChunkLocation &location);
-	template<typename T> T createAndLoadChunk(const VoxelChunkLocation &location);
+	template<typename T> T createAndLoadChunk(const VoxelChunkLocation &location, std::unique_lock<std::mutex> &lock);
 	
 	friend class VoxelInvalidationNotifier;
 	
@@ -235,7 +235,7 @@ public:
 		return m_chunks.size();
 	}
 	template<typename Callable> void forEachChunkLocation(Callable callable) {
-		std::shared_lock<std::shared_mutex> lock(m_mutex);
+		std::unique_lock<std::mutex> lock(m_mutex);
 		for (auto &chunk : m_chunks) {
 			callable(chunk.first);
 		}

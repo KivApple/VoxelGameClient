@@ -367,17 +367,14 @@ VoxelWorld::VoxelWorld(VoxelChunkListener *chunkListener): m_chunkListener(chunk
 }
 
 void VoxelWorld::setChunkLoader(VoxelChunkLoader *chunkLoader) {
-	std::unique_lock<std::shared_mutex> lock(m_mutex);
+	std::unique_lock<std::mutex> lock(m_mutex);
 	m_chunkLoader = chunkLoader;
 }
 
 template<typename T> T VoxelWorld::createChunk(const VoxelChunkLocation &location) {
-	std::shared_lock<std::shared_mutex> sharedLock(m_mutex);
 	if (m_chunkLoader) {
 		m_chunkLoader->cancelLoadAsync(*this, location);
 	}
-	sharedLock.unlock();
-	std::unique_lock<std::shared_mutex> lock(m_mutex);
 	auto it = m_chunks.find(location);
 	if (it != m_chunks.end()) {
 		return T(*it->second);
@@ -389,9 +386,9 @@ template<typename T> T VoxelWorld::createChunk(const VoxelChunkLocation &locatio
 	return T(chunk);
 }
 
-template<typename T> T VoxelWorld::createAndLoadChunk(const VoxelChunkLocation &location) {
+template<typename T> T VoxelWorld::createAndLoadChunk(const VoxelChunkLocation &location, std::unique_lock<std::mutex> &lock) {
 	auto chunk = createChunk<T>(location);
-	std::shared_lock<std::shared_mutex> lock(m_mutex);
+	lock.unlock();
 	m_chunkLoader->load(chunk);
 	return chunk;
 }
@@ -404,24 +401,22 @@ VoxelChunkRef VoxelWorld::chunk(
 	if (created) {
 		*created = false;
 	}
-	std::shared_lock<std::shared_mutex> lock(m_mutex);
+	std::unique_lock<std::mutex> lock(m_mutex);
 	auto it = m_chunks.find(location);
 	if (it == m_chunks.end()) {
 		switch (policy) {
 			case MissingChunkPolicy::NONE:
 				return VoxelChunkRef();
 			case MissingChunkPolicy::CREATE:
-				lock.unlock();
 				if (created) {
 					*created = true;
 				}
 				return createChunk<VoxelChunkRef>(location);
 			case MissingChunkPolicy::LOAD:
-				lock.unlock();
 				if (created) {
 					*created = true;
 				}
-				createAndLoadChunk<VoxelChunkMutableRef>(location);
+				createAndLoadChunk<VoxelChunkMutableRef>(location, lock);
 				return chunk(location, MissingChunkPolicy::NONE);
 			case MissingChunkPolicy::LOAD_ASYNC:
 				lock.unlock();
@@ -440,24 +435,22 @@ VoxelChunkExtendedRef VoxelWorld::extendedChunk(
 	if (created) {
 		*created = false;
 	}
-	std::shared_lock<std::shared_mutex> lock(m_mutex);
+	std::unique_lock<std::mutex> lock(m_mutex);
 	auto it = m_chunks.find(location);
 	if (it == m_chunks.end()) {
 		switch (policy) {
 			case MissingChunkPolicy::NONE:
 				return VoxelChunkExtendedRef();
 			case MissingChunkPolicy::CREATE:
-				lock.unlock();
 				if (created) {
 					*created = true;
 				}
 				return createChunk<VoxelChunkExtendedRef>(location);
 			case MissingChunkPolicy::LOAD:
-				lock.unlock();
 				if (created) {
 					*created = true;
 				}
-				createAndLoadChunk<VoxelChunkMutableRef>(location);
+				createAndLoadChunk<VoxelChunkMutableRef>(location, lock);
 				return extendedChunk(location, MissingChunkPolicy::NONE);
 			case MissingChunkPolicy::LOAD_ASYNC:
 				lock.unlock();
@@ -476,24 +469,22 @@ VoxelChunkMutableRef VoxelWorld::mutableChunk(
 	if (created) {
 		*created = false;
 	}
-	std::shared_lock<std::shared_mutex> lock(m_mutex);
+	std::unique_lock<std::mutex> lock(m_mutex);
 	auto it = m_chunks.find(location);
 	if (it == m_chunks.end()) {
 		switch (policy) {
 			case MissingChunkPolicy::NONE:
 				return VoxelChunkMutableRef();
 			case MissingChunkPolicy::CREATE:
-				lock.unlock();
 				if (created) {
 					*created = true;
 				}
 				return createChunk<VoxelChunkMutableRef>(location);
 			case MissingChunkPolicy::LOAD:
-				lock.unlock();
 				if (created) {
 					*created = true;
 				}
-				return createAndLoadChunk<VoxelChunkMutableRef>(location);
+				return createAndLoadChunk<VoxelChunkMutableRef>(location, lock);
 			case MissingChunkPolicy::LOAD_ASYNC:
 				lock.unlock();
 				m_chunkLoader->loadAsync(*this, location);
@@ -511,24 +502,22 @@ VoxelChunkExtendedMutableRef VoxelWorld::extendedMutableChunk(
 	if (created) {
 		*created = false;
 	}
-	std::shared_lock<std::shared_mutex> lock(m_mutex);
+	std::unique_lock<std::mutex> lock(m_mutex);
 	auto it = m_chunks.find(location);
 	if (it == m_chunks.end()) {
 		switch (policy) {
 			case MissingChunkPolicy::NONE:
 				return VoxelChunkExtendedMutableRef();
 			case MissingChunkPolicy::CREATE:
-				lock.unlock();
 				if (created) {
 					*created = true;
 				}
 				return createChunk<VoxelChunkExtendedMutableRef>(location);
 			case MissingChunkPolicy::LOAD:
-				lock.unlock();
 				if (created) {
 					*created = true;
 				}
-				return createAndLoadChunk<VoxelChunkExtendedMutableRef>(location);
+				return createAndLoadChunk<VoxelChunkExtendedMutableRef>(location, lock);
 			case MissingChunkPolicy::LOAD_ASYNC:
 				lock.unlock();
 				m_chunkLoader->loadAsync(*this, location);
@@ -539,7 +528,7 @@ VoxelChunkExtendedMutableRef VoxelWorld::extendedMutableChunk(
 }
 
 void VoxelWorld::unloadChunks(const std::vector<VoxelChunkLocation> &locations) {
-	std::unique_lock<std::shared_mutex> lock(m_mutex);
+	std::unique_lock<std::mutex> lock(m_mutex);
 	for (auto &location : locations) {
 		auto it = m_chunks.find(location);
 		if (it != m_chunks.end()) {
@@ -556,7 +545,7 @@ void VoxelWorld::unloadChunks(const std::vector<VoxelChunkLocation> &locations) 
 
 void VoxelWorld::unload() {
 	LOG(INFO) << "Unloading world";
-	std::unique_lock<std::shared_mutex> lock(m_mutex);
+	std::unique_lock<std::mutex> lock(m_mutex);
 	auto it = m_chunks.begin();
 	while (it != m_chunks.end()) {
 		std::unique_lock<std::shared_mutex> chunkLock(it->second->mutex());
