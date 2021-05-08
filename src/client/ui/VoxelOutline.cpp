@@ -42,16 +42,17 @@ bool VoxelOutline::set(
 		auto &v1 = m_vertexData[i + 1];
 		auto &v2 = m_vertexData[i + 2];
 		
-		glm::vec3 point;
-		if (glm::intersectLineTriangle(
+		glm::vec2 point;
+		float distance;
+		if (glm::intersectRayTriangle(
 				playerPosition,
 				playerDirection,
 				glm::vec3(v0.x, v0.y, v0.z) + origin,
 				glm::vec3(v1.x, v1.y, v1.z) + origin,
 				glm::vec3(v2.x, v2.y, v2.z) + origin,
-				point
+				point,
+				distance
 		)) {
-			float distance = glm::length(point - playerPosition);
 			if (distance < nearestDistance) {
 				nearestI = i;
 				nearestDistance = distance;
