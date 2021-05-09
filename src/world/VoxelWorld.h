@@ -16,6 +16,8 @@ class SharedVoxelChunk: public VoxelChunk {
 	std::unordered_set<InChunkVoxelLocation> m_pendingLocations;
 	bool m_pendingInitialUpdate = true;
 	unsigned long m_updatedAt = 0;
+	long m_storedAt = 0;
+	bool m_unloading = false;
 	
 public:
 	SharedVoxelChunk(VoxelWorld &world, const VoxelChunkLocation &location): VoxelChunk(location), m_world(world) {
@@ -45,6 +47,9 @@ public:
 	void markDirty(const InChunkVoxelLocation &location) {
 		if (m_dirty) return;
 		m_dirtyLocations.emplace(location);
+		if (m_storedAt >= m_updatedAt) {
+			m_storedAt = m_updatedAt - 1;
+		}
 	}
 	
 	void markDirty(bool lightComputed = false) {
@@ -90,6 +95,22 @@ public:
 		m_updatedAt = updatedAt;
 	}
 	
+	[[nodiscard]] unsigned long storedAt() const {
+		return m_storedAt;
+	}
+	
+	void setStoredAt(unsigned long storedAt) {
+		m_storedAt = storedAt;
+	}
+	
+	[[nodiscard]] bool unloading() const {
+		return m_unloading;
+	}
+	
+	void setUnloading(bool unloading) {
+		m_unloading = unloading;
+	}
+	
 };
 
 class VoxelChunkRef {
@@ -120,6 +141,12 @@ public:
 	}
 	[[nodiscard]] bool lightComputed() const {
 		return m_chunk->lightComputed();
+	}
+	[[nodiscard]] unsigned long updatedAt() const {
+		return m_chunk->storedAt();
+	}
+	[[nodiscard]] long storedAt() const {
+		return m_chunk->storedAt();
 	}
 
 	template<typename S> void serialize(S &s) const {
@@ -173,6 +200,12 @@ public:
 	void markDirty(const InChunkVoxelLocation &location, bool markPending = true);
 	void markPending(const InChunkVoxelLocation &location);
 	void extendedMarkPending(const InChunkVoxelLocation &location);
+	void setUpdatedAt(unsigned long time) {
+		m_chunk->setUpdatedAt(time);
+	}
+	void setStoredAt(long time) {
+		m_chunk->setStoredAt(time);
+	}
 
 	template<typename S> void serialize(S &s) {
 		s.object(*m_chunk);
@@ -207,7 +240,7 @@ public:
 	virtual void load(VoxelChunkMutableRef &chunk) = 0;
 	virtual void loadAsync(VoxelWorld &world, const VoxelChunkLocation &location) = 0;
 	virtual void cancelLoadAsync(VoxelWorld &world, const VoxelChunkLocation &location) = 0;
-	virtual void unloadChunkAsync(std::unique_ptr<SharedVoxelChunk> chunk) {
+	virtual void storeChunkAsync(VoxelWorld &world, const VoxelChunkLocation &location) {
 	}
 	
 };
@@ -266,6 +299,7 @@ public:
 			MissingChunkPolicy policy = MissingChunkPolicy::NONE,
 			bool *created = nullptr
 	);
+	void storeChunk(const VoxelChunkLocation &location);
 	void unloadChunks(const std::vector<VoxelChunkLocation> &locations);
 	void unload();
 	size_t chunkCount() const {
@@ -274,8 +308,10 @@ public:
 	template<typename Callable> void forEachChunkLocation(Callable callable) {
 		std::unique_lock<std::mutex> lock(m_mutex);
 		for (auto &chunk : m_chunks) {
+			if (chunk.second->unloading()) continue;
 			callable(chunk.first);
 		}
 	}
+	void chunkStored(const VoxelChunkLocation &location);
 	
 };

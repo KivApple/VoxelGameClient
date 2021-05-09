@@ -15,16 +15,25 @@ struct sqlite3;
 struct sqlite3_stmt;
 class VoxelWorldStorage;
 
+enum class VoxelWorldStorageAction {
+	LOAD,
+	STORE
+};
+
 struct VoxelWorldStorageJob {
 	VoxelWorldStorage *storage;
+	VoxelWorldStorageAction action;
 	VoxelWorld *world;
 	VoxelChunkLocation location;
-	std::unique_ptr<SharedVoxelChunk> chunk;
 	
-	VoxelWorldStorageJob(VoxelWorldStorage *storage, VoxelWorld *world, const VoxelChunkLocation &location);
-	VoxelWorldStorageJob(VoxelWorldStorage *storage, std::unique_ptr<SharedVoxelChunk> chunk);
+	VoxelWorldStorageJob(
+			VoxelWorldStorage *storage,
+			VoxelWorldStorageAction action,
+			VoxelWorld *world,
+			const VoxelChunkLocation &location
+	);
 	bool operator==(const VoxelWorldStorageJob &job) const;
-	void operator()();
+	void operator()() const;
 };
 
 class VoxelWorldStorage: public VoxelChunkLoader, public Worker<VoxelWorldStorageJob> {
@@ -39,7 +48,7 @@ class VoxelWorldStorage: public VoxelChunkLoader, public Worker<VoxelWorldStorag
 	
 	void openDatabase();
 	void closeDatabase();
-	void unload(std::unique_ptr<SharedVoxelChunk> chunk);
+	void store(const VoxelChunkRef &chunk);
 	
 	friend class VoxelWorldStorageJob;
 	
@@ -49,6 +58,6 @@ public:
 	void load(VoxelChunkMutableRef &chunk) override;
 	void loadAsync(VoxelWorld &world, const VoxelChunkLocation &location) override;
 	void cancelLoadAsync(VoxelWorld &world, const VoxelChunkLocation &location) override;
-	void unloadChunkAsync(std::unique_ptr<SharedVoxelChunk> chunk) override;
+	void storeChunkAsync(VoxelWorld &world, const VoxelChunkLocation &location) override;
 	
 };

@@ -30,7 +30,21 @@ void VoxelWorldUpdater::run() {
 		for (auto &chunkLocation : chunkLocations) {
 			auto chunk = m_world.extendedMutableChunk(chunkLocation);
 			if (!chunk) continue;
-			if (!chunk.lightComputed()) continue;
+			bool complete = chunk.lightComputed();
+			for (int dz = -1; dz <= 1 && complete; dz++) {
+				for (int dy = -1; dy <= 1 && complete; dy++) {
+					for (int dx = -1; dx <= 1 && complete; dx++) {
+						if (dx == 0 && dy == 0 && dz == 0) continue;
+						if (!chunk.hasNeighbor(dx, dy, dz)) {
+							complete = false;
+						}
+					}
+				}
+			}
+			if (!complete) {
+				chunk.unlock(false);
+				continue;
+			}
 			chunk.update(time);
 		}
 		time++;

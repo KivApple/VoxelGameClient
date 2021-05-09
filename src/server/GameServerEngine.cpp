@@ -13,6 +13,7 @@ GameServerEngine::GameServerEngine(
 GameServerEngine::~GameServerEngine() {
 	m_voxelWorldUpdater.shutdown();
 	m_voxelLightComputer.shutdown();
+	m_voxelWorld.unload();
 	m_voxelWorldStorage.shutdown(true);
 	m_voxelWorld.setChunkLoader(nullptr);
 }
@@ -75,7 +76,6 @@ int GameServerEngine::run() {
 	}
 	std::unique_lock<std::shared_mutex> lock(m_connectionsMutex);
 	m_connections.clear();
-	m_voxelWorld.unload();
 	return 0;
 }
 

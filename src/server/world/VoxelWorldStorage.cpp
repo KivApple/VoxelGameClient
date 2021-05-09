@@ -5,28 +5,33 @@
 
 VoxelWorldStorageJob::VoxelWorldStorageJob(
 		VoxelWorldStorage *storage,
+		VoxelWorldStorageAction action,
 		VoxelWorld *world,
 		const VoxelChunkLocation &location
-): storage(storage), world(world), location(location) {
-}
-
-VoxelWorldStorageJob::VoxelWorldStorageJob(
-		VoxelWorldStorage *storage,
-		std::unique_ptr<SharedVoxelChunk> chunk
-): storage(storage), world(nullptr), chunk(std::move(chunk)) {
+): storage(storage), action(action), world(world), location(location) {
 }
 
 bool VoxelWorldStorageJob::operator==(const VoxelWorldStorageJob &job) const {
-	return world == job.world && location == job.location && chunk == job.chunk;
+	return action == job.action && world == job.world && location == job.location;
 }
 
-void VoxelWorldStorageJob::operator()() {
+void VoxelWorldStorageJob::operator()() const {
 	if (!storage->m_database) return;
-	if (world && !chunk) {
-		auto ref = world->mutableChunk(location, VoxelWorld::MissingChunkPolicy::CREATE);
-		storage->load(ref);
-	} else if (chunk) {
-		storage->unload(std::move(chunk));
+	switch (action) {
+		case VoxelWorldStorageAction::LOAD: {
+			auto ref = world->mutableChunk(location, VoxelWorld::MissingChunkPolicy::CREATE);
+			storage->load(ref);
+			break;
+		}
+		case VoxelWorldStorageAction::STORE: {
+			auto ref = world->chunk(location);
+			if (ref) {
+				storage->store(ref);
+				ref.unlock(false);
+				world->chunkStored(location);
+			}
+			break;
+		}
 	}
 }
 
@@ -193,6 +198,8 @@ void VoxelWorldStorage::load(VoxelChunkMutableRef &chunk) {
 			deserializer.object(chunk);
 			sqlite3_reset(stmt);
 			chunk.markDirty(true);
+			chunk.setUpdatedAt(0);
+			chunk.setStoredAt(0);
 			return;
 		}
 		if (retVal != SQLITE_DONE) {
@@ -204,32 +211,38 @@ void VoxelWorldStorage::load(VoxelChunkMutableRef &chunk) {
 	m_generator.load(chunk);
 }
 
-void VoxelWorldStorage::loadAsync(VoxelWorld &world, const VoxelChunkLocation &location) {
-	post(this, &world, location);
-}
-
-void VoxelWorldStorage::cancelLoadAsync(VoxelWorld &world, const VoxelChunkLocation &location) {
-	cancel(VoxelWorldStorageJob(this, &world, location), false);
-}
-
-void VoxelWorldStorage::unload(std::unique_ptr<SharedVoxelChunk> chunk) {
-	if (!chunk->lightComputed()) return;
-	auto &l = chunk->location();
+void VoxelWorldStorage::store(const VoxelChunkRef &chunk) {
+	if (!chunk) return;
+	if (!chunk.lightComputed()) return;
+	auto &l = chunk.location();
 	LOG(DEBUG) << "Storing chunk at x=" << l.x << ",y=" << l.y << ",z=" << l.z;
 	std::string buffer;
 	VoxelSerializer serializer(m_serializationContext, buffer);
-	serializer.object(*chunk);
+	serializer.object(chunk);
 	sqlite3_bind_int(m_storeChunkStmt, 1, l.x);
 	sqlite3_bind_int(m_storeChunkStmt, 2, l.y);
 	sqlite3_bind_int(m_storeChunkStmt, 3, l.z);
 	sqlite3_bind_blob(m_storeChunkStmt, 4, buffer.data(), buffer.size(), SQLITE_STATIC);
 	if (sqlite3_step(m_storeChunkStmt) != SQLITE_DONE) {
 		LOG(ERROR) << "Failed to store chunk at x=" << l.x << ",y=" << l.y << ",z=" << l.z << ": " <<
-			sqlite3_errmsg(m_database);
+				   sqlite3_errmsg(m_database);
 	}
 	sqlite3_reset(m_storeChunkStmt);
 }
 
-void VoxelWorldStorage::unloadChunkAsync(std::unique_ptr<SharedVoxelChunk> chunk) {
-	post(this, std::move(chunk));
+void VoxelWorldStorage::loadAsync(VoxelWorld &world, const VoxelChunkLocation &location) {
+	post(this, VoxelWorldStorageAction::LOAD, &world, location);
+}
+
+void VoxelWorldStorage::cancelLoadAsync(VoxelWorld &world, const VoxelChunkLocation &location) {
+	cancel(VoxelWorldStorageJob(
+			this,
+			VoxelWorldStorageAction::LOAD,
+			&world,
+			location
+	), false);
+}
+
+void VoxelWorldStorage::storeChunkAsync(VoxelWorld &world, const VoxelChunkLocation &location) {
+	post(this, VoxelWorldStorageAction::STORE, &world, location);
 }

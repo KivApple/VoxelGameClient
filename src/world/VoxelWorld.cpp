@@ -145,6 +145,9 @@ VoxelChunkExtendedRef::VoxelChunkExtendedRef(
 		for (int dy = -1; dy <= 1; dy++) {
 			for (int dx = -1; dx <= 1; dx++) {
 				auto neighbor = chunk.neighbor(dx, dy, dz);
+				if (neighbor && neighbor->unloading()) {
+					neighbor = nullptr;
+				}
 				m_neighbors[(dx + 1) + (dy + 1) * 3 + (dz + 1) * 3 * 3] = neighbor;
 				if (neighbor == nullptr || !lockNeighbors) continue;
 				auto &l = neighbor->location();
@@ -499,7 +502,10 @@ void VoxelChunkExtendedMutableRef::extendedMarkDirty(const InChunkVoxelLocation 
 }
 
 void VoxelChunkExtendedMutableRef::update(unsigned long time) {
+	assert(time > 0);
 	std::unordered_set<InChunkVoxelLocation> invalidatedLocations;
+	auto storedAt = m_chunk->storedAt();
+	assert(time > storedAt);
 	auto deltaTime = time - m_chunk->updatedAt();
 	if (m_chunk->pendingInitialUpdate()) {
 		m_chunk->setPendingInitialUpdate(false);
@@ -530,9 +536,21 @@ void VoxelChunkExtendedMutableRef::update(unsigned long time) {
 		);
 		at(location).slowUpdate(*this, location, invalidatedLocations);
 	}
+	auto prevUpdatedAt = m_chunk->updatedAt();
 	m_chunk->setUpdatedAt(time);
 	for (auto &invalidatedLocation : invalidatedLocations) {
 		extendedMarkDirty(invalidatedLocation);
+	}
+	if (storedAt == prevUpdatedAt) {
+		if (invalidatedLocations.empty()) {
+			m_chunk->setStoredAt(time);
+		} else {
+			m_chunk->setStoredAt(prevUpdatedAt);
+		}
+	}
+	if (time - storedAt > 100) {
+		m_chunk->world().storeChunk(location());
+		m_chunk->setStoredAt(time);
 	}
 }
 
@@ -666,6 +684,7 @@ VoxelChunkMutableRef VoxelWorld::mutableChunk(
 				return VoxelChunkMutableRef();
 		}
 	}
+	it->second->setUnloading(false);
 	return VoxelChunkMutableRef(*it->second);
 }
 
@@ -699,20 +718,40 @@ VoxelChunkExtendedMutableRef VoxelWorld::extendedMutableChunk(
 				return VoxelChunkExtendedMutableRef();
 		}
 	}
+	it->second->setUnloading(false);
 	return VoxelChunkExtendedMutableRef(*it->second);
+}
+
+void VoxelWorld::chunkStored(const VoxelChunkLocation &location) {
+	std::unique_lock<std::mutex> lock(m_mutex);
+	auto it = m_chunks.find(location);
+	if (it == m_chunks.end()) return;
+	if (!it->second->unloading()) return;
+	std::unique_lock<std::shared_mutex> chunkLock(it->second->mutex());
+	it->second->unsetNeighbors();
+	chunkLock.unlock();
+	m_chunks.erase(it);
+}
+
+void VoxelWorld::storeChunk(const VoxelChunkLocation &location) {
+	if (m_chunkLoader != nullptr) {
+		m_chunkLoader->storeChunkAsync(*this, location);
+	}
 }
 
 void VoxelWorld::unloadChunks(const std::vector<VoxelChunkLocation> &locations) {
 	std::unique_lock<std::mutex> lock(m_mutex);
 	for (auto &location : locations) {
 		auto it = m_chunks.find(location);
-		if (it != m_chunks.end()) {
+		if (it == m_chunks.end()) continue;
+		if (it->second->storedAt() < it->second->updatedAt() && m_chunkLoader != nullptr) {
+			if (it->second->unloading()) continue;
+			it->second->setUnloading(true);
+			m_chunkLoader->storeChunkAsync(*this, location);
+		} else {
 			std::unique_lock<std::shared_mutex> chunkLock(it->second->mutex());
 			it->second->unsetNeighbors();
 			chunkLock.unlock();
-			if (m_chunkLoader != nullptr) {
-				m_chunkLoader->unloadChunkAsync(std::move(it->second));
-			}
 			m_chunks.erase(it);
 		}
 	}
@@ -723,12 +762,16 @@ void VoxelWorld::unload() {
 	std::unique_lock<std::mutex> lock(m_mutex);
 	auto it = m_chunks.begin();
 	while (it != m_chunks.end()) {
-		std::unique_lock<std::shared_mutex> chunkLock(it->second->mutex());
-		it->second->unsetNeighbors();
-		chunkLock.unlock();
-		if (m_chunkLoader != nullptr) {
-			m_chunkLoader->unloadChunkAsync(std::move(it->second));
+		if (it->second->storedAt() < it->second->updatedAt() && m_chunkLoader != nullptr) {
+			if (it->second->unloading()) continue;
+			it->second->setUnloading(true);
+			m_chunkLoader->storeChunkAsync(*this, it->first);
+			++it;
+		} else {
+			std::unique_lock<std::shared_mutex> chunkLock(it->second->mutex());
+			it->second->unsetNeighbors();
+			chunkLock.unlock();
+			it = m_chunks.erase(it);
 		}
-		it = m_chunks.erase(it);
 	}
 }
