@@ -60,7 +60,7 @@ void BinaryClientTransport::sendHello() {
 }
 
 void BinaryClientTransport::sendPlayerPosition(const glm::vec3 &position, float yaw, float pitch, int viewRadius) {
-	serializeAndSendMessage(ClientMessage<ClientMessageData::UpdatePosition>({
+	serializeAndSendMessage(ClientMessage(ClientMessageData::UpdatePosition {
 		position.x, position.y, position.z,
 		yaw, pitch,
 		(uint8_t) viewRadius
@@ -69,21 +69,17 @@ void BinaryClientTransport::sendPlayerPosition(const glm::vec3 &position, float 
 
 void BinaryClientTransport::updateActiveInventoryItem(int index) {
 	LOG(DEBUG) << "Selected inventory item #" << index;
-	serializeAndSendMessage(ClientMessage<ClientMessageData::UpdateActiveInventoryItem>({
+	serializeAndSendMessage(ClientMessage(ClientMessageData::UpdateActiveInventoryItem {
 		(uint8_t) index
 	}));
 }
 
-void BinaryClientTransport::digVoxel(const VoxelLocation &location) {
-	LOG(DEBUG) << "Dig voxel at x=" << location.x << ",y=" << location.y << ",z=" << location.z;
-	serializeAndSendMessage(ClientMessage<ClientMessageData::DigVoxel>({
-		location
-	}));
+void BinaryClientTransport::digVoxel() {
+	LOG(DEBUG) << "Dig voxel";
+	serializeAndSendMessage(ClientMessage(ClientMessageData::DigVoxel {}));
 }
 
-void BinaryClientTransport::placeVoxel(const VoxelLocation &location) {
-	LOG(DEBUG) << "Place voxel at x=" << location.x << ",y=" << location.y << ",z=" << location.z;
-	serializeAndSendMessage(ClientMessage<ClientMessageData::PlaceVoxel>({
-		location
-	}));
+void BinaryClientTransport::placeVoxel() {
+	LOG(DEBUG) << "Place voxel";
+	serializeAndSendMessage(ClientMessage(ClientMessageData::PlaceVoxel {}));
 }

@@ -5,16 +5,19 @@
 #define TRACE_LOCKS 0
 
 class VoxelInvalidationNotifier {
-	VoxelWorld &m_world;
+	VoxelWorld *m_world;
 	VoxelChunkLocation m_chunkLocation;
 	bool m_dirty;
 	std::vector<InChunkVoxelLocation> m_locations;
 	bool m_lightComputed;
 	
 public:
+	VoxelInvalidationNotifier(): m_world(nullptr), m_dirty(false), m_lightComputed(true) {
+	}
+	
 	explicit VoxelInvalidationNotifier(
 			SharedVoxelChunk &chunk, bool enabled
-	): m_world(chunk.world()), m_chunkLocation(chunk.location()), m_dirty(
+	): m_world(&chunk.world()), m_chunkLocation(chunk.location()), m_dirty(
 			enabled && chunk.dirty()
 	), m_lightComputed(chunk.lightComputed() && chunk.dirtyLocations().empty()) {
 		if (enabled) {
@@ -27,11 +30,20 @@ public:
 		}
 	}
 	
+	VoxelInvalidationNotifier &operator=(VoxelInvalidationNotifier &&notifier) noexcept {
+		m_world = notifier.m_world;
+		m_chunkLocation = notifier.m_chunkLocation;
+		m_dirty = notifier.m_dirty;
+		m_locations = std::move(notifier.m_locations);
+		m_lightComputed = notifier.m_lightComputed;
+		return *this;
+	}
+	
 	void notify() {
 		if (!m_dirty) return;
 		auto &l = m_chunkLocation;
 		LOG(TRACE) << "Chunk at x=" << l.x << ",y=" << l.y << ",z=" << l.z << " invalidated";
-		m_world.m_chunkListener->chunkInvalidated(m_chunkLocation, std::move(m_locations), m_lightComputed);
+		m_world->m_chunkListener->chunkInvalidated(m_chunkLocation, std::move(m_locations), m_lightComputed);
 		m_dirty = false;
 	}
 	
@@ -167,14 +179,20 @@ VoxelChunkExtendedRef::~VoxelChunkExtendedRef() {
 }
 
 void VoxelChunkExtendedRef::unlock(bool notify) {
-	for (auto &&neighbor : m_neighbors) {
+	VoxelInvalidationNotifier notifiers[sizeof(m_neighbors) / sizeof(m_neighbors[0])];
+	for (int i = 0; i < sizeof(m_neighbors) / sizeof(m_neighbors[0]); i++) {
+		auto &neighbor = m_neighbors[i];
 		if (neighbor == nullptr) continue;
 		auto &l = neighbor->location();
+		notifiers[i] = VoxelInvalidationNotifier(*neighbor, notify);
 		LOG_IF(TRACE_LOCKS, TRACE) << "Unlock shared x=" << l.x << ",y=" << l.y << ",z=" << l.z;
 		neighbor->mutex().unlock_shared();
 		neighbor = nullptr;
 	}
 	VoxelChunkRef::unlock(notify);
+	for (auto &&notifier : notifiers) {
+		notifier.notify();
+	}
 }
 
 bool VoxelChunkExtendedRef::hasNeighbor(int dx, int dy, int dz) const {
@@ -299,14 +317,20 @@ VoxelChunkExtendedMutableRef::~VoxelChunkExtendedMutableRef() {
 }
 
 void VoxelChunkExtendedMutableRef::unlock(bool notify) {
-	for (auto &&neighbor : m_neighbors) {
+	VoxelInvalidationNotifier notifiers[sizeof(m_neighbors) / sizeof(m_neighbors[0])];
+	for (int i = 0; i < sizeof(m_neighbors) / sizeof(m_neighbors[0]); i++) {
+		auto &neighbor = m_neighbors[i];
 		if (neighbor == nullptr) continue;
 		auto &l = neighbor->location();
+		notifiers[i] = VoxelInvalidationNotifier(*neighbor, notify);
 		LOG_IF(TRACE_LOCKS, TRACE) << "Unlock x=" << l.x << ",y=" << l.y << ",z=" << l.z;
 		neighbor->mutex().unlock();
 		neighbor = nullptr;
 	}
 	VoxelChunkMutableRef::unlock(notify);
+	for (auto &&notifier : notifiers) {
+		notifier.notify();
+	}
 }
 
 VoxelHolder &VoxelChunkExtendedMutableRef::extendedAt(int x, int y, int z, VoxelLocation *outLocation) const {
@@ -359,6 +383,46 @@ VoxelHolder &VoxelChunkExtendedMutableRef::extendedAt(
 	}
 	static VoxelHolder empty;
 	return empty;
+}
+
+void VoxelChunkExtendedMutableRef::extendedMarkDirty(const InChunkVoxelLocation &location) {
+	assert(location.x >= -VOXEL_CHUNK_SIZE && location.x < 2 * VOXEL_CHUNK_SIZE);
+	assert(location.y >= -VOXEL_CHUNK_SIZE && location.y < 2 * VOXEL_CHUNK_SIZE);
+	assert(location.z >= -VOXEL_CHUNK_SIZE && location.z < 2 * VOXEL_CHUNK_SIZE);
+	
+	SharedVoxelChunk *chunk = m_chunk;
+	VoxelChunkLocation chunkLocation = this->location();
+	InChunkVoxelLocation correctedLocation = location;
+	if (location.x < 0) {
+		chunkLocation.x--;
+		correctedLocation.x += VOXEL_CHUNK_SIZE;
+	} else if (location.x >= VOXEL_CHUNK_SIZE) {
+		chunkLocation.x++;
+		correctedLocation.x -= VOXEL_CHUNK_SIZE;
+	}
+	if (location.y < 0) {
+		chunkLocation.y--;
+		correctedLocation.y += VOXEL_CHUNK_SIZE;
+	} else if (location.y >= VOXEL_CHUNK_SIZE) {
+		chunkLocation.y++;
+		correctedLocation.y -= VOXEL_CHUNK_SIZE;
+	}
+	if (location.z < 0) {
+		chunkLocation.z--;
+		correctedLocation.z += VOXEL_CHUNK_SIZE;
+	} else if (location.z >= VOXEL_CHUNK_SIZE) {
+		chunkLocation.z++;
+		correctedLocation.z -= VOXEL_CHUNK_SIZE;
+	}
+	int dx = chunkLocation.x - this->location().x;
+	int dy = chunkLocation.y - this->location().y;
+	int dz = chunkLocation.z - this->location().z;
+	if (dx != 0 || dy != 0 || dz != 0) {
+		chunk = m_neighbors[(dx + 1) + (dy + 1) * 3 + (dz + 1) * 3 * 3];
+	}
+	if (chunk) {
+		chunk->markDirty(correctedLocation);
+	}
 }
 
 /* VoxelWorld */

@@ -17,7 +17,7 @@ BitmapFont::BitmapFont(const std::string &fileName): m_texture(fileName) {
 	}
 }
 
-const GLTexture &BitmapFont::texture() const {
+const GL::Texture &BitmapFont::texture() const {
 	return m_texture;
 }
 

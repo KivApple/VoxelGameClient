@@ -71,7 +71,7 @@ include_directories(src)
 set(
 		COMMON_SRC
 		src/world/Voxel.cpp src/world/VoxelChunk.cpp src/world/VoxelWorld.cpp src/world/VoxelTypeRegistry.cpp
-		src/world/VoxelTypes.cpp
+		src/world/VoxelTypes.cpp src/world/VoxelWorldUtils.cpp src/world/Entity.cpp
 )
 
 add_executable(
@@ -82,7 +82,6 @@ add_executable(
 		src/client/OpenGL.cpp src/client/ShaderProgram.cpp src/client/ui/TextRenderer.cpp src/client/world/Model.cpp
 		src/client/ui/UIBase.cpp src/client/ui/UIJoystick.cpp src/client/ui/UIRoot.cpp src/client/ui/Inventory.cpp
 		src/client/ui/Crosshair.cpp src/client/ui/VoxelOutline.cpp
-		src/client/world/Entity.cpp
 		src/client/world/VoxelWorldRenderer.cpp
 		${COMMON_SRC}
 )
@@ -107,13 +106,14 @@ else()
 			src/server/world/VoxelLightComputer.cpp
 			${COMMON_SRC}
 	)
-	target_compile_definitions(VoxelGameServer PUBLIC HEADLESS ELPP_FEATURE_CRASH_LOG)
+	target_compile_definitions(VoxelGameServer PUBLIC HEADLESS)
 	target_link_libraries(
 			VoxelGameServer
 			easyloggingpp::easyloggingpp glm::glm Bitsery::bitsery websocketpp::websocketpp asio::asio zlibstatic
 			sqlite::sqlite Threads::Threads
 	)
 	if(UNIX)
+		target_compile_definitions(VoxelGameServer PUBLIC ELPP_FEATURE_CRASH_LOG)
 		target_compile_options(VoxelGameServer PUBLIC -g -rdynamic)
 		target_link_options(VoxelGameServer PUBLIC -g -rdynamic)
 	endif()

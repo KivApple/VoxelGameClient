@@ -8,6 +8,7 @@
 #include <glm/vec3.hpp>
 #include "world/Voxel.h"
 #include "world/VoxelLocation.h"
+#include "world/Entity.h"
 #include "ServerTransport.h"
 
 class VoxelChunkRef;
@@ -16,9 +17,7 @@ class ClientConnection {
 	ServerTransport &m_transport;
 	el::Logger *m_logger;
 	
-	glm::vec3 m_position = glm::vec3(0.0f);
-	float m_yaw = 0.0f;
-	float m_pitch = 0.0f;
+	Entity m_player;
 	int m_viewRadius = 0;
 	VoxelChunkLocation m_positionChunk;
 	std::chrono::time_point<std::chrono::steady_clock> m_lastPositionUpdatedAt;
@@ -46,8 +45,8 @@ protected:
 	void queryInventory(std::unordered_map<uint8_t, VoxelHolder> &inventory, int &active);
 	virtual void inventoryUpdated(std::unordered_map<uint8_t, VoxelHolder> &&changes, int active) = 0;
 	void setActiveInventoryIndex(int active);
-	void digVoxel(const VoxelLocation &location);
-	void placeVoxel(const VoxelLocation &location);
+	void digVoxel();
+	void placeVoxel();
 
 public:
 	explicit ClientConnection(ServerTransport &transport);

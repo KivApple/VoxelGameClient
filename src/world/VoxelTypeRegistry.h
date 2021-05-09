@@ -13,7 +13,7 @@ class VoxelTypeRegistry {
 	std::unordered_map<std::string, std::unique_ptr<VoxelType>> m_types;
 	std::shared_mutex m_mutex;
 #ifndef HEADLESS
-	GLTexture m_unknownBlockTexture;
+	GL::Texture m_unknownBlockTexture;
 #endif
 	
 	friend class UnknownVoxelType;

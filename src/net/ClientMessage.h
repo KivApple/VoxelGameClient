@@ -59,20 +59,14 @@ namespace ClientMessageData {
 	struct DigVoxel {
 		static const ClientMessageType TYPE = ClientMessageType::DIG_VOXEL;
 		
-		VoxelLocation location;
-		
 		template<typename S> void serialize(S &s) {
-			s.object(location);
 		}
 	};
 	
 	struct PlaceVoxel {
 		static const ClientMessageType TYPE = ClientMessageType::PLACE_VOXEL;
 		
-		VoxelLocation location;
-		
 		template<typename S> void serialize(S &s) {
-			s.object(location);
 		}
 	};
 }

@@ -10,10 +10,15 @@ Entity::Entity(
 		int width,
 		int height,
 		float padding,
-		float paddingY,
-		Model *model
+		float paddingY
+#ifndef HEADLESS
+		, Model *model
+#endif
 ): m_world(world), m_position(position), m_yaw(yaw), m_pitch(pitch),
-	m_width(width), m_height(height), m_padding(padding), m_paddingY(paddingY), m_model(model)
+	m_width(width), m_height(height), m_padding(padding), m_paddingY(paddingY)
+#ifndef HEADLESS
+	, m_model(model)
+#endif
 {
 }
 
@@ -82,12 +87,14 @@ void Entity::move(const glm::vec3 &delta) {
 	applyMovementConstraint(m_position, prevPosition, m_width, m_height, m_padding, m_paddingY, chunk);
 }
 
+#ifndef HEADLESS
 void Entity::render(const glm::mat4 &view, const glm::mat4 &projection) const {
 	if (m_model == nullptr) return;
 	glm::mat4 transform(1.0f);
 	transform = glm::translate(transform, m_position);
 	m_model->render(transform, view, projection);
 }
+#endif
 
 void Entity::constraintMovementAxis(
 		int dx, int dy, int dz,

@@ -2,7 +2,9 @@
 
 #include <glm/vec3.hpp>
 #include <glm/mat4x4.hpp>
-#include "Model.h"
+#ifndef HEADLESS
+#include "client/world/Model.h"
+#endif
 
 class VoxelWorld;
 class VoxelChunkExtendedRef;
@@ -16,7 +18,9 @@ class Entity {
 	int m_height;
 	float m_padding;
 	float m_paddingY;
+#ifndef HEADLESS
 	Model *m_model;
+#endif
 	
 	static void constraintMovementAxis(
 			int dx, int dy, int dz,
@@ -41,8 +45,10 @@ public:
 			int width,
 			int height,
 			float padding,
-			float paddingY,
-			Model *model
+			float paddingY
+#ifndef HEADLESS
+			, Model *model
+#endif
 	);
 	virtual ~Entity() = default;
 	[[nodiscard]] const glm::vec3 &position() const {
@@ -73,6 +79,8 @@ public:
 	[[nodiscard]] glm::vec3 direction(bool usePitch) const;
 	[[nodiscard]] glm::vec3 upDirection() const;
 	void move(const glm::vec3 &delta);
+#ifndef HEADLESS
 	void render(const glm::mat4 &view, const glm::mat4 &projection) const;
+#endif
 	
 };

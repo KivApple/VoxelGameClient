@@ -10,8 +10,9 @@
 #include "world/VoxelTypeRegistry.h"
 #include "world/VoxelWorld.h"
 #include "client/world/VoxelWorldRenderer.h"
-#include "client/world/Entity.h"
+#include "world/Entity.h"
 #include "client/net/ClientTransport.h"
+#include "OpenGL.h"
 
 enum class KeyCode {
 	MOVE_FORWARD,
@@ -61,7 +62,7 @@ class GameEngine: VoxelChunkListener {
 	bool m_mouseClicked = false;
 	bool m_mouseSecondaryClicked = false;
 	
-	std::unique_ptr<GLTexture> m_cowTexture;
+	std::unique_ptr<GL::Texture> m_cowTexture;
 	std::unique_ptr<Model> m_cowModel;
 	std::unique_ptr<Entity> m_cowEntity;
 	

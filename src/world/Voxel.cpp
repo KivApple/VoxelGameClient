@@ -6,7 +6,7 @@
 #endif
 
 #ifndef HEADLESS
-VoxelTextureShaderProvider::VoxelTextureShaderProvider(const GLTexture &texture): m_texture(texture) {
+VoxelTextureShaderProvider::VoxelTextureShaderProvider(const GL::Texture &texture): m_texture(texture) {
 }
 #endif
 
@@ -14,7 +14,7 @@ VoxelTextureShaderProvider::VoxelTextureShaderProvider(
 		const std::string &fileName
 )
 #ifndef HEADLESS
-: m_texture(std::make_unique<GLTexture>(fileName))
+: m_texture(std::make_unique<GL::Texture>(fileName))
 #endif
 {
 }
@@ -28,11 +28,11 @@ void VoxelTextureShaderProvider::setup(const CommonShaderProgram &program) const
 	struct {
 		const CommonShaderProgram &program;
 		
-		void operator()(const std::unique_ptr<GLTexture> &texture) {
+		void operator()(const std::unique_ptr<GL::Texture> &texture) {
 			program.setTexImage(*texture);
 		}
 		
-		void operator()(const std::reference_wrapper<const GLTexture> &texture) {
+		void operator()(const std::reference_wrapper<const GL::Texture> &texture) {
 			program.setTexImage(texture);
 		}
 	} visitor { program };
@@ -160,7 +160,7 @@ SimpleVoxelType::SimpleVoxelType(
 #ifndef HEADLESS
 SimpleVoxelType::SimpleVoxelType(
 		std::string
-		name, const GLTexture &texture,
+		name, const GL::Texture &texture,
 		bool unwrap,
 		VoxelLightLevel lightLevel,
 		bool transparent

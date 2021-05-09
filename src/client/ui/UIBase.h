@@ -6,9 +6,12 @@
 #include <glm/vec2.hpp>
 #include <glm/mat4x4.hpp>
 
+namespace GL {
+	class Buffer;
+	class Framebuffer;
+}
+
 class UserInterface;
-class GLBuffer;
-class Framebuffer;
 
 class UIElement {
 	UserInterface *m_root = nullptr;
@@ -36,9 +39,9 @@ public:
 	virtual bool touchStart(long long id, const glm::vec2 &position);
 	virtual void touchMotion(long long id, const glm::vec2 &position);
 	virtual void touchEnd(long long id, const glm::vec2 &position);
-	const GLBuffer &sharedBufferInstance();
-	const GLBuffer &staticBufferInstance(const void *data, size_t dataSize);
-	const Framebuffer &sharedFramebufferInstance(unsigned int width, unsigned int height, bool depth);
+	const GL::Buffer &sharedBufferInstance();
+	const GL::Buffer &staticBufferInstance(const void *data, size_t dataSize);
+	const GL::Framebuffer &sharedFramebufferInstance(unsigned int width, unsigned int height, bool depth);
 	
 };
 

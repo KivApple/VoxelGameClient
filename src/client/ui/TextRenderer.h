@@ -14,7 +14,7 @@ public:
 };
 
 class BitmapFont {
-	GLTexture m_texture;
+	GL::Texture m_texture;
 	std::unordered_map<int, int> m_charMap;
 	int m_defaultChar = 0;
 	int m_sizeX = 16;
@@ -22,7 +22,7 @@ class BitmapFont {
 	
 public:
 	explicit BitmapFont(const std::string &fileName);
-	[[nodiscard]] const GLTexture &texture() const;
+	[[nodiscard]] const GL::Texture &texture() const;
 	[[nodiscard]] int sizeX() const {
 		return m_sizeX;
 	}
@@ -35,7 +35,7 @@ public:
 
 class BitmapFontRenderer: public TextRenderer {
 	const BitmapFont &m_font;
-	GLBuffer m_buffer;
+	GL::Buffer m_buffer;
 	std::vector<float> m_bufferData;
 	
 public:

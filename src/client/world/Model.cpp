@@ -8,7 +8,7 @@
 Model::Model(
 		const std::string &fileName,
 		const CommonShaderProgram &program,
-		const GLTexture *texture
+		const GL::Texture *texture
 ): m_program(program), m_buffer(GL_ARRAY_BUFFER), m_texture(texture) {
 	std::vector<glm::vec3> vertexes;
 	std::vector<glm::vec2> texCoords;

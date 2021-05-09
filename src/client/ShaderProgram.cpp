@@ -1,10 +1,11 @@
 #include <GL/glew.h>
 #include <glm/gtc/type_ptr.hpp>
 #include "ShaderProgram.h"
+#include "OpenGL.h"
 
 CommonShaderProgram::CommonShaderProgram(
 		std::string name,
-		const std::initializer_list<Shader> &shaders
+		const std::initializer_list<GL::Shader> &shaders
 ): ShaderProgram(std::move(name), shaders) {
 	m_modelLocation = uniformLocation("model", true);
 	m_viewLocation = uniformLocation("view", true);
@@ -33,7 +34,7 @@ void CommonShaderProgram::setProjection(const glm::mat4 &projection) const {
 	glUniformMatrix4fv(m_projectionLocation, 1, GL_FALSE, glm::value_ptr(projection));
 }
 
-void CommonShaderProgram::setTexImage(const GLTexture &texImage) const {
+void CommonShaderProgram::setTexImage(const GL::Texture &texImage) const {
 	if (m_texImageLocation < 0) return;
 	glActiveTexture(GL_TEXTURE0);
 	texImage.bind();
@@ -45,30 +46,30 @@ void CommonShaderProgram::setColorUniform(const glm::vec4 &color) const {
 	glUniform4fv(m_colorUniformLocation, 1, glm::value_ptr(color));
 }
 
-void CommonShaderProgram::setPositions(const GLBufferPointer &pointer) const {
+void CommonShaderProgram::setPositions(const GL::BufferPointer &pointer) const {
 	pointer.bind(m_positionLocation, 3);
 }
 
-void CommonShaderProgram::setLightLevels(const GLBufferPointer &pointer) const {
+void CommonShaderProgram::setLightLevels(const GL::BufferPointer &pointer) const {
 	pointer.bind(m_lightLevelLocation, 1, true);
 }
 
-void CommonShaderProgram::setTexCoords(const GLBufferPointer &pointer) const {
+void CommonShaderProgram::setTexCoords(const GL::BufferPointer &pointer) const {
 	pointer.bind(m_texCoordLocation, 2);
 }
 
-void CommonShaderProgram::setColors(const GLBufferPointer &pointer) const {
+void CommonShaderProgram::setColors(const GL::BufferPointer &pointer) const {
 	pointer.bind(m_colorLocation, 4);
 }
 
 CommonShaderPrograms::CommonShaderPrograms(): texture("texture", {
-		Shader(GL_VERTEX_SHADER, "assets/shaders/texture_vertex.glsl"),
-		Shader(GL_FRAGMENT_SHADER, "assets/shaders/texture_fragment.glsl")
+		GL::Shader(GL_VERTEX_SHADER, "assets/shaders/texture_vertex.glsl"),
+		GL::Shader(GL_FRAGMENT_SHADER, "assets/shaders/texture_fragment.glsl")
 }), color("color", {
-		Shader(GL_VERTEX_SHADER, "assets/shaders/color_vertex.glsl"),
-		Shader(GL_FRAGMENT_SHADER, "assets/shaders/color_fragment.glsl")
+		GL::Shader(GL_VERTEX_SHADER, "assets/shaders/color_vertex.glsl"),
+		GL::Shader(GL_FRAGMENT_SHADER, "assets/shaders/color_fragment.glsl")
 }), font("font", {
-		Shader(GL_VERTEX_SHADER, "assets/shaders/font_vertex.glsl"),
-		Shader(GL_FRAGMENT_SHADER, "assets/shaders/font_fragment.glsl")
+		GL::Shader(GL_VERTEX_SHADER, "assets/shaders/font_vertex.glsl"),
+		GL::Shader(GL_FRAGMENT_SHADER, "assets/shaders/font_fragment.glsl")
 }) {
 }

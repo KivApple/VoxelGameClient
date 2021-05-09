@@ -12,7 +12,7 @@ class InventoryItem: public UIElement {
 	static const float OUTLINE_BUFFER_DATA[];
 	
 	VoxelHolder m_voxel;
-	GLTexture m_texture;
+	GL::Texture m_texture;
 	bool m_active = false;
 	
 	void updateTexture();

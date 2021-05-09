@@ -17,7 +17,7 @@ class VoxelWorld;
 class VoxelChunkExtendedRef;
 
 struct VoxelMeshPart {
-	GLBuffer buffer;
+	GL::Buffer buffer;
 	unsigned int vertexCount;
 };
 
@@ -41,7 +41,7 @@ class VoxelWorldRenderer {
 	std::unordered_map<VoxelChunkLocation, std::unique_ptr<VoxelChunkMesh>> m_meshes;
 	std::shared_mutex m_meshesMutex;
 	std::vector<VoxelVertexData> m_vertexDataBuffer;
-	std::vector<GLBuffer> m_buffers;
+	std::vector<GL::Buffer> m_buffers;
 	std::vector<VoxelChunkRenderStep> m_renderSchedule;
 	PerformanceCounter m_buildPerformanceCounter;
 	PerformanceCounter m_renderPerformanceCounter;
@@ -58,8 +58,8 @@ class VoxelWorldRenderer {
 	bool build(const VoxelChunkLocation &location, VoxelChunkMesh &mesh);
 	bool build(const VoxelChunkLocation &location);
 	void buildInvalidated(const glm::vec3 &playerPosition);
-	GLBuffer allocateBuffer();
-	void freeBuffer(GLBuffer &&buffer);
+	GL::Buffer allocateBuffer();
+	void freeBuffer(GL::Buffer &&buffer);
 	constexpr static bool isChunkVisible(
 			const VoxelChunkLocation &location,
 			const VoxelChunkLocation &playerLocation,

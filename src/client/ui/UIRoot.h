@@ -8,9 +8,9 @@
 #include "UIJoystick.h"
 
 class UserInterface: public UIElementGroup {
-	GLBuffer m_sharedBuffer;
-	std::unordered_map<const void*, std::unique_ptr<GLBuffer>> m_staticBuffers;
-	std::unordered_map<unsigned int, std::unique_ptr<Framebuffer>> m_sharedFramebuffers;
+	GL::Buffer m_sharedBuffer;
+	std::unordered_map<const void*, std::unique_ptr<GL::Buffer>> m_staticBuffers;
+	std::unordered_map<unsigned int, std::unique_ptr<GL::Framebuffer>> m_sharedFramebuffers;
 	Crosshair m_crosshair;
 	Inventory m_inventory;
 	UIJoystick m_joystick;
@@ -19,9 +19,9 @@ class UserInterface: public UIElementGroup {
 	
 	static glm::mat4 transformMatrix();
 	
-	const GLBuffer &sharedBufferInstanceImpl();
-	const GLBuffer &staticBufferInstanceImpl(const void *data, size_t dataSize);
-	const Framebuffer &sharedFrameBufferInstanceImpl(unsigned int width, unsigned int height, bool depth);
+	const GL::Buffer &sharedBufferInstanceImpl();
+	const GL::Buffer &staticBufferInstanceImpl(const void *data, size_t dataSize);
+	const GL::Framebuffer &sharedFrameBufferInstanceImpl(unsigned int width, unsigned int height, bool depth);
 	
 	friend class UIElement;
 	

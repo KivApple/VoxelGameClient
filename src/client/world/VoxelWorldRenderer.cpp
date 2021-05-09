@@ -208,17 +208,17 @@ bool VoxelWorldRenderer::build(const VoxelChunkLocation &location) {
 	return false;
 }
 
-GLBuffer VoxelWorldRenderer::allocateBuffer() {
+GL::Buffer VoxelWorldRenderer::allocateBuffer() {
 	if (!m_buffers.empty()) {
 		auto it = m_buffers.begin() + m_buffers.size() - 1;
 		auto buffer = std::move(*it);
 		m_buffers.erase(it);
 		return buffer;
 	}
-	return GLBuffer(GL_ARRAY_BUFFER);
+	return GL::Buffer(GL_ARRAY_BUFFER);
 }
 
-void VoxelWorldRenderer::freeBuffer(GLBuffer &&buffer) {
+void VoxelWorldRenderer::freeBuffer(GL::Buffer &&buffer) {
 	m_buffers.emplace_back(std::move(buffer));
 }
 

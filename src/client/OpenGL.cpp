@@ -6,54 +6,54 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
 
-/* GLBufferPointer */
+/* BufferPointer */
 
-void GLBufferPointer::bind(int attribLocation, int size, bool normalized) const {
+void GL::BufferPointer::bind(int attribLocation, int size, bool normalized) const {
 	if (attribLocation < 0) return;
 	m_buffer.bind();
 	glVertexAttribPointer(attribLocation, size, m_type, normalized, m_stride, (const void*) m_offset);
 	glEnableVertexAttribArray(attribLocation);
 }
 
-/* GLBuffer */
+/* Buffer */
 
-GLBuffer::GLBuffer(unsigned int target): m_id(0), m_target(target) {
+GL::Buffer::Buffer(unsigned int target): m_id(0), m_target(target) {
 	glGenBuffers(1, &m_id);
 }
 
-GLBuffer::GLBuffer(GLBuffer &&buffer) noexcept: m_id(buffer.m_id), m_target(buffer.m_target) {
+GL::Buffer::Buffer(Buffer &&buffer) noexcept: m_id(buffer.m_id), m_target(buffer.m_target) {
 	buffer.m_id = 0;
 }
 
-GLBuffer &GLBuffer::operator=(GLBuffer &&buffer) noexcept {
+GL::Buffer &GL::Buffer::operator=(Buffer &&buffer) noexcept {
 	m_id = buffer.m_id;
 	m_target = buffer.m_target;
 	buffer.m_id = 0;
 	return *this;
 }
 
-GLBuffer::~GLBuffer() {
+GL::Buffer::~Buffer() {
 	if (m_id) {
 		glDeleteBuffers(1, &m_id);
 	}
 }
 
-void GLBuffer::bind() const {
+void GL::Buffer::bind() const {
 	glBindBuffer(m_target, m_id);
 }
 
-void GLBuffer::setData(const void *data, size_t dataSize, unsigned int usage) const {
+void GL::Buffer::setData(const void *data, size_t dataSize, unsigned int usage) const {
 	bind();
 	glBufferData(m_target, dataSize, data, usage);
 }
 
-/* GLTexture */
+/* Texture */
 
-GLTexture::GLTexture(): m_id(0), m_width(0), m_height(0) {
+GL::Texture::Texture(): m_id(0), m_width(0), m_height(0) {
 	glGenTextures(1, &m_id);
 }
 
-GLTexture::GLTexture(const std::string &fileName): GLTexture() {
+GL::Texture::Texture(const std::string &fileName): Texture() {
 	int channels;
 	auto *data = stbi_load(fileName.c_str(), (int*) &m_width, (int*) &m_height, &channels, 4);
 	if (data) {
@@ -69,13 +69,13 @@ GLTexture::GLTexture(const std::string &fileName): GLTexture() {
 	}
 }
 
-GLTexture::GLTexture(
-		GLTexture &&texture
+GL::Texture::Texture(
+		Texture &&texture
 ) noexcept: m_id(texture.m_id), m_width(texture.m_width), m_height(texture.m_height) {
 	texture.m_id = 0;
 }
 
-GLTexture::GLTexture(int width, int height, bool filter): GLTexture() {
+GL::Texture::Texture(int width, int height, bool filter): Texture() {
 	m_width = width;
 	m_height = height;
 	bind();
@@ -86,7 +86,7 @@ GLTexture::GLTexture(int width, int height, bool filter): GLTexture() {
 	glTexImage2D(GL_TEXTURE_2D,0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 }
 
-GLTexture &GLTexture::operator=(GLTexture &&texture) noexcept {
+GL::Texture &GL::Texture::operator=(Texture &&texture) noexcept {
 	m_id = texture.m_id;
 	m_width = texture.m_width;
 	m_height = texture.m_height;
@@ -94,19 +94,19 @@ GLTexture &GLTexture::operator=(GLTexture &&texture) noexcept {
 	return *this;
 }
 
-GLTexture::~GLTexture() {
+GL::Texture::~Texture() {
 	if (m_id) {
 		glDeleteTextures(1, &m_id);
 	}
 }
 
-void GLTexture::bind() const {
+void GL::Texture::bind() const {
 	glBindTexture(GL_TEXTURE_2D, m_id);
 }
 
 /* Framebuffer */
 
-Framebuffer::Framebuffer(
+GL::Framebuffer::Framebuffer(
 		unsigned int width,
 		unsigned int height,
 		bool depth
@@ -121,11 +121,11 @@ Framebuffer::Framebuffer(
 	}
 }
 
-Framebuffer::Framebuffer(GLTexture &texture, bool depth): Framebuffer(texture.width(), texture.height(), depth) {
+GL::Framebuffer::Framebuffer(Texture &texture, bool depth): Framebuffer(texture.width(), texture.height(), depth) {
 	setTexture(texture);
 }
 
-Framebuffer::Framebuffer(
+GL::Framebuffer::Framebuffer(
 		Framebuffer &&framebuffer
 ) noexcept: m_id(framebuffer.m_id), m_renderBufferId(framebuffer.m_renderBufferId),
 	m_width(framebuffer.m_width), m_height(framebuffer.m_height)
@@ -134,7 +134,7 @@ Framebuffer::Framebuffer(
 	framebuffer.m_renderBufferId = 0;
 }
 
-Framebuffer &Framebuffer::operator=(Framebuffer &&framebuffer) noexcept {
+GL::Framebuffer &GL::Framebuffer::operator=(Framebuffer &&framebuffer) noexcept {
 	m_id = framebuffer.m_id;
 	m_renderBufferId = framebuffer.m_renderBufferId;
 	m_width = framebuffer.m_width;
@@ -144,7 +144,7 @@ Framebuffer &Framebuffer::operator=(Framebuffer &&framebuffer) noexcept {
 	return *this;
 }
 
-Framebuffer::~Framebuffer() {
+GL::Framebuffer::~Framebuffer() {
 	if (m_renderBufferId > 0) {
 		glDeleteRenderbuffers(1, &m_renderBufferId);
 	}
@@ -153,7 +153,7 @@ Framebuffer::~Framebuffer() {
 	}
 }
 
-void Framebuffer::setTexture(GLTexture &texture) const {
+void GL::Framebuffer::setTexture(Texture &texture) const {
 	assert(m_width == texture.width());
 	assert(m_height == texture.height());
 	
@@ -163,7 +163,7 @@ void Framebuffer::setTexture(GLTexture &texture) const {
 	glDrawBuffers(1, drawBuffers); */
 }
 
-void Framebuffer::bind() const {
+void GL::Framebuffer::bind() const {
 	glBindFramebuffer(GL_FRAMEBUFFER, m_id);
 	glViewport(0, 0, m_width, m_height);
 }
@@ -178,10 +178,10 @@ static std::string loadStringFromFile(const std::string &fileName) {
 	return std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
 }
 
-Shader::Shader(unsigned int type, const std::string &fileName): Shader(type, fileName, loadStringFromFile(fileName)) {
+GL::Shader::Shader(unsigned int type, const std::string &fileName): Shader(type, fileName, loadStringFromFile(fileName)) {
 }
 
-Shader::Shader(
+GL::Shader::Shader(
 		unsigned int type,
 		std::string name,
 		const std::string &source
@@ -211,25 +211,25 @@ Shader::Shader(
 	}
 }
 
-Shader::Shader(Shader &&shader) noexcept: m_id(shader.m_id), m_name(std::move(shader.m_name)) {
+GL::Shader::Shader(Shader &&shader) noexcept: m_id(shader.m_id), m_name(std::move(shader.m_name)) {
 	shader.m_id = 0;
 }
 
-Shader &Shader::operator=(Shader &&shader) noexcept {
+GL::Shader &GL::Shader::operator=(Shader &&shader) noexcept {
 	m_id = shader.m_id;
 	m_name = std::move(shader.m_name);
 	shader.m_id = 0;
 	return *this;
 }
 
-Shader::~Shader() {
+GL::Shader::~Shader() {
 	if (!m_id) return;
 	glDeleteShader(m_id);
 }
 
 /* ShaderProgram */
 
-ShaderProgram::ShaderProgram(
+GL::ShaderProgram::ShaderProgram(
 		std::string name,
 		const std::initializer_list<Shader> &shaders
 ): m_id(glCreateProgram()), m_name(std::move(name)) {
@@ -258,24 +258,24 @@ ShaderProgram::ShaderProgram(
 	}
 }
 
-ShaderProgram::ShaderProgram(ShaderProgram &&program) noexcept: m_id(program.m_id), m_name(std::move(program.m_name)) {
+GL::ShaderProgram::ShaderProgram(ShaderProgram &&program) noexcept: m_id(program.m_id), m_name(std::move(program.m_name)) {
 	program.m_id = 0;
 }
 
-ShaderProgram &ShaderProgram::operator=(ShaderProgram &&program) noexcept {
+GL::ShaderProgram &GL::ShaderProgram::operator=(ShaderProgram &&program) noexcept {
 	m_id = program.m_id;
 	m_name = std::move(program.m_name);
 	program.m_id = 0;
 	return *this;
 }
 
-ShaderProgram::~ShaderProgram() {
+GL::ShaderProgram::~ShaderProgram() {
 	if (m_id) {
 		glDeleteProgram(m_id);
 	}
 }
 
-int ShaderProgram::attribLocation(const char *name, bool required) const {
+int GL::ShaderProgram::attribLocation(const char *name, bool required) const {
 	int result = glGetAttribLocation(m_id, name);
 	if (required && result < 0) {
 		LOG(WARNING) << "Failed to find attribute " << name << " location in shader program " << m_name;
@@ -283,7 +283,7 @@ int ShaderProgram::attribLocation(const char *name, bool required) const {
 	return result;
 }
 
-int ShaderProgram::uniformLocation(const char *name, bool required) const {
+int GL::ShaderProgram::uniformLocation(const char *name, bool required) const {
 	int result = glGetUniformLocation(m_id, name);
 	if (required && result < 0) {
 		LOG(WARNING) << "Failed to find uniform " << name <<" location in shader program " << m_name;
@@ -291,6 +291,6 @@ int ShaderProgram::uniformLocation(const char *name, bool required) const {
 	return result;
 }
 
-void ShaderProgram::use() const {
+void GL::ShaderProgram::use() const {
 	glUseProgram(m_id);
 }

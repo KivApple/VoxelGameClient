@@ -81,26 +81,26 @@ void UserInterface::setJoystickVisible(bool visible) {
 	}
 }
 
-const GLBuffer &UserInterface::sharedBufferInstanceImpl() {
+const GL::Buffer &UserInterface::sharedBufferInstanceImpl() {
 	return m_sharedBuffer;
 }
 
-const GLBuffer &UserInterface::staticBufferInstanceImpl(const void *data, size_t dataSize) {
+const GL::Buffer &UserInterface::staticBufferInstanceImpl(const void *data, size_t dataSize) {
 	auto it = m_staticBuffers.find(data);
 	if (it == m_staticBuffers.end()) {
-		it = m_staticBuffers.emplace(data, std::make_unique<GLBuffer>(GL_ARRAY_BUFFER)).first;
+		it = m_staticBuffers.emplace(data, std::make_unique<GL::Buffer>(GL_ARRAY_BUFFER)).first;
 		it->second->setData(data, dataSize, GL_STATIC_DRAW);
 	}
 	return *it->second;
 }
 
-const Framebuffer &UserInterface::sharedFrameBufferInstanceImpl(unsigned int width, unsigned int height, bool depth) {
+const GL::Framebuffer &UserInterface::sharedFrameBufferInstanceImpl(unsigned int width, unsigned int height, bool depth) {
 	assert(width <= 32768);
 	assert(height <= 32768);
 	unsigned int id = width << 17 | height << 1 | (depth ? 1 : 0);
 	auto it = m_sharedFramebuffers.find(id);
 	if (it == m_sharedFramebuffers.end()) {
-		it = m_sharedFramebuffers.emplace(id, std::make_unique<Framebuffer>(width, height, depth)).first;
+		it = m_sharedFramebuffers.emplace(id, std::make_unique<GL::Framebuffer>(width, height, depth)).first;
 	}
 	return *it->second;
 }

@@ -6,6 +6,7 @@
 #include <GL/glew.h>
 #include "GameEngine.h"
 #include "world/VoxelTypes.h"
+#include "world/VoxelWorldUtils.h"
 
 GameEngine *GameEngine::s_instance = nullptr;
 
@@ -62,7 +63,7 @@ bool GameEngine::init() {
 			nullptr
 	);
 	
-	m_cowTexture = std::make_unique<GLTexture>("assets/textures/cow.png");
+	m_cowTexture = std::make_unique<GL::Texture>("assets/textures/cow.png");
 	m_cowModel = std::make_unique<Model>("assets/models/cow.obj", commonShaderPrograms().texture, m_cowTexture.get());
 	m_cowEntity = std::make_unique<Entity>(
 			*m_voxelWorld,
@@ -165,34 +166,16 @@ void GameEngine::updatePointingAt(const glm::mat4 &view) {
 			(float) m_player->height() - 0.75f - m_player->paddingY(),
 			0.0f
 	);
-	glm::vec3 playerDirection = m_player->direction(true);
-	VoxelChunkRef chunk;
-	VoxelLocation prevLocation;
-	for (float r = 0.0f; r < 4.0f; r += 0.1f) {
-		auto position = playerPosition + playerDirection * r;
-		VoxelLocation location((int) roundf(position.x), (int) roundf(position.y), (int) roundf(position.z));
-		if (r == 0.0f || location != prevLocation) {
-			prevLocation = location;
-		} else {
-			continue;
-		}
-		
-		auto chunkLocation = location.chunk();
-		if (!chunk || chunk.location() != chunkLocation) {
-			chunk = m_voxelWorld->chunk(chunkLocation);
-		}
-		if (!chunk) {
-			break;
-		}
-
-		auto &voxel = chunk.at(location.inChunk());
-		if (m_voxelOutline->set(voxel, location, playerPosition, playerDirection)) {
-			break;
-		}
-	}
-	if (chunk) {
-		chunk.unlock();
-	}
+	auto chunk = m_voxelWorld->extendedChunk(VoxelLocation(
+		(int) roundf(playerPosition.x),
+		(int) roundf(playerPosition.y),
+		(int) roundf(playerPosition.z)
+	).chunk());
+	m_voxelOutline->set(chunk, findPlayerPointingAt(
+			chunk,
+			playerPosition,
+			m_player->direction(true)
+	));
 }
 
 void GameEngine::updateDebugInfo() {
@@ -254,18 +237,14 @@ void GameEngine::keyDown(KeyCode keyCode) {
 			m_mouseClicked = true;
 			if (!m_voxelOutline->voxelDetected()) break;
 			if (!m_transport) break;
-			m_transport->digVoxel(m_voxelOutline->voxelLocation());
+			m_transport->digVoxel();
 			break;
 		case KeyCode::SECONDARY_CLICK:
 			if (m_mouseSecondaryClicked) break;
 			m_mouseSecondaryClicked = true;
 			if (!m_voxelOutline->voxelDetected()) break;
 			if (!m_transport) break;
-			m_transport->placeVoxel(VoxelLocation(
-				m_voxelOutline->voxelLocation().x + (int) m_voxelOutline->direction().x,
-				m_voxelOutline->voxelLocation().y + (int) m_voxelOutline->direction().y,
-				m_voxelOutline->voxelLocation().z + (int) m_voxelOutline->direction().z
-			));
+			m_transport->placeVoxel();
 			break;
 		case KeyCode::INVENTORY_1:
 		case KeyCode::INVENTORY_2:

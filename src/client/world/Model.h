@@ -7,13 +7,13 @@
 
 class Model {
 	const CommonShaderProgram &m_program;
-	GLBuffer m_buffer;
+	GL::Buffer m_buffer;
 	unsigned int m_vertexCount;
-	const GLTexture *m_texture;
+	const GL::Texture *m_texture;
 	glm::vec3 m_dimensions;
 
 public:
-	Model(const std::string &fileName, const CommonShaderProgram &program, const GLTexture *texture = nullptr);
+	Model(const std::string &fileName, const CommonShaderProgram &program, const GL::Texture *texture = nullptr);
 	[[nodiscard]] const glm::vec3 &dimensions() const {
 		return m_dimensions;
 	}

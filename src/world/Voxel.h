@@ -39,13 +39,13 @@ public:
 
 class VoxelTextureShaderProvider: public VoxelShaderProvider {
 #ifndef HEADLESS
-	std::variant<std::unique_ptr<GLTexture>, std::reference_wrapper<const GLTexture>> m_texture;
+	std::variant<std::unique_ptr<GL::Texture>, std::reference_wrapper<const GL::Texture>> m_texture;
 #endif
 
 public:
 	explicit VoxelTextureShaderProvider(const std::string &fileName);
 #ifndef HEADLESS
-	explicit VoxelTextureShaderProvider(const GLTexture &texture);
+	explicit VoxelTextureShaderProvider(const GL::Texture &texture);
 	[[nodiscard]] const CommonShaderProgram &get() const override;
 	void setup(const CommonShaderProgram &program) const override;
 #endif
@@ -364,7 +364,7 @@ public:
 #ifndef HEADLESS
 	SimpleVoxelType(
 			std::string name,
-			const GLTexture &texture,
+			const GL::Texture &texture,
 			bool unwrap = false,
 			VoxelLightLevel lightLevel = 0,
 			bool transparent = false

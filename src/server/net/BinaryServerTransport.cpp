@@ -19,18 +19,12 @@ void BinaryServerTransport::Connection::deserializeAndHandleMessage(const std::s
 			setActiveInventoryIndex(msg.data.active);
 			break;
 		}
-		case ClientMessageType::DIG_VOXEL: {
-			ClientMessage<ClientMessageData::DigVoxel> msg;
-			deserialize(payload, msg);
-			digVoxel(msg.data.location);
+		case ClientMessageType::DIG_VOXEL:
+			digVoxel();
 			break;
-		}
-		case ClientMessageType::PLACE_VOXEL: {
-			ClientMessage<ClientMessageData::PlaceVoxel> msg;
-			deserialize(payload, msg);
-			placeVoxel(msg.data.location);
+		case ClientMessageType::PLACE_VOXEL:
+			placeVoxel();
 			break;
-		}
 		default:
 			logger().warn(
 					"[Client %v] Unknown message received from client: %v (%v bytes)",
@@ -47,7 +41,7 @@ void BinaryServerTransport::Connection::sendHello() {
 }
 
 void BinaryServerTransport::Connection::setPosition(const glm::vec3 &position) {
-	serializeAndSendMessage(ServerMessage<ServerMessageData::SetPosition>({
+	serializeAndSendMessage(ServerMessage(ServerMessageData::SetPosition {
 		position.x, position.y, position.z
 	}));
 }
@@ -60,7 +54,7 @@ void BinaryServerTransport::Connection::setVoxelTypes() {
 		);
 	}
 	std::string buffer;
-	serializeAndSendMessage(ServerMessage<ServerMessageData::SetVoxelTypes>({
+	serializeAndSendMessage(ServerMessage(ServerMessageData::SetVoxelTypes {
 		*m_voxelSerializationContext
 	}));
 	logger().debug("[Client %v] Sent voxel types", this);
@@ -84,13 +78,13 @@ void BinaryServerTransport::Connection::setChunk(const VoxelChunkRef &chunk) {
 	);
 	std::string buffer;
 	VoxelSerializer serializer(*m_voxelSerializationContext, buffer);
-	serializer.object(ServerMessage<ServerMessageData::SetChunk>({ chunk.location() }));
+	serializer.object(ServerMessage(ServerMessageData::SetChunk { chunk.location() }));
 	serializer.object(chunk);
 	sendMessage(buffer.data(), serializer.adapter().currentWritePos());
 }
 
 void BinaryServerTransport::Connection::discardChunks(const std::vector<VoxelChunkLocation> &locations) {
-	serializeAndSendMessage(ServerMessage<ServerMessageData::DiscardChunks>({locations}));
+	serializeAndSendMessage(ServerMessage(ServerMessageData::DiscardChunks {locations}));
 }
 
 void BinaryServerTransport::Connection::inventoryUpdated(
@@ -101,7 +95,7 @@ void BinaryServerTransport::Connection::inventoryUpdated(
 	logger().debug("[Client %v] Sending %v updated inventory item(s)", this, changes.size());
 	std::string buffer;
 	VoxelSerializer serializer(*m_voxelSerializationContext, buffer);
-	serializer.object(ServerMessage<ServerMessageData::SetInventory>({
+	serializer.object(ServerMessage(ServerMessageData::SetInventory {
 		std::move(changes),
 		(uint8_t) active
 	}));

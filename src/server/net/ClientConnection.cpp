@@ -1,8 +1,18 @@
 #include <cmath>
 #include "ClientConnection.h"
 #include "server/GameServerEngine.h"
+#include "world/VoxelWorldUtils.h"
 
-ClientConnection::ClientConnection(ServerTransport &transport): m_transport(transport) {
+ClientConnection::ClientConnection(ServerTransport &transport): m_transport(transport), m_player(
+		transport.engine()->voxelWorld(),
+		glm::vec3(),
+		0.0f,
+		0.0f,
+		1,
+		2,
+		0.25f,
+		0.05f
+) {
 	m_logger = el::Loggers::getLogger("default");
 	m_inventory.resize(8);
 	m_inventory[0].setType(transport.engine()->voxelTypeRegistry().get("grass"));
@@ -21,7 +31,7 @@ void ClientConnection::updatePosition(const glm::vec3 &position, float yaw, floa
 	bool resetPosition = false;
 	if (m_positionValid) {
 		std::chrono::duration<float> dt = std::chrono::steady_clock::now() - m_lastPositionUpdatedAt;
-		auto delta = (position - m_position) / dt.count();
+		auto delta = (position - m_player.position()) / dt.count();
 		static const float MAX_DELTA = 20.0f;
 		if (fabsf(delta.x) >= MAX_DELTA || fabsf(delta.y) >= MAX_DELTA || fabsf(delta.z) >= MAX_DELTA) {
 			logger().warn(
@@ -33,7 +43,7 @@ void ClientConnection::updatePosition(const glm::vec3 &position, float yaw, floa
 	}
 	bool chunkChanged = false;
 	if (!resetPosition) {
-		m_position = position;
+		m_player.setPosition(position);
 		VoxelChunkLocation positionChunk(
 				(int) roundf(position.x) / VOXEL_CHUNK_SIZE,
 				(int) roundf(position.y) / VOXEL_CHUNK_SIZE,
@@ -44,8 +54,7 @@ void ClientConnection::updatePosition(const glm::vec3 &position, float yaw, floa
 			chunkChanged = true;
 		}
 	}
-	m_yaw = yaw;
-	m_pitch = pitch;
+	m_player.setRotation(yaw, pitch);
 	if (viewRadius > 3) {
 		logger().warn("[Client %v] Requested too large view radius. Value will be reduced to 3");
 		m_viewRadius = 3;
@@ -54,7 +63,7 @@ void ClientConnection::updatePosition(const glm::vec3 &position, float yaw, floa
 	}
 	m_lastPositionUpdatedAt = std::chrono::steady_clock::now();
 	m_positionValid = true;
-	auto newPosition = m_position;
+	auto newPosition = m_player.position();
 	auto radius = m_viewRadius;
 	auto positionChunk = m_positionChunk;
 	lock.unlock();
@@ -112,7 +121,7 @@ bool ClientConnection::setPendingChunk() {
 	glm::vec3 position;
 	{
 		std::shared_lock<std::shared_mutex> sharedLock(m_positionMutex);
-		position = m_position;
+		position = m_player.position();
 	}
 	VoxelChunkRef chunk;
 	do {
@@ -179,38 +188,70 @@ void ClientConnection::setActiveInventoryIndex(int active) {
 	m_activeInventoryIndex = active;
 }
 
-void ClientConnection::digVoxel(const VoxelLocation &location) {
-	logger().debug("[Client %v] Dig voxel at x=%v,y=%v,z=%v", this, location.x, location.y, location.z);
-	auto chunkLocation = location.chunk();
-	auto chunk = transport().engine()->voxelWorld().mutableChunk(chunkLocation);
-	if (!chunk) {
-		logger().warn(
-				"[Client %v] Attempt to dig voxel at absent chunk x=%v,y=%v,z=%v",
-				this, chunkLocation.x, chunkLocation.y, chunkLocation.z
+void ClientConnection::digVoxel() {
+	glm::vec3 playerPosition;
+	glm::vec3 playerDirection;
+	{
+		std::shared_lock<std::shared_mutex> sharedLock(m_positionMutex);
+		playerPosition = m_player.position() + glm::vec3(
+				0.0f,
+				(float) m_player.height() - 0.75f - m_player.paddingY(),
+				0.0f
 		);
-		return;
+		playerDirection = m_player.direction(true);
 	}
-	auto l = location.inChunk();
-	chunk.at(l).setType(transport().engine()->voxelTypeRegistry().get("air"));
-	chunk.markDirty(l);
+	auto chunk = transport().engine()->voxelWorld().extendedMutableChunk(VoxelLocation(
+			(int) roundf(playerPosition.x),
+			(int) roundf(playerPosition.y),
+			(int) roundf(playerPosition.z)
+	).chunk());
+	auto pointingAt = findPlayerPointingAt(chunk, playerPosition, playerDirection);
+	if (pointingAt.has_value()) {
+		auto &location = pointingAt->location;
+		logger().debug("[Client %v] Dig voxel at x=%v,y=%v,z=%v", this, location.x, location.y, location.z);
+		chunk.extendedAt(pointingAt->inChunkLocation).setType(transport().engine()->voxelTypeRegistry().get("air"));
+		chunk.extendedMarkDirty(pointingAt->inChunkLocation);
+	} else {
+		logger().warn("[Client %v] Attempt to dig empty voxel", this);
+	}
 }
 
-void ClientConnection::placeVoxel(const VoxelLocation &location) {
-	std::shared_lock<std::shared_mutex> lock(m_inventoryMutex);
-	auto &item = m_inventory[m_activeInventoryIndex];
-	if (&item.type() == &EmptyVoxelType::INSTANCE) return;
-	logger().debug("[Client %v] Place voxel at x=%v,y=%v,z=%v", this, location.x, location.y, location.z);
-	auto chunkLocation = location.chunk();
-	auto chunk = transport().engine()->voxelWorld().mutableChunk(chunkLocation);
-	if (!chunk) {
-		logger().warn(
-				"[Client %v] Attempt to place voxel at absent chunk x=%v,y=%v,z=%v",
-				this, chunkLocation.x, chunkLocation.y, chunkLocation.z
+void ClientConnection::placeVoxel() {
+	glm::vec3 playerPosition;
+	glm::vec3 playerDirection;
+	{
+		std::shared_lock<std::shared_mutex> sharedLock(m_positionMutex);
+		playerPosition = m_player.position() + glm::vec3(
+				0.0f,
+				(float) m_player.height() - 0.75f - m_player.paddingY(),
+				0.0f
 		);
-		return;
+		playerDirection = m_player.direction(true);
 	}
-	auto l = location.inChunk();
-	auto &voxel = chunk.at(l);
-	chunk.at(l) = m_inventory[m_activeInventoryIndex];
-	chunk.markDirty(l);
+	auto chunk = transport().engine()->voxelWorld().extendedMutableChunk(VoxelLocation(
+			(int) roundf(playerPosition.x),
+			(int) roundf(playerPosition.y),
+			(int) roundf(playerPosition.z)
+	).chunk());
+	auto pointingAt = findPlayerPointingAt(chunk, playerPosition, playerDirection);
+	if (pointingAt.has_value()) {
+		std::shared_lock<std::shared_mutex> lock(m_inventoryMutex);
+		auto &item = m_inventory[m_activeInventoryIndex];
+		if (&item.type() == &EmptyVoxelType::INSTANCE) return;
+		VoxelLocation location(
+				pointingAt->location.x + (int) pointingAt->direction.x,
+				pointingAt->location.y + (int) pointingAt->direction.y,
+				pointingAt->location.z + (int) pointingAt->direction.z
+		);
+		InChunkVoxelLocation inChunkLocation(
+				pointingAt->inChunkLocation.x + (int) pointingAt->direction.x,
+				pointingAt->inChunkLocation.y + (int) pointingAt->direction.y,
+				pointingAt->inChunkLocation.z + (int) pointingAt->direction.z
+		);
+		logger().debug("[Client %v] Place voxel at x=%v,y=%v,z=%v", this, location.x, location.y, location.z);
+		chunk.extendedAt(inChunkLocation) = m_inventory[m_activeInventoryIndex];
+		chunk.extendedMarkDirty(inChunkLocation);
+	} else {
+		logger().warn("[Client %v] Attempt to place voxel at void", this);
+	}
 }

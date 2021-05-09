@@ -32,7 +32,7 @@ public:
 	void updatePlayerPosition(const glm::vec3 &position, float yaw, float pitch, int viewRadius);
 	void sendPlayerPosition();
 	virtual void updateActiveInventoryItem(int index) = 0;
-	virtual void digVoxel(const VoxelLocation &location) = 0;
-	virtual void placeVoxel(const VoxelLocation &location) = 0;
+	virtual void digVoxel() = 0;
+	virtual void placeVoxel() = 0;
 	
 };

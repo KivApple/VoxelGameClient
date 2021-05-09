@@ -26,17 +26,17 @@ void UIElement::touchEnd(long long id, const glm::vec2 &position) {
 	}
 }
 
-const GLBuffer &UIElement::sharedBufferInstance() {
+const GL::Buffer &UIElement::sharedBufferInstance() {
 	assert(m_root != nullptr);
 	return m_root->sharedBufferInstanceImpl();
 }
 
-const GLBuffer &UIElement::staticBufferInstance(const void *data, size_t dataSize) {
+const GL::Buffer &UIElement::staticBufferInstance(const void *data, size_t dataSize) {
 	assert(m_root != nullptr);
 	return m_root->staticBufferInstanceImpl(data, dataSize);
 }
 
-const Framebuffer &UIElement::sharedFramebufferInstance(unsigned int width, unsigned int height, bool depth) {
+const GL::Framebuffer &UIElement::sharedFramebufferInstance(unsigned int width, unsigned int height, bool depth) {
 	assert(m_root != nullptr);
 	return m_root->sharedFrameBufferInstanceImpl(width, height, depth);
 }

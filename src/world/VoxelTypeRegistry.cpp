@@ -17,7 +17,7 @@ public:
 
 VoxelTypeRegistry::VoxelTypeRegistry() {
 #ifndef HEADLESS
-	m_unknownBlockTexture = GLTexture("assets/textures/unknown_block.png");
+	m_unknownBlockTexture = GL::Texture("assets/textures/unknown_block.png");
 #endif
 }
 

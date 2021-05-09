@@ -31,11 +31,13 @@ int main(int argc, char *argv[]) {
 		);
 		el::Loggers::setDefaultConfigurations(conf, true);
 	}
+#ifdef ELPP_FEATURE_CRASH_LOG
 	std::set_terminate([]() {
 		LOG(ERROR) << "std::terminate() called";
 		el::Helpers::logCrashReason(SIGABRT, true);
 		el::Helpers::crashAbort(SIGABRT);
 	});
+#endif
 	
 	GameServerEngine engine;
 	engineInstance = &engine;

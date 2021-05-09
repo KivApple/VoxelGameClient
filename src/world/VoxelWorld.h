@@ -161,6 +161,7 @@ public:
 			const InChunkVoxelLocation &location,
 			VoxelLocation *outLocation = nullptr
 	) const;
+	void extendedMarkDirty(const InChunkVoxelLocation &location);
 	
 };
 
