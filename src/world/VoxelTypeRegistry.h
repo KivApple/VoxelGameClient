@@ -32,5 +32,6 @@ public:
 			callable(pair.first, *pair.second);
 		}
 	}
+	void link();
 	
 };

@@ -5,12 +5,13 @@
 GameServerEngine::GameServerEngine(
 ): m_voxelTypesRegistration(m_voxelTypeRegistry), m_voxelWorldGenerator(m_voxelTypeRegistry),
 	m_voxelWorldStorage("world.sqlite", m_voxelTypeRegistry, m_voxelWorldGenerator),
-	m_voxelWorld(this)
+	m_voxelWorld(this), m_voxelWorldUpdater(m_voxelWorld)
 {
 	m_voxelWorld.setChunkLoader(&m_voxelWorldStorage);
 }
 
 GameServerEngine::~GameServerEngine() {
+	m_voxelWorldUpdater.shutdown();
 	m_voxelLightComputer.shutdown();
 	m_voxelWorldStorage.shutdown(true);
 	m_voxelWorld.setChunkLoader(nullptr);

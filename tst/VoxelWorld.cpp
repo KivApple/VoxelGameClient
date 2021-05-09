@@ -37,6 +37,24 @@ public:
 	
 	MOCK_METHOD0(buildVertexDataCalled, void());
 	
+	void slowUpdate(
+			const VoxelChunkExtendedMutableRef &chunk,
+			const InChunkVoxelLocation &location,
+			Voxel &voxel,
+			std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
+	) {
+	}
+	
+	bool update(
+			const VoxelChunkExtendedMutableRef &chunk,
+			const InChunkVoxelLocation &location,
+			Voxel &voxel,
+			unsigned long deltaTime,
+			std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
+	) {
+		return false;
+	}
+	
 };
 
 TEST(VoxelWorld, voxelType) {

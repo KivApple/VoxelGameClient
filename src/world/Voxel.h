@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <unordered_set>
 #include <unordered_map>
 #include <variant>
 #include <functional>
@@ -16,6 +17,10 @@
 #ifndef HEADLESS
 #include "../client/ShaderProgram.h"
 #endif
+
+class InChunkVoxelLocation;
+class VoxelChunkExtendedMutableRef;
+class VoxelTypeRegistry;
 
 struct VoxelVertexData {
 	float x, y, z;
@@ -65,6 +70,8 @@ static const VoxelLightLevel MAX_VOXEL_LIGHT_LEVEL = 16;
 class VoxelType {
 public:
 	virtual ~VoxelType() = default;
+	virtual void link(VoxelTypeRegistry &registry) {
+	}
 	virtual Voxel &invokeInit(void *ptr) = 0;
 	virtual Voxel &invokeInit(void *ptr, const Voxel &voxel) = 0;
 	virtual Voxel &invokeInit(void *ptr, Voxel &&voxel) = 0;
@@ -78,6 +85,19 @@ public:
 	virtual const VoxelShaderProvider *invokeShaderProvider(const Voxel &voxel) = 0;
 	virtual void invokeBuildVertexData(const Voxel &voxel, std::vector<VoxelVertexData> &data) = 0;
 	virtual VoxelLightLevel invokeLightLevel(const Voxel &voxel) = 0;
+	virtual void invokeSlowUpdate(
+			const VoxelChunkExtendedMutableRef &chunk,
+			const InChunkVoxelLocation &location,
+			Voxel &voxel,
+			std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
+	) = 0;
+	virtual bool invokeUpdate(
+			const VoxelChunkExtendedMutableRef &chunk,
+			const InChunkVoxelLocation &location,
+			Voxel &voxel,
+			unsigned long deltaTime,
+			std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
+	) = 0;
 	
 };
 
@@ -228,6 +248,36 @@ public:
 		deserializer.object(static_cast<Data&>(voxel));
 	}
 	
+	void invokeSlowUpdate(
+			const VoxelChunkExtendedMutableRef &chunk,
+			const InChunkVoxelLocation &location,
+			Voxel &voxel,
+			std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
+	) override {
+		static_cast<T*>(this)->T::slowUpdate(
+				chunk,
+				location,
+				static_cast<Data&>(voxel),
+				invalidatedLocations
+		);
+	}
+	
+	bool invokeUpdate(
+			const VoxelChunkExtendedMutableRef &chunk,
+			const InChunkVoxelLocation &location,
+			Voxel &voxel,
+			unsigned long deltaTime,
+			std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
+	) override {
+		return static_cast<T*>(this)->T::update(
+				chunk,
+				location,
+				static_cast<Data&>(voxel),
+				deltaTime,
+				invalidatedLocations
+		);
+	}
+	
 };
 
 class EmptyVoxelType: public VoxelTypeHelper<EmptyVoxelType, Voxel> {
@@ -238,6 +288,19 @@ public:
 	const VoxelShaderProvider *shaderProvider(const Voxel &voxel);
 	void buildVertexData(const Voxel &voxel, std::vector<VoxelVertexData> &data);
 	VoxelLightLevel lightLevel(const Voxel &voxel);
+	void slowUpdate(
+			const VoxelChunkExtendedMutableRef &chunk,
+			const InChunkVoxelLocation &location,
+			Voxel &voxel,
+			std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
+	);
+	bool update(
+			const VoxelChunkExtendedMutableRef &chunk,
+			const InChunkVoxelLocation &location,
+			Voxel &voxel,
+			unsigned long deltaTime,
+			std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
+	);
 	
 };
 
@@ -344,6 +407,23 @@ public:
 	
 	void serialize(VoxelDeserializer &deserializer);
 	
+	void slowUpdate(
+			const VoxelChunkExtendedMutableRef &chunk,
+			const InChunkVoxelLocation &location,
+			std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
+	) {
+		get().type->invokeSlowUpdate(chunk, location, get(), invalidatedLocations);
+	}
+	
+	bool update(
+			const VoxelChunkExtendedMutableRef &chunk,
+			const InChunkVoxelLocation &location,
+			unsigned long deltaTime,
+			std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
+	) {
+		return get().type->invokeUpdate(chunk, location, get(), deltaTime, invalidatedLocations);
+	}
+	
 };
 
 class SimpleVoxelType: public VoxelTypeHelper<SimpleVoxelType>, public VoxelTextureShaderProvider {
@@ -375,5 +455,18 @@ public:
 	void buildVertexData(const Voxel &voxel, std::vector<VoxelVertexData> &data);
 	VoxelLightLevel lightLevel(const Voxel &voxel);
 	int priority() const override;
+	void slowUpdate(
+			const VoxelChunkExtendedMutableRef &chunk,
+			const InChunkVoxelLocation &location,
+			Voxel &voxel,
+			std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
+	);
+	bool update(
+			const VoxelChunkExtendedMutableRef &chunk,
+			const InChunkVoxelLocation &location,
+			Voxel &voxel,
+			unsigned long deltaTime,
+			std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
+	);
 	
 };

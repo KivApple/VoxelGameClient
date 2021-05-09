@@ -42,3 +42,9 @@ VoxelType &VoxelTypeRegistry::get(const std::string &name) {
 	add(name, std::make_unique<UnknownVoxelType>(*this, name));
 	return get(name);
 }
+
+void VoxelTypeRegistry::link() {
+	for (auto &type : m_types) {
+		type.second->link(*this);
+	}
+}

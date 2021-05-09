@@ -1,0 +1,44 @@
+#include <chrono>
+#include <easylogging++.h>
+#include "VoxelWorldUpdater.h"
+#include "world/VoxelWorld.h"
+
+VoxelWorldUpdater::VoxelWorldUpdater(VoxelWorld &world): m_world(world) {
+	m_thread = std::thread(&VoxelWorldUpdater::run, this);
+}
+
+VoxelWorldUpdater::~VoxelWorldUpdater() {
+	shutdown();
+}
+
+void VoxelWorldUpdater::shutdown() {
+	if (!m_running) return;
+	m_running = false;
+	m_thread.join();
+}
+
+void VoxelWorldUpdater::run() {
+	LOG(INFO) << "Voxel world updater thread started";
+	std::vector<VoxelChunkLocation> chunkLocations;
+	unsigned long time = 0;
+	while (m_running) {
+		auto nextUpdateTime = std::chrono::steady_clock::now() + std::chrono::milliseconds(100);
+		chunkLocations.clear();
+		m_world.forEachChunkLocation([&chunkLocations](const VoxelChunkLocation &location) {
+			chunkLocations.emplace_back(location);
+		});
+		for (auto &chunkLocation : chunkLocations) {
+			auto chunk = m_world.extendedMutableChunk(chunkLocation);
+			if (!chunk) continue;
+			if (!chunk.lightComputed()) continue;
+			chunk.update(time);
+		}
+		time++;
+		if (nextUpdateTime > std::chrono::steady_clock::now()) {
+			std::this_thread::sleep_until(nextUpdateTime);
+		} else {
+			LOG(WARNING) << "Voxel world update took too long time";
+		}
+	}
+	LOG(INFO) << "Voxel world updater thread stopped";
+}

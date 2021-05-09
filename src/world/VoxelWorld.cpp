@@ -1,6 +1,9 @@
+#include <random>
 #include <vector>
 #include <easylogging++.h>
 #include "VoxelWorld.h"
+
+static thread_local std::default_random_engine randomEngine;
 
 #define TRACE_LOCKS 0
 
@@ -293,6 +296,65 @@ VoxelHolder &VoxelChunkMutableRef::at(const InChunkVoxelLocation &location) cons
 	return m_chunk->at(location);
 }
 
+void VoxelChunkMutableRef::markDirty(const InChunkVoxelLocation &location, bool markPending) {
+	m_chunk->markDirty(location);
+	if (markPending) {
+		this->markPending(location);
+		for (int dz = -1; dz <= 1; dz++) {
+			for (int dy = -1; dy <= 1; dy++) {
+				for (int dx = -1; dx <= 1; dx++) {
+					if (dx == 0 && dy == 0 && dz == 0) continue;
+					extendedMarkPending({dx, dy, dz});
+				}
+			}
+		}
+	}
+}
+
+void VoxelChunkMutableRef::markPending(const InChunkVoxelLocation &location) {
+	m_chunk->markPending(location);
+}
+
+void VoxelChunkMutableRef::extendedMarkPending(const InChunkVoxelLocation &location) {
+	assert(location.x >= -VOXEL_CHUNK_SIZE && location.x < 2 * VOXEL_CHUNK_SIZE);
+	assert(location.y >= -VOXEL_CHUNK_SIZE && location.y < 2 * VOXEL_CHUNK_SIZE);
+	assert(location.z >= -VOXEL_CHUNK_SIZE && location.z < 2 * VOXEL_CHUNK_SIZE);
+	
+	SharedVoxelChunk *chunk = m_chunk;
+	VoxelChunkLocation chunkLocation = this->location();
+	InChunkVoxelLocation correctedLocation = location;
+	if (location.x < 0) {
+		chunkLocation.x--;
+		correctedLocation.x += VOXEL_CHUNK_SIZE;
+	} else if (location.x >= VOXEL_CHUNK_SIZE) {
+		chunkLocation.x++;
+		correctedLocation.x -= VOXEL_CHUNK_SIZE;
+	}
+	if (location.y < 0) {
+		chunkLocation.y--;
+		correctedLocation.y += VOXEL_CHUNK_SIZE;
+	} else if (location.y >= VOXEL_CHUNK_SIZE) {
+		chunkLocation.y++;
+		correctedLocation.y -= VOXEL_CHUNK_SIZE;
+	}
+	if (location.z < 0) {
+		chunkLocation.z--;
+		correctedLocation.z += VOXEL_CHUNK_SIZE;
+	} else if (location.z >= VOXEL_CHUNK_SIZE) {
+		chunkLocation.z++;
+		correctedLocation.z -= VOXEL_CHUNK_SIZE;
+	}
+	int dx = chunkLocation.x - this->location().x;
+	int dy = chunkLocation.y - this->location().y;
+	int dz = chunkLocation.z - this->location().z;
+	if (dx != 0 || dy != 0 || dz != 0) {
+		chunk = m_neighbors[(dx + 1) + (dy + 1) * 3 + (dz + 1) * 3 * 3];
+	}
+	if (chunk) {
+		chunk->markPending(correctedLocation);
+	}
+}
+
 /* VoxelChunkExtendedMutableRef */
 
 VoxelChunkExtendedMutableRef::VoxelChunkExtendedMutableRef(
@@ -385,7 +447,7 @@ VoxelHolder &VoxelChunkExtendedMutableRef::extendedAt(
 	return empty;
 }
 
-void VoxelChunkExtendedMutableRef::extendedMarkDirty(const InChunkVoxelLocation &location) {
+void VoxelChunkExtendedMutableRef::extendedMarkDirty(const InChunkVoxelLocation &location, bool markPending) {
 	assert(location.x >= -VOXEL_CHUNK_SIZE && location.x < 2 * VOXEL_CHUNK_SIZE);
 	assert(location.y >= -VOXEL_CHUNK_SIZE && location.y < 2 * VOXEL_CHUNK_SIZE);
 	assert(location.z >= -VOXEL_CHUNK_SIZE && location.z < 2 * VOXEL_CHUNK_SIZE);
@@ -422,6 +484,55 @@ void VoxelChunkExtendedMutableRef::extendedMarkDirty(const InChunkVoxelLocation 
 	}
 	if (chunk) {
 		chunk->markDirty(correctedLocation);
+		if (markPending) {
+			chunk->markPending(correctedLocation);
+			for (dz = -1; dz <= 1; dz++) {
+				for (dy = -1; dy <= 1; dy++) {
+					for (dx = -1; dx <= 1; dx++) {
+						if (dx == 0 && dy == 0 && dz == 0) continue;
+						extendedMarkPending({location.x + dx, location.y + dy, location.z + dz});
+					}
+				}
+			}
+		}
+	}
+}
+
+void VoxelChunkExtendedMutableRef::update(unsigned long time) {
+	std::unordered_set<InChunkVoxelLocation> invalidatedLocations;
+	auto deltaTime = time - m_chunk->updatedAt();
+	if (m_chunk->pendingInitialUpdate()) {
+		m_chunk->setPendingInitialUpdate(false);
+		m_chunk->clearPending();
+		for (int z = 0; z < VOXEL_CHUNK_SIZE; z++) {
+			for (int y = 0; y < VOXEL_CHUNK_SIZE; y++) {
+				for (int x = 0; x < VOXEL_CHUNK_SIZE; x++) {
+					InChunkVoxelLocation location(x, y, z);
+					if (at(location).update(*this, location, deltaTime, invalidatedLocations)) {
+						m_chunk->markPending(location);
+					}
+				}
+			}
+		}
+	} else {
+		for (auto &location : m_chunk->takePendingLocations()) {
+			if (at(location).update(*this, location, deltaTime, invalidatedLocations)) {
+				m_chunk->markPending(location);
+			}
+		}
+	}
+	std::uniform_int_distribution<int> locationGenerator(0, VOXEL_CHUNK_SIZE - 1);
+	for (int i = 0; i < 4; i++) {
+		InChunkVoxelLocation location(
+				locationGenerator(randomEngine),
+				locationGenerator(randomEngine),
+				locationGenerator(randomEngine)
+		);
+		at(location).slowUpdate(*this, location, invalidatedLocations);
+	}
+	m_chunk->setUpdatedAt(time);
+	for (auto &invalidatedLocation : invalidatedLocations) {
+		extendedMarkDirty(invalidatedLocation);
 	}
 }
 

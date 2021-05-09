@@ -139,6 +139,24 @@ VoxelLightLevel EmptyVoxelType::lightLevel(const Voxel &voxel) {
 	return 0;
 }
 
+void EmptyVoxelType::slowUpdate(
+		const VoxelChunkExtendedMutableRef &chunk,
+		const InChunkVoxelLocation &location,
+		Voxel &voxel,
+		std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
+) {
+}
+
+bool EmptyVoxelType::update(
+		const VoxelChunkExtendedMutableRef &chunk,
+		const InChunkVoxelLocation &location,
+		Voxel &voxel,
+		unsigned long deltaTime,
+		std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
+) {
+	return false;
+}
+
 void VoxelHolder::serialize(VoxelDeserializer &deserializer) {
 	auto &voxel = get();
 	auto savedPosition = deserializer.adapter().currentReadPos();
@@ -265,4 +283,22 @@ VoxelLightLevel SimpleVoxelType::lightLevel(const Voxel &voxel) {
 
 int SimpleVoxelType::priority() const {
 	return m_transparent ? MAX_VOXEL_SHADER_PRIORITY - 1 : MAX_VOXEL_SHADER_PRIORITY;
+}
+
+void SimpleVoxelType::slowUpdate(
+		const VoxelChunkExtendedMutableRef &chunk,
+		const InChunkVoxelLocation &location,
+		Voxel &voxel,
+		std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
+) {
+}
+
+bool SimpleVoxelType::update(
+		const VoxelChunkExtendedMutableRef &chunk,
+		const InChunkVoxelLocation &location,
+		Voxel &voxel,
+		unsigned long deltaTime,
+		std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
+) {
+	return false;
 }

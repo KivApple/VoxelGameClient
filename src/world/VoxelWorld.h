@@ -13,6 +13,9 @@ class SharedVoxelChunk: public VoxelChunk {
 	std::shared_mutex m_mutex;
 	bool m_dirty = false;
 	std::unordered_set<InChunkVoxelLocation> m_dirtyLocations;
+	std::unordered_set<InChunkVoxelLocation> m_pendingLocations;
+	bool m_pendingInitialUpdate = true;
+	unsigned long m_updatedAt = 0;
 	
 public:
 	SharedVoxelChunk(VoxelWorld &world, const VoxelChunkLocation &location): VoxelChunk(location), m_world(world) {
@@ -53,6 +56,38 @@ public:
 	void clearDirty() {
 		m_dirty = false;
 		m_dirtyLocations.clear();
+	}
+	
+	void markPending(const InChunkVoxelLocation &location) {
+		m_pendingLocations.emplace(location);
+	}
+	
+	void clearPending() {
+		m_pendingLocations.clear();
+	}
+	
+	const std::unordered_set<InChunkVoxelLocation> &pendingLocations() const {
+		return m_pendingLocations;
+	}
+	
+	std::unordered_set<InChunkVoxelLocation> takePendingLocations() {
+		return std::move(m_pendingLocations);
+	}
+	
+	[[nodiscard]] bool pendingInitialUpdate() const {
+		return m_pendingInitialUpdate;
+	}
+	
+	void setPendingInitialUpdate(bool pendingInitialUpdate) {
+		m_pendingInitialUpdate = pendingInitialUpdate;
+	}
+	
+	[[nodiscard]] unsigned long updatedAt() const {
+		return m_updatedAt;
+	}
+	
+	void setUpdatedAt(unsigned long updatedAt) {
+		m_updatedAt = updatedAt;
 	}
 	
 };
@@ -135,9 +170,9 @@ public:
 	void markDirty(bool lightComputed = false) {
 		m_chunk->markDirty(lightComputed);
 	}
-	void markDirty(const InChunkVoxelLocation &location) {
-		m_chunk->markDirty(location);
-	}
+	void markDirty(const InChunkVoxelLocation &location, bool markPending = true);
+	void markPending(const InChunkVoxelLocation &location);
+	void extendedMarkPending(const InChunkVoxelLocation &location);
 
 	template<typename S> void serialize(S &s) {
 		s.object(*m_chunk);
@@ -161,7 +196,8 @@ public:
 			const InChunkVoxelLocation &location,
 			VoxelLocation *outLocation = nullptr
 	) const;
-	void extendedMarkDirty(const InChunkVoxelLocation &location);
+	void extendedMarkDirty(const InChunkVoxelLocation &location, bool markPending = true);
+	void update(unsigned long time);
 	
 };
 

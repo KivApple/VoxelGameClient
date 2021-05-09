@@ -9,6 +9,29 @@ public:
 	
 };
 
+class GrassVoxelType: public VoxelTypeHelper<GrassVoxelType, Voxel, SimpleVoxelType> {
+	VoxelType *m_dirt = nullptr;
+	VoxelType *m_lava = nullptr;
+	
+public:
+	GrassVoxelType();
+	void link(VoxelTypeRegistry &registry) override;
+	void slowUpdate(
+			const VoxelChunkExtendedMutableRef &chunk,
+			const InChunkVoxelLocation &location,
+			Voxel &voxel,
+			std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
+	);
+	bool update(
+			const VoxelChunkExtendedMutableRef &chunk,
+			const InChunkVoxelLocation &location,
+			Voxel &voxel,
+			unsigned long deltaTime,
+			std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
+	);
+	
+};
+
 void registerVoxelTypes(VoxelTypeRegistry &registry);
 
 class VoxelTypesRegistration {

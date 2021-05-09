@@ -30,6 +30,24 @@ public:
 		return 0;
 	}
 	
+	void slowUpdate(
+			const VoxelChunkExtendedMutableRef &chunk,
+			const InChunkVoxelLocation &location,
+			Voxel &voxel,
+			std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
+	) {
+	}
+	
+	bool update(
+			const VoxelChunkExtendedMutableRef &chunk,
+			const InChunkVoxelLocation &location,
+			Voxel &voxel,
+			unsigned long deltaTime,
+			std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
+	) {
+		return false;
+	}
+	
 };
 
 TEST(VoxelSerialization, contextBasic) {
