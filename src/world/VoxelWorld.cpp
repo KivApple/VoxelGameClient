@@ -45,7 +45,8 @@ public:
 	void notify() {
 		if (!m_dirty) return;
 		auto &l = m_chunkLocation;
-		LOG(TRACE) << "Chunk at x=" << l.x << ",y=" << l.y << ",z=" << l.z << " invalidated";
+		LOG(TRACE) << "Chunk at x=" << l.x << ",y=" << l.y << ",z=" << l.z <<
+			" invalidated (light computed = " << m_lightComputed << ", " << m_locations.size() << " location(s))";
 		m_world->m_chunkListener->chunkInvalidated(m_chunkLocation, std::move(m_locations), m_lightComputed);
 		m_dirty = false;
 	}
