@@ -28,11 +28,7 @@ class GameServerEngine: VoxelChunkListener {
 	std::shared_mutex m_connectionsMutex;
 	std::atomic<bool> m_running = true;
 	
-	void chunkInvalidated(
-			const VoxelChunkLocation &chunkLocation,
-			std::vector<InChunkVoxelLocation> &&locations,
-			bool lightComputed
-	) override;
+	void chunkUnlocked(const VoxelChunkLocation &chunkLocation, VoxelChunkLightState lightState) override;
 	
 public:
 	GameServerEngine();

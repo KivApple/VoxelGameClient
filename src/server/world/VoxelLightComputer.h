@@ -15,15 +15,8 @@ struct VoxelLightComputerJob {
 	VoxelLightComputer *computer;
 	VoxelWorld *world;
 	VoxelChunkLocation chunkLocation;
-	std::vector<InChunkVoxelLocation> voxelLocations;
 	
 	VoxelLightComputerJob(VoxelLightComputer *computer, VoxelWorld *world, const VoxelChunkLocation &location);
-	VoxelLightComputerJob(
-			VoxelLightComputer *computer,
-			VoxelWorld *world,
-			const VoxelChunkLocation &location,
-			std::vector<InChunkVoxelLocation> &&voxels
-	);
 	bool operator==(const VoxelLightComputerJob &job) const;
 	void operator()() const;
 };
@@ -59,11 +52,6 @@ public:
 	VoxelLightComputer();
 	~VoxelLightComputer();
 	void computeAsync(VoxelWorld &world, const VoxelChunkLocation &location);
-	void computeAsync(
-			VoxelWorld &world,
-			const VoxelChunkLocation &location,
-			std::vector<InChunkVoxelLocation> &&voxels
-	);
 	void cancelComputeAsync(VoxelWorld &world, const VoxelChunkLocation &location);
 	
 };

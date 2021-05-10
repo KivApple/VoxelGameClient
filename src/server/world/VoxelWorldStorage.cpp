@@ -27,7 +27,7 @@ void VoxelWorldStorageJob::operator()() const {
 			auto ref = world->chunk(location);
 			if (ref) {
 				storage->store(ref);
-				ref.unlock(false);
+				ref.unlock();
 				world->chunkStored(location);
 			}
 			break;
@@ -197,7 +197,7 @@ void VoxelWorldStorage::load(VoxelChunkMutableRef &chunk) {
 			VoxelDeserializer deserializer(m_serializationContext, buffer.cbegin(), buffer.cend());
 			deserializer.object(chunk);
 			sqlite3_reset(stmt);
-			chunk.markDirty(true);
+			chunk.setLightState(VoxelChunkLightState::READY);
 			chunk.setUpdatedAt(0);
 			chunk.setStoredAt(0);
 			return;
@@ -213,7 +213,15 @@ void VoxelWorldStorage::load(VoxelChunkMutableRef &chunk) {
 
 void VoxelWorldStorage::store(const VoxelChunkRef &chunk) {
 	if (!chunk) return;
-	if (!chunk.lightComputed()) return;
+	switch (chunk.lightState()) {
+		case VoxelChunkLightState::PENDING_INITIAL:
+		case VoxelChunkLightState::PENDING_INCREMENTAL:
+		case VoxelChunkLightState::COMPUTING:
+			return;
+		case VoxelChunkLightState::READY:
+		case VoxelChunkLightState::COMPLETE:
+			break;
+	}
 	auto &l = chunk.location();
 	LOG(DEBUG) << "Storing chunk at x=" << l.x << ",y=" << l.y << ",z=" << l.z;
 	std::string buffer;

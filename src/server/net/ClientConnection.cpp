@@ -146,8 +146,8 @@ bool ClientConnection::setPendingChunk() {
 		m_loadedChunks.emplace(location);
 		lock.unlock();
 		chunk = transport().engine()->voxelWorld().chunk(location, VoxelWorld::MissingChunkPolicy::LOAD_ASYNC);
-		if (chunk && !chunk.lightComputed()) {
-			chunk.unlock(false);
+		if (chunk && chunk.lightState() != VoxelChunkLightState::COMPLETE) {
+			chunk.unlock();
 		}
 		transport().engine()->voxelLightComputer().computeAsync(transport().engine()->voxelWorld(), location);
 	} while (!chunk);

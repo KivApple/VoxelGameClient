@@ -9,14 +9,6 @@ VoxelLightComputerJob::VoxelLightComputerJob(
 ): computer(computer), world(world), chunkLocation(location) {
 }
 
-VoxelLightComputerJob::VoxelLightComputerJob(
-		VoxelLightComputer *computer,
-		VoxelWorld *world,
-		const VoxelChunkLocation &location,
-		std::vector<InChunkVoxelLocation> &&voxels
-): computer(computer), world(world), chunkLocation(location), voxelLocations(std::move(voxels)) {
-}
-
 bool VoxelLightComputerJob::operator==(const VoxelLightComputerJob &job) const {
 	return world == job.world && job.chunkLocation == job.chunkLocation;
 }
@@ -180,34 +172,45 @@ void VoxelLightComputer::runJob(const VoxelLightComputerJob &job) {
 	
 	m_iterationCount = 0;
 	auto chunk = job.world->mutableChunk(job.chunkLocation, VoxelWorld::MissingChunkPolicy::LOAD);
-	if (chunk.lightComputed()) {
+	{
 		auto &l = job.chunkLocation;
-		LOG(TRACE) << "Chunk x=" << l.x << ",y=" << l.y << ",z=" << l.z << " has already computed light";
-		chunk.unlock();
-		return;
-	}
-	if (job.voxelLocations.empty()) {
-		computeInitialLightLevels(chunk, true);
-	} else {
-		auto &l = job.chunkLocation;
-		auto &queue = chunkQueue(job.chunkLocation);
-		LOG(DEBUG) << "Recompute light levels for " << job.voxelLocations.size() <<
-				   " voxel(s) in chunk x=" << l.x << ",y=" << l.y << ",z=" << l.z;
-		for (auto &location : job.voxelLocations) {
-			queue.push(location);
+		LOG(TRACE) << "Got a new light computation job for chunk at x=" << l.x << ",y=" << l.y << ",z=" << l.z;
+		if (chunk.lightState() == VoxelChunkLightState::READY || chunk.lightState() == VoxelChunkLightState::COMPLETE) {
+			LOG(TRACE) << "Chunk at x=" << l.x << ",y=" << l.y << ",z=" << l.z << " has already computed light levels";
+			return;
 		}
 	}
 	while (chunk) {
-		chunk.markDirty();
+		m_visitedChunks.emplace(chunk.location());
+		switch (chunk.lightState()) {
+			case VoxelChunkLightState::PENDING_INITIAL:
+				computeInitialLightLevels(chunk, chunk.location() == job.chunkLocation);
+				break;
+			case VoxelChunkLightState::PENDING_INCREMENTAL: {
+				auto &l = chunk.location();
+				auto &queue = chunkQueue(l);
+				LOG(DEBUG) << "Recompute light levels for " << chunk.dirtyLocations().size() <<
+						   " voxel(s) in chunk x=" << l.x << ",y=" << l.y << ",z=" << l.z;
+				for (auto &location : chunk.dirtyLocations()) {
+					queue.push(location);
+				}
+				chunk.clearDirtyLocations();
+				break;
+			}
+			case VoxelChunkLightState::COMPUTING:
+			case VoxelChunkLightState::READY:
+			case VoxelChunkLightState::COMPLETE:
+				break;
+		}
+		chunk.setLightState(VoxelChunkLightState::COMPUTING);
 		auto it = m_chunkQueues.find(chunk.location());
 		if (it != m_chunkQueues.end()) {
 			auto &queue = *it->second;
 			while (!queue.empty()) {
-				computeLightLevel(chunk, queue.pop(), queue, false);
+				computeLightLevel(chunk, queue.pop(), queue, chunk.location() == job.chunkLocation);
 			}
-			m_visitedChunks.emplace(chunk.location());
 		}
-		chunk.unlock(false);
+		chunk.unlock();
 		it = m_chunkQueues.begin();
 		while (it != m_chunkQueues.end()) {
 			if (it->second->empty()) {
@@ -216,57 +219,37 @@ void VoxelLightComputer::runJob(const VoxelLightComputerJob &job) {
 			}
 			auto &l = it->first;
 			LOG(TRACE) << "Changing chunk to x=" << l.x << ",y=" << l.y << ",z=" << l.z;
-			bool created = false;
-			chunk = job.world->extendedMutableChunk(l, VoxelWorld::MissingChunkPolicy::LOAD, &created);
-			if (created) {
-				computeInitialLightLevels(chunk, false);
-			}
+			chunk = job.world->mutableChunk(l, VoxelWorld::MissingChunkPolicy::LOAD);
 			break;
 		}
-	}
-	chunk = job.world->mutableChunk(job.chunkLocation);
-	if (chunk) {
-		chunk.markDirty(true);
-		chunk.unlock();
-	} else {
-		auto &l = job.chunkLocation;
-		LOG(WARNING) << "Chunk x=" << l.x << ",y=" << l.y << ",z=" << l.z << " was unloaded while light was computing";
 	}
 	LOG(TRACE) << "Light computation completed (" << m_iterationCount << " iterations)";
 	m_chunkQueues.clear();
 	for (auto &location : m_visitedChunks) {
-		auto nChunk = job.world->mutableChunk(location);
-		if (nChunk) {
+		chunk = job.world->mutableChunk(location);
+		if (!chunk) continue;
+		if (chunk.lightState() == VoxelChunkLightState::COMPUTING) {
 			bool complete = true;
-			for (auto &offset : offsets) {
-				if (!nChunk.hasNeighbor(offset[0], offset[1], offset[2])) {
-					complete = false;
-					break;
+			for (int dz = -1; dz <= 1 && complete; dz++) {
+				for (int dy = -1; dy <= 1 && complete; dy++) {
+					for (int dx = -1; dx <= 1 && complete; dx++) {
+						if (!chunk.hasNeighbor(dx, dy, dz)) {
+							complete = false;
+						}
+					}
 				}
 			}
-			auto &l = nChunk.location();
-			if (complete) {
-				LOG(TRACE) << "Chunk x=" << l.x << ",y=" << l.y << ",z=" << l.z << " is complete";
-				nChunk.markDirty(true);
-			} else {
-				LOG(TRACE) << "Chunk x=" << l.x << ",y=" << l.y << ",z=" << l.z << " is incomplete";
-			}
-			nChunk.unlock(complete);
+			chunk.setLightState(VoxelChunkLightState::READY);
+			auto &l = chunk.location();
+			LOG(TRACE) << "Chunk to x=" << l.x << ",y=" << l.y << ",z=" << l.z << " is ready";
 		}
+		chunk.unlock();
 	}
 	m_visitedChunks.clear();
 }
 
 void VoxelLightComputer::computeAsync(VoxelWorld &world, const VoxelChunkLocation &location) {
 	post(this, &world, location);
-}
-
-void VoxelLightComputer::computeAsync(
-		VoxelWorld &world,
-		const VoxelChunkLocation &location,
-		std::vector<InChunkVoxelLocation> &&voxels
-) {
-	post(this, &world, location, std::move(voxels));
 }
 
 void VoxelLightComputer::cancelComputeAsync(VoxelWorld &world, const VoxelChunkLocation &location) {

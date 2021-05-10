@@ -16,7 +16,7 @@ void VoxelWorldGeneratorJob::operator()() const {
 	bool created = false;
 	auto chunk = world->mutableChunk(location, VoxelWorld::MissingChunkPolicy::CREATE, &created);
 	if (!created) {
-		chunk.unlock(false);
+		return;
 	}
 	generator->load(chunk);
 }
@@ -54,7 +54,7 @@ void VoxelWorldGenerator::load(VoxelChunkMutableRef &chunk) {
 				}
 			}
 		}
-		chunk.markDirty(true);
+		chunk.setLightState(VoxelChunkLightState::READY);
 		return;
 	}
 	
@@ -77,5 +77,4 @@ void VoxelWorldGenerator::load(VoxelChunkMutableRef &chunk) {
 			}
 		}
 	}
-	chunk.markDirty();
 }

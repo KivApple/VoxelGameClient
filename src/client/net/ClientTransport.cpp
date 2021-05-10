@@ -14,7 +14,7 @@ void ClientTransport::handleSetChunk(const VoxelChunkLocation &location, VoxelDe
 	LOG(DEBUG) << "Received chunk x=" << location.x << ",y=" << location.y << ",z=" << location.z;
 	auto chunk = m_engine.voxelWorld().mutableChunk(location, VoxelWorld::MissingChunkPolicy::CREATE);
 	deserializer.object(chunk);
-	chunk.markDirty();
+	chunk.setLightState(VoxelChunkLightState::READY);
 }
 
 void ClientTransport::handleDiscardChunks(const std::vector<VoxelChunkLocation> &locations) {

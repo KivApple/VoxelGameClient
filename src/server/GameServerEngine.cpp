@@ -22,22 +22,23 @@ void GameServerEngine::addTransport(std::unique_ptr<ServerTransport> transport) 
 	m_transports.emplace_back(std::move(transport));
 }
 
-void GameServerEngine::chunkInvalidated(
-		const VoxelChunkLocation &chunkLocation,
-		std::vector<InChunkVoxelLocation> &&locations,
-		bool lightComputed
-) {
-	if (lightComputed) {
-		std::shared_lock<std::shared_mutex> lock(m_connectionsMutex);
-		for (auto &connection : m_connections) {
-			connection.second->chunkInvalidated(chunkLocation);
-		}
-	} else {
-		if (locations.empty()) {
+void GameServerEngine::chunkUnlocked(const VoxelChunkLocation &chunkLocation, VoxelChunkLightState lightState) {
+	switch (lightState) {
+		case VoxelChunkLightState::PENDING_INITIAL:
+		case VoxelChunkLightState::PENDING_INCREMENTAL:
 			m_voxelLightComputer.computeAsync(m_voxelWorld, chunkLocation);
-		} else {
-			m_voxelLightComputer.computeAsync(m_voxelWorld, chunkLocation, std::move(locations));
+			break;
+		case VoxelChunkLightState::COMPUTING:
+			break;
+		case VoxelChunkLightState::READY: {
+			std::shared_lock<std::shared_mutex> lock(m_connectionsMutex);
+			for (auto &connection : m_connections) {
+				connection.second->chunkInvalidated(chunkLocation);
+			}
+			break;
 		}
+		case VoxelChunkLightState::COMPLETE:
+			break;
 	}
 }
 

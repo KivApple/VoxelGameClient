@@ -352,11 +352,8 @@ void GameEngine::setTransport(std::unique_ptr<ClientTransport> transport) {
 	m_transport->start();
 }
 
-void GameEngine::chunkInvalidated(
-		const VoxelChunkLocation &chunkLocation,
-		std::vector<InChunkVoxelLocation> &&locations,
-		bool lightComputed
-) {
+void GameEngine::chunkUnlocked(const VoxelChunkLocation &chunkLocation, VoxelChunkLightState lightState) {
+	if (lightState != VoxelChunkLightState::READY) return;
 	m_voxelWorldRenderer->invalidate(chunkLocation);
 	m_voxelWorldRenderer->invalidate({chunkLocation.x - 1, chunkLocation.y, chunkLocation.z});
 	m_voxelWorldRenderer->invalidate({chunkLocation.x, chunkLocation.y - 1, chunkLocation.z});

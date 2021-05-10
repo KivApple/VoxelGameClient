@@ -10,45 +10,40 @@ static thread_local std::default_random_engine randomEngine;
 class VoxelInvalidationNotifier {
 	VoxelWorld *m_world;
 	VoxelChunkLocation m_chunkLocation;
-	bool m_dirty;
-	std::vector<InChunkVoxelLocation> m_locations;
-	bool m_lightComputed;
+	VoxelChunkLightState m_lightState;
 	
 public:
-	VoxelInvalidationNotifier(): m_world(nullptr), m_dirty(false), m_lightComputed(true) {
+	VoxelInvalidationNotifier(): m_world(nullptr), m_lightState(VoxelChunkLightState::COMPLETE) {
 	}
 	
 	explicit VoxelInvalidationNotifier(
-			SharedVoxelChunk &chunk, bool enabled
-	): m_world(&chunk.world()), m_chunkLocation(chunk.location()), m_dirty(
-			enabled && chunk.dirty()
-	), m_lightComputed(chunk.lightComputed() && chunk.dirtyLocations().empty()) {
-		if (enabled) {
-			m_locations.reserve(chunk.dirtyLocations().size());
-			for (auto &location : chunk.dirtyLocations()) {
-				m_locations.emplace_back(location);
-			}
-			chunk.clearDirty();
-			chunk.setLightComputed(m_lightComputed);
+			SharedVoxelChunk &chunk
+	): m_world(&chunk.world()), m_chunkLocation(chunk.location()), m_lightState(chunk.lightState()) {
+		switch (chunk.lightState()) {
+			case VoxelChunkLightState::PENDING_INITIAL:
+			case VoxelChunkLightState::PENDING_INCREMENTAL:
+			case VoxelChunkLightState::COMPUTING:
+				break;
+			case VoxelChunkLightState::READY:
+				chunk.setLightState(VoxelChunkLightState::COMPLETE);
+				break;
+			case VoxelChunkLightState::COMPLETE:
+				break;
 		}
 	}
 	
-	VoxelInvalidationNotifier &operator=(VoxelInvalidationNotifier &&notifier) noexcept {
+	VoxelInvalidationNotifier &operator=(const VoxelInvalidationNotifier &notifier)  {
 		m_world = notifier.m_world;
 		m_chunkLocation = notifier.m_chunkLocation;
-		m_dirty = notifier.m_dirty;
-		m_locations = std::move(notifier.m_locations);
-		m_lightComputed = notifier.m_lightComputed;
+		m_lightState = notifier.m_lightState;
 		return *this;
 	}
 	
 	void notify() {
-		if (!m_dirty) return;
+		if (m_world == nullptr) return;
 		auto &l = m_chunkLocation;
-		LOG(TRACE) << "Chunk at x=" << l.x << ",y=" << l.y << ",z=" << l.z <<
-			" invalidated (light computed = " << m_lightComputed << ", " << m_locations.size() << " location(s))";
-		m_world->m_chunkListener->chunkInvalidated(m_chunkLocation, std::move(m_locations), m_lightComputed);
-		m_dirty = false;
+		m_world->m_chunkListener->chunkUnlocked(m_chunkLocation, m_lightState);
+		m_world = nullptr;
 	}
 	
 };
@@ -122,9 +117,9 @@ VoxelChunkRef::~VoxelChunkRef() {
 	unlock();
 }
 
-void VoxelChunkRef::unlock(bool notify) {
+void VoxelChunkRef::unlock() {
 	if (m_chunk) {
-		VoxelInvalidationNotifier notifier(*m_chunk, notify);
+		VoxelInvalidationNotifier notifier(*m_chunk);
 		{
 			auto &l2 = m_chunk->location();
 			LOG_IF(TRACE_LOCKS, TRACE) << "Unlock shared x=" << l2.x << ",y=" << l2.y << ",z=" << l2.z;
@@ -185,18 +180,18 @@ VoxelChunkExtendedRef::~VoxelChunkExtendedRef() {
 	unlock();
 }
 
-void VoxelChunkExtendedRef::unlock(bool notify) {
+void VoxelChunkExtendedRef::unlock() {
 	VoxelInvalidationNotifier notifiers[sizeof(m_neighbors) / sizeof(m_neighbors[0])];
 	for (int i = 0; i < sizeof(m_neighbors) / sizeof(m_neighbors[0]); i++) {
 		auto &neighbor = m_neighbors[i];
 		if (neighbor == nullptr) continue;
 		auto &l = neighbor->location();
-		notifiers[i] = VoxelInvalidationNotifier(*neighbor, notify);
+		notifiers[i] = VoxelInvalidationNotifier(*neighbor);
 		LOG_IF(TRACE_LOCKS, TRACE) << "Unlock shared x=" << l.x << ",y=" << l.y << ",z=" << l.z;
 		neighbor->mutex().unlock_shared();
 		neighbor = nullptr;
 	}
-	VoxelChunkRef::unlock(notify);
+	VoxelChunkRef::unlock();
 	for (auto &&notifier : notifiers) {
 		notifier.notify();
 	}
@@ -279,10 +274,10 @@ VoxelChunkMutableRef::~VoxelChunkMutableRef() {
 	unlock();
 }
 
-void VoxelChunkMutableRef::unlock(bool notify) {
+void VoxelChunkMutableRef::unlock() {
 	std::optional<VoxelInvalidationNotifier> notifier;
 	if (m_chunk) {
-		notifier.emplace(*m_chunk, notify);
+		notifier.emplace(*m_chunk);
 		m_chunk->mutex().unlock();
 		m_chunk = nullptr;
 	}
@@ -382,18 +377,18 @@ VoxelChunkExtendedMutableRef::~VoxelChunkExtendedMutableRef() {
 	unlock();
 }
 
-void VoxelChunkExtendedMutableRef::unlock(bool notify) {
+void VoxelChunkExtendedMutableRef::unlock() {
 	VoxelInvalidationNotifier notifiers[sizeof(m_neighbors) / sizeof(m_neighbors[0])];
 	for (int i = 0; i < sizeof(m_neighbors) / sizeof(m_neighbors[0]); i++) {
 		auto &neighbor = m_neighbors[i];
 		if (neighbor == nullptr) continue;
 		auto &l = neighbor->location();
-		notifiers[i] = VoxelInvalidationNotifier(*neighbor, notify);
+		notifiers[i] = VoxelInvalidationNotifier(*neighbor);
 		LOG_IF(TRACE_LOCKS, TRACE) << "Unlock x=" << l.x << ",y=" << l.y << ",z=" << l.z;
 		neighbor->mutex().unlock();
 		neighbor = nullptr;
 	}
-	VoxelChunkMutableRef::unlock(notify);
+	VoxelChunkMutableRef::unlock();
 	for (auto &&notifier : notifiers) {
 		notifier.notify();
 	}

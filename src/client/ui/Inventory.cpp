@@ -254,7 +254,7 @@ void Inventory::update() {
 	std::unique_lock<std::mutex> lock(m_mutex);
 	if (!m_hasUpdate) return;
 	for (auto &update : m_nextChanges) {
-		LOG(TRACE) << "Set inventory item #" << update.first << "to \"" << update.second.toString() << "\"";
+		LOG(TRACE) << "Set inventory item #" << (int) update.first << " to \"" << update.second.toString() << "\"";
 		item(update.first).setVoxel(std::move(update.second));
 	}
 	setActive(m_nextActive);

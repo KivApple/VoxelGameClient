@@ -7,17 +7,25 @@
 
 class VoxelWorld;
 
+enum class VoxelChunkLightState {
+	PENDING_INITIAL,
+	PENDING_INCREMENTAL,
+	COMPUTING,
+	READY,
+	COMPLETE
+};
+
 class SharedVoxelChunk: public VoxelChunk {
 	VoxelWorld &m_world;
 	SharedVoxelChunk *m_neighbors[3 * 3 * 3] = {};
 	std::shared_mutex m_mutex;
-	bool m_dirty = false;
+	VoxelChunkLightState m_lightState = VoxelChunkLightState::PENDING_INITIAL;
 	std::unordered_set<InChunkVoxelLocation> m_dirtyLocations;
 	std::unordered_set<InChunkVoxelLocation> m_pendingLocations;
 	bool m_pendingInitialUpdate = true;
+	bool m_unloading = false;
 	unsigned long m_updatedAt = 0;
 	long m_storedAt = 0;
-	bool m_unloading = false;
 	
 public:
 	SharedVoxelChunk(VoxelWorld &world, const VoxelChunkLocation &location): VoxelChunk(location), m_world(world) {
@@ -36,8 +44,31 @@ public:
 		return m_world;
 	}
 	
-	[[nodiscard]] bool dirty() const {
-		return m_dirty || !m_dirtyLocations.empty();
+	[[nodiscard]] VoxelChunkLightState lightState() const {
+		return m_lightState;
+	}
+	
+	void setLightState(VoxelChunkLightState state) {
+		m_lightState = state;
+	}
+	
+	void invalidateLight() {
+		switch (m_lightState) {
+			case VoxelChunkLightState::PENDING_INITIAL:
+			case VoxelChunkLightState::PENDING_INCREMENTAL:
+				break;
+			case VoxelChunkLightState::COMPUTING:
+			case VoxelChunkLightState::READY:
+			case VoxelChunkLightState::COMPLETE:
+				m_lightState = VoxelChunkLightState::PENDING_INCREMENTAL;
+				break;
+		}
+	}
+	
+	void invalidateStorage() {
+		if (m_storedAt >= m_updatedAt) {
+			m_storedAt = m_updatedAt - 1;
+		}
 	}
 	
 	[[nodiscard]] const std::unordered_set<InChunkVoxelLocation> &dirtyLocations() const {
@@ -45,21 +76,12 @@ public:
 	}
 	
 	void markDirty(const InChunkVoxelLocation &location) {
-		if (m_dirty) return;
 		m_dirtyLocations.emplace(location);
-		if (m_storedAt >= m_updatedAt) {
-			m_storedAt = m_updatedAt - 1;
-		}
+		invalidateStorage();
+		invalidateLight();
 	}
 	
-	void markDirty(bool lightComputed = false) {
-		m_dirty = true;
-		setLightComputed(lightComputed);
-		m_dirtyLocations.clear();
-	}
-	
-	void clearDirty() {
-		m_dirty = false;
+	void clearDirtyLocations() {
 		m_dirtyLocations.clear();
 	}
 	
@@ -126,7 +148,7 @@ public:
 	VoxelChunkRef(VoxelChunkRef &&ref) noexcept;
 	VoxelChunkRef &operator=(VoxelChunkRef &&ref) noexcept;
 	~VoxelChunkRef();
-	void unlock(bool notify = false);
+	void unlock();
 	operator bool() const {
 		return m_chunk != nullptr;
 	}
@@ -139,8 +161,8 @@ public:
 	[[nodiscard]] const VoxelHolder &at(const InChunkVoxelLocation &location) const {
 		return m_chunk->at(location);
 	}
-	[[nodiscard]] bool lightComputed() const {
-		return m_chunk->lightComputed();
+	[[nodiscard]] VoxelChunkLightState lightState() const {
+		return m_chunk->lightState();
 	}
 	[[nodiscard]] unsigned long updatedAt() const {
 		return m_chunk->storedAt();
@@ -168,7 +190,7 @@ public:
 	VoxelChunkExtendedRef(VoxelChunkExtendedRef &&ref) noexcept;
 	VoxelChunkExtendedRef &operator=(VoxelChunkExtendedRef &&ref) noexcept;
 	~VoxelChunkExtendedRef();
-	void unlock(bool notify = false);
+	void unlock();
 	[[nodiscard]] bool hasNeighbor(int dx, int dy, int dz) const;
 	const VoxelHolder &extendedAt(
 			int x, int y, int z,
@@ -191,11 +213,17 @@ public:
 	VoxelChunkMutableRef(VoxelChunkMutableRef &&ref) noexcept = default;
 	VoxelChunkMutableRef &operator=(VoxelChunkMutableRef &&ref) noexcept;
 	~VoxelChunkMutableRef();
-	void unlock(bool notify = true);
+	void unlock();
 	[[nodiscard]] VoxelHolder &at(int x, int y, int z) const;
 	[[nodiscard]] VoxelHolder &at(const InChunkVoxelLocation &location) const;
-	void markDirty(bool lightComputed = false) {
-		m_chunk->markDirty(lightComputed);
+	void setLightState(VoxelChunkLightState state) const {
+		m_chunk->setLightState(state);
+	}
+	const std::unordered_set<InChunkVoxelLocation> &dirtyLocations() const {
+		return m_chunk->dirtyLocations();
+	}
+	void clearDirtyLocations() {
+		m_chunk->clearDirtyLocations();
 	}
 	void markDirty(const InChunkVoxelLocation &location, bool markPending = true);
 	void markPending(const InChunkVoxelLocation &location);
@@ -220,7 +248,7 @@ public:
 	VoxelChunkExtendedMutableRef(VoxelChunkExtendedMutableRef &&ref) noexcept = default;
 	VoxelChunkExtendedMutableRef &operator=(VoxelChunkExtendedMutableRef &&ref) noexcept;
 	~VoxelChunkExtendedMutableRef();
-	void unlock(bool notify = true);
+	void unlock();
 	VoxelHolder &extendedAt(
 			int x, int y, int z,
 			VoxelLocation *outLocation = nullptr
@@ -248,11 +276,7 @@ public:
 class VoxelChunkListener {
 public:
 	virtual ~VoxelChunkListener() = default;
-	virtual void chunkInvalidated(
-			const VoxelChunkLocation &chunkLocation,
-			std::vector<InChunkVoxelLocation> &&locations,
-			bool lightComputed
-	) = 0;
+	virtual void chunkUnlocked(const VoxelChunkLocation &chunkLocation, VoxelChunkLightState lightState) = 0;
 
 };
 

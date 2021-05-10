@@ -7,7 +7,6 @@
 class VoxelChunk {
 	VoxelChunkLocation m_location;
 	VoxelHolder m_data[VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE];
-	bool m_lightComputed = false;
 	
 	static size_t voxelIndex(int x, int y, int z) {
 		return z * VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE + y * VOXEL_CHUNK_SIZE + x;
@@ -36,14 +35,6 @@ public:
 	
 	[[nodiscard]] VoxelHolder &at(const InChunkVoxelLocation &location) {
 		return at(location.x, location.y, location.z);
-	}
-
-	[[nodiscard]] bool lightComputed() const {
-		return m_lightComputed;
-	}
-
-	void setLightComputed(bool lightComputed) {
-		m_lightComputed = lightComputed;
 	}
 	
 	template<typename S> void serialize(S &s) const {
