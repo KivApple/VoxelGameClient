@@ -234,6 +234,9 @@ public:
 	void setStoredAt(long time) {
 		m_chunk->setStoredAt(time);
 	}
+	void invalidateStorage() {
+		m_chunk->invalidateStorage();
+	}
 
 	template<typename S> void serialize(S &s) {
 		s.object(*m_chunk);

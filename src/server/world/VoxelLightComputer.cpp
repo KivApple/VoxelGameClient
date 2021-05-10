@@ -240,6 +240,7 @@ void VoxelLightComputer::runJob(const VoxelLightComputerJob &job) {
 				}
 			}
 			chunk.setLightState(VoxelChunkLightState::READY);
+			chunk.invalidateStorage();
 			auto &l = chunk.location();
 			LOG(TRACE) << "Chunk to x=" << l.x << ",y=" << l.y << ",z=" << l.z << " is ready";
 		}
