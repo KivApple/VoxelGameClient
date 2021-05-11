@@ -170,6 +170,9 @@ public:
 	[[nodiscard]] long storedAt() const {
 		return m_chunk->storedAt();
 	}
+	[[nodiscard]] unsigned int pendingVoxelCount() const {
+		return m_chunk->pendingLocations().size();
+	}
 
 	template<typename S> void serialize(S &s) const {
 		s.object(*m_chunk);

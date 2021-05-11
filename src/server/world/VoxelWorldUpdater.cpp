@@ -27,6 +27,7 @@ void VoxelWorldUpdater::run() {
 		m_world.forEachChunkLocation([&chunkLocations](const VoxelChunkLocation &location) {
 			chunkLocations.emplace_back(location);
 		});
+		unsigned int pendingVoxelCount = 0;
 		for (auto &chunkLocation : chunkLocations) {
 			auto chunk = m_world.extendedMutableChunk(chunkLocation);
 			if (!chunk) continue;
@@ -46,8 +47,10 @@ void VoxelWorldUpdater::run() {
 				continue;
 			}
 			chunk.update(time);
+			pendingVoxelCount += chunk.pendingVoxelCount();
 		}
 		time++;
+		m_pendingVoxelCount = pendingVoxelCount;
 		if (nextUpdateTime > std::chrono::steady_clock::now()) {
 			std::this_thread::sleep_until(nextUpdateTime);
 		} else {

@@ -46,6 +46,9 @@ public:
 	VoxelLightComputer &voxelLightComputer() {
 		return m_voxelLightComputer;
 	}
+	VoxelWorldUpdater &voxelWorldUpdater() {
+		return m_voxelWorldUpdater;
+	}
 	
 	void registerConnection(std::unique_ptr<ClientConnection> connection);
 	void unregisterConnection(ClientConnection *connection);
