@@ -42,7 +42,9 @@ public:
 	void notify() {
 		if (m_world == nullptr) return;
 		auto &l = m_chunkLocation;
-		m_world->m_chunkListener->chunkUnlocked(m_chunkLocation, m_lightState);
+		if (m_world->m_chunkListener != nullptr) {
+			m_world->m_chunkListener->chunkUnlocked(m_chunkLocation, m_lightState);
+		}
 		m_world = nullptr;
 	}
 	
