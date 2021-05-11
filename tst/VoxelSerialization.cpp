@@ -23,7 +23,12 @@ public:
 		return nullptr;
 	}
 	
-	void buildVertexData(const MyVoxel &voxel, std::vector<VoxelVertexData> &data) {
+	void buildVertexData(
+			const VoxelChunkExtendedRef &chunk,
+			const InChunkVoxelLocation &location,
+			const MyVoxel &voxel,
+			std::vector<VoxelVertexData> &data
+	) {
 	}
 
 	VoxelLightLevel lightLevel(const MyVoxel &voxel) {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <optional>
 #include <glm/vec3.hpp>
 #include "VoxelLocation.h"
@@ -19,3 +20,7 @@ std::optional<PlayerPointingAt> findPlayerPointingAt(
 		const glm::vec3 &position,
 		const glm::vec3 &direction
 );
+
+constexpr static bool almostEqual(float a, float b) {
+	return fabsf(a - b) < 0.001f;;
+}

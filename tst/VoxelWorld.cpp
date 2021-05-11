@@ -27,7 +27,12 @@ public:
 		return nullptr;
 	}
 	
-	void buildVertexData(const TestVoxel &voxel, std::vector<VoxelVertexData> &data) {
+	void buildVertexData(
+			const VoxelChunkExtendedRef &chunk,
+			const InChunkVoxelLocation &location,
+			const TestVoxel &voxel,
+			std::vector<VoxelVertexData> &data
+	) {
 		buildVertexDataCalled();
 	}
 
@@ -72,7 +77,7 @@ TEST(VoxelWorld, voxelType) {
 	EXPECT_CALL(testVoxelType, buildVertexDataCalled()).Times(1);
 	{
 		std::vector<VoxelVertexData> data;
-		chunk.at(0, 0, 0).buildVertexData(data);
+		chunk.at(0, 0, 0).buildVertexData(VoxelChunkExtendedRef(), InChunkVoxelLocation(), data);
 	}
 	
 	((TestVoxel&) chunk.at(0, 0, 0)).destructorObserver = &destructorObserver;

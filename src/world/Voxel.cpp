@@ -132,7 +132,12 @@ const VoxelShaderProvider *EmptyVoxelType::shaderProvider(const Voxel &voxel) {
 	return nullptr;
 }
 
-void EmptyVoxelType::buildVertexData(const Voxel &voxel, std::vector<VoxelVertexData> &data) {
+void EmptyVoxelType::buildVertexData(
+		const VoxelChunkExtendedRef &chunk,
+		const InChunkVoxelLocation &location,
+		const Voxel &voxel,
+		std::vector<VoxelVertexData> &data
+) {
 }
 
 VoxelLightLevel EmptyVoxelType::lightLevel(const Voxel &voxel) {
@@ -203,7 +208,12 @@ const VoxelShaderProvider *SimpleVoxelType::shaderProvider(const Voxel &voxel) {
 	return this;
 }
 
-void SimpleVoxelType::buildVertexData(const Voxel &voxel, std::vector<VoxelVertexData> &data) {
+void SimpleVoxelType::buildVertexData(
+		const VoxelChunkExtendedRef &chunk,
+		const InChunkVoxelLocation &location,
+		const Voxel &voxel,
+		std::vector<VoxelVertexData> &data
+) {
 	if (m_unwrap) {
 		data.insert(data.end(),{
 				{-0.5, 0.5, -0.5, 1.0, 0.0},

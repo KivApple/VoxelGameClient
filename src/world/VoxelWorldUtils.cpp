@@ -28,7 +28,7 @@ std::optional<PlayerPointingAt> findPlayerPointingAt(
 		auto &voxel = chunk.extendedAt(location, &globalLocation);
 		
 		vertexData.clear();
-		voxel.buildVertexData(vertexData);
+		voxel.buildVertexData(chunk, location, vertexData);
 		if (vertexData.empty()) {
 			continue;
 		}

@@ -19,6 +19,7 @@
 #endif
 
 class InChunkVoxelLocation;
+class VoxelChunkExtendedRef;
 class VoxelChunkExtendedMutableRef;
 class VoxelTypeRegistry;
 
@@ -85,7 +86,12 @@ public:
 	virtual void invokeDeserialize(Voxel &voxel, VoxelDeserializer &deserializer) = 0;
 	virtual std::string invokeToString(const Voxel &voxel) = 0;
 	virtual const VoxelShaderProvider *invokeShaderProvider(const Voxel &voxel) = 0;
-	virtual void invokeBuildVertexData(const Voxel &voxel, std::vector<VoxelVertexData> &data) = 0;
+	virtual void invokeBuildVertexData(
+			const VoxelChunkExtendedRef &chunk,
+			const InChunkVoxelLocation &location,
+			const Voxel &voxel,
+			std::vector<VoxelVertexData> &data
+	) = 0;
 	virtual VoxelLightLevel invokeLightLevel(const Voxel &voxel) = 0;
 	virtual void invokeSlowUpdate(
 			const VoxelChunkExtendedMutableRef &chunk,
@@ -234,8 +240,13 @@ public:
 		return static_cast<T*>(this)->T::shaderProvider(static_cast<const Data&>(voxel));
 	}
 	
-	void invokeBuildVertexData(const Voxel &voxel, std::vector<VoxelVertexData> &data) override {
-		static_cast<T*>(this)->T::buildVertexData(static_cast<const Data&>(voxel), data);
+	void invokeBuildVertexData(
+			const VoxelChunkExtendedRef &chunk,
+			const InChunkVoxelLocation &location,
+			const Voxel &voxel,
+			std::vector<VoxelVertexData> &data
+	) override {
+		static_cast<T*>(this)->T::buildVertexData(chunk, location, static_cast<const Data&>(voxel), data);
 	}
 
 	VoxelLightLevel invokeLightLevel(const Voxel &voxel) override {
@@ -293,7 +304,12 @@ public:
 	
 	std::string toString(const Voxel &voxel);
 	const VoxelShaderProvider *shaderProvider(const Voxel &voxel);
-	void buildVertexData(const Voxel &voxel, std::vector<VoxelVertexData> &data);
+	void buildVertexData(
+			const VoxelChunkExtendedRef &chunk,
+			const InChunkVoxelLocation &location,
+			const Voxel &voxel,
+			std::vector<VoxelVertexData> &data
+	);
 	VoxelLightLevel lightLevel(const Voxel &voxel);
 	void slowUpdate(
 			const VoxelChunkExtendedMutableRef &chunk,
@@ -405,8 +421,12 @@ public:
 		return get().type->invokeShaderProvider(get());
 	}
 	
-	void buildVertexData(std::vector<VoxelVertexData> &data) const {
-		get().type->invokeBuildVertexData(get(), data);
+	void buildVertexData(
+			const VoxelChunkExtendedRef &chunk,
+			const InChunkVoxelLocation &location,
+			std::vector<VoxelVertexData> &data
+	) const {
+		get().type->invokeBuildVertexData(chunk, location, get(), data);
 	}
 	
 	void serialize(VoxelSerializer &serializer) const {
@@ -432,7 +452,7 @@ public:
 		return get().type->invokeUpdate(chunk, location, get(), deltaTime, invalidatedLocations);
 	}
 	
-	bool hasDensity() const {
+	[[nodiscard]] bool hasDensity() const {
 		return get().type->invokeHasDensity(get());
 	}
 	
@@ -467,7 +487,12 @@ public:
 #endif
 	std::string toString(const Voxel &voxel);
 	const VoxelShaderProvider *shaderProvider(const Voxel &voxel);
-	void buildVertexData(const Voxel &voxel, std::vector<VoxelVertexData> &data);
+	void buildVertexData(
+			const VoxelChunkExtendedRef &chunk,
+			const InChunkVoxelLocation &location,
+			const Voxel &voxel,
+			std::vector<VoxelVertexData> &data
+	);
 	VoxelLightLevel lightLevel(const Voxel &voxel);
 	int priority() const override;
 	void slowUpdate(

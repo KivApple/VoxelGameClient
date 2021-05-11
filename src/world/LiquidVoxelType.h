@@ -6,6 +6,7 @@
 #include "VoxelLocation.h"
 #include "VoxelWorld.h"
 #include "VoxelTypeRegistry.h"
+#include "VoxelWorldUtils.h"
 
 template<typename T, typename Base=VoxelType, typename Data=Voxel, typename FlowData=Data> struct Liquid {
 	struct FlowState: public FlowData {
@@ -49,8 +50,13 @@ template<typename T, typename Base=VoxelType, typename Data=Voxel, typename Flow
 			return static_cast<T&>(m_type).T::flowShaderProvider(voxel);
 		}
 		
-		void buildVertexData(const FlowState &voxel, std::vector<VoxelVertexData> &data) {
-			static_cast<T&>(m_type).T::flowBuildVertexData(voxel, data);
+		void buildVertexData(
+				const VoxelChunkExtendedRef &chunk,
+				const InChunkVoxelLocation &location,
+				const FlowState &voxel,
+				std::vector<VoxelVertexData> &data
+		) {
+			static_cast<T&>(m_type).T::flowBuildVertexData(chunk, location, voxel, data);
 		}
 		
 		VoxelLightLevel lightLevel(const FlowState &voxel) {
@@ -145,8 +151,87 @@ template<typename T, typename Base=VoxelType, typename Data=Voxel, typename Flow
 			return static_cast<Base*>(m_flowType)->Base::shaderProvider(voxel);
 		}
 		
-		virtual void flowBuildVertexData(const FlowState &voxel, std::vector<VoxelVertexData> &data) {
-			static_cast<Base*>(m_flowType)->Base::buildVertexData(voxel, data);
+		float calculateModelOffset(int level) {
+			if (level == INT_MAX) {
+				level = m_maxFlowLevel - 1;
+			}
+			return (float) (m_maxFlowLevel - (std::min(level, m_maxFlowLevel))) / m_maxFlowLevel;
+		}
+		
+		float calculateModelOffset(const VoxelHolder &voxel) {
+			if (&voxel.type() == this) {
+				return calculateModelOffset(INT_MAX);
+			} else if (&voxel.type() == m_flowType) {
+				return calculateModelOffset(voxel.template get<FlowState>().level);
+			} else {
+				return 1.0f;
+			}
+		}
+		
+		void buildVertexData(
+				const VoxelChunkExtendedRef &chunk,
+				const InChunkVoxelLocation &location,
+				const State &voxel,
+				std::vector<VoxelVertexData> &data
+		) {
+			static_cast<Base*>(this)->Base::buildVertexData(chunk, location, voxel, data);
+			auto &top = chunk.extendedAt(location.x, location.y + 1, location.z);
+			if (&top.type() == this || &top.type() == m_flowType) return;
+			float offset = calculateModelOffset(INT_MAX);
+			for (auto &v : data) {
+				if (almostEqual(v.y, 0.5f)) {
+					v.y -= offset;
+				}
+			}
+		}
+		
+		virtual void flowBuildVertexData(
+				const VoxelChunkExtendedRef &chunk,
+				const InChunkVoxelLocation &location,
+				const FlowState &voxel,
+				std::vector<VoxelVertexData> &data
+		) {
+			static_cast<Base*>(m_flowType)->Base::buildVertexData(chunk, location, voxel, data);
+			auto &posY = chunk.extendedAt(location.x, location.y + 1, location.z);
+			if (&posY.type() == this || &posY.type() == m_flowType) return;
+			
+			float offset = calculateModelOffset(voxel.level);
+			
+			float negXOffset = calculateModelOffset(chunk.extendedAt(location.x - 1, location.y, location.z));
+			float posXOffset = calculateModelOffset(chunk.extendedAt(location.x + 1, location.y, location.z));
+			float negZOffset = calculateModelOffset(chunk.extendedAt(location.x, location.y, location.z - 1));
+			float posZOffset = calculateModelOffset(chunk.extendedAt(location.x, location.y, location.z + 1));
+			
+			float negXNegZOffset = calculateModelOffset(chunk.extendedAt(location.x - 1, location.y, location.z - 1));
+			float negXPosZOffset = calculateModelOffset(chunk.extendedAt(location.x - 1, location.y, location.z + 1));
+			float posXNegZOffset = calculateModelOffset(chunk.extendedAt(location.x + 1, location.y, location.z - 1));
+			float posXPosZOffset = calculateModelOffset(chunk.extendedAt(location.x + 1, location.y, location.z + 1));
+			
+			for (auto &v : data) {
+				if (almostEqual(v.y, 0.5f)) {
+					if (almostEqual(v.x, -0.5f) && almostEqual(v.z, -0.5f)) {
+						v.y -= std::min(
+								std::min(offset, negXNegZOffset),
+								std::min(negXOffset, negZOffset)
+						);
+					} else if (almostEqual(v.x, -0.5f) && almostEqual(v.z, 0.5f)) {
+						v.y -= std::min(
+								std::min(offset, negXPosZOffset),
+								std::min(negXOffset, posZOffset)
+						);
+					} else if (almostEqual(v.x, 0.5f) && almostEqual(v.z, -0.5f)) {
+						v.y -= std::min(
+								std::min(offset, posXNegZOffset),
+								std::min(posXOffset, negZOffset)
+						);
+					} else if (almostEqual(v.x, 0.5f) && almostEqual(v.z, 0.5f)) {
+						v.y -= std::min(
+								std::min(offset, posXPosZOffset),
+								std::min(posXOffset, posZOffset)
+						);
+					}
+				}
+			}
 		}
 		
 		virtual VoxelLightLevel flowLightLevel(const FlowState &voxel) {
@@ -195,11 +280,12 @@ template<typename T, typename Base=VoxelType, typename Data=Voxel, typename Flow
 		virtual void setFlow(
 				const VoxelChunkExtendedMutableRef &chunk,
 				const InChunkVoxelLocation &location,
-				State &source
+				State &source,
+				int dy
 		) {
 			auto &voxel = chunk.extendedAt(location);
 			voxel.setType(*m_flowType);
-			voxel.template get<FlowState>().level = m_maxFlowLevel;
+			voxel.template get<FlowState>().level = dy >= 0 ? m_maxFlowLevel - 1 : m_maxFlowLevel;
 		}
 		
 		virtual void setFlow(
@@ -238,9 +324,9 @@ template<typename T, typename Base=VoxelType, typename Data=Voxel, typename Flow
 					{0, 0, 1}, {0, 0, -1}
 			};
 			InChunkVoxelLocation bottom(location.x, location.y - 1, location.z);
-			if (canFlow(m_maxFlowLevel + 1, chunk.extendedAt(bottom), -1, false)) {
-				if (canFlow(m_maxFlowLevel + 1, chunk.extendedAt(bottom), -1, true)) {
-					setFlow(chunk, bottom, voxel);
+			if (canFlow(m_maxFlowLevel, chunk.extendedAt(bottom), -1, false)) {
+				if (canFlow(m_maxFlowLevel, chunk.extendedAt(bottom), -1, true)) {
+					setFlow(chunk, bottom, voxel, -1);
 					invalidatedLocations.emplace(bottom);
 				}
 			} else {
@@ -250,8 +336,8 @@ template<typename T, typename Base=VoxelType, typename Data=Voxel, typename Flow
 							location.y + offset[1],
 							location.z + offset[2]
 					);
-					if (canFlow(m_maxFlowLevel + 1, chunk.extendedAt(l), offset[1], true)) {
-						setFlow(chunk, l, voxel);
+					if (canFlow(m_maxFlowLevel, chunk.extendedAt(l), offset[1], true)) {
+						setFlow(chunk, l, voxel, offset[1]);
 						invalidatedLocations.emplace(l);
 					}
 				}
@@ -283,7 +369,7 @@ template<typename T, typename Base=VoxelType, typename Data=Voxel, typename Flow
 				InChunkVoxelLocation l(location.x + offset[0], location.y + offset[1], location.z + offset[2]);
 				auto &source = chunk.extendedAt(l);
 				if (&source.type() == this) {
-					if (canFlow(m_maxFlowLevel + 1, voxelHolder, -offset[1], false)) {
+					if (canFlow(m_maxFlowLevel, voxelHolder, -offset[1], false)) {
 						sourceFound = true;
 						sourceCount++;
 					}
@@ -294,7 +380,7 @@ template<typename T, typename Base=VoxelType, typename Data=Voxel, typename Flow
 				}
 			}
 			InChunkVoxelLocation bottom(location.x, location.y - 1, location.z);
-			if (canFlow(m_maxFlowLevel + 1, chunk.extendedAt(bottom), -1, false)) {
+			if (canFlow(m_maxFlowLevel, chunk.extendedAt(bottom), -1, false)) {
 				if (canFlow(voxel.level, chunk.extendedAt(bottom), -1, true)) {
 					setFlow(chunk, bottom, voxel, -1);
 					invalidatedLocations.emplace(bottom);

@@ -49,7 +49,6 @@ class VoxelWorldRenderer {
 	std::optional<VoxelChunkLocation> getInvalidated(const glm::vec3 &playerPosition);
 	constexpr static int shaderProviderPriority(const VoxelShaderProvider *shaderProvider);
 	constexpr static float convertLightLevel(VoxelLightLevel level);
-	constexpr static bool almostEqual(float a, float b);
 	void build(
 			const VoxelChunkExtendedRef &chunk,
 			const InChunkVoxelLocation &location,

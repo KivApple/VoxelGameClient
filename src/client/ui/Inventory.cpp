@@ -103,7 +103,14 @@ void InventoryItem::updateTexture() {
 	if (shaderProvider == nullptr) return;
 	
 	std::vector<VoxelVertexData> vertexData;
-	m_voxel.buildVertexData(vertexData);
+	{
+		VoxelWorld dummyWorld;
+		auto chunk = dummyWorld.mutableChunk({0, 0, 0}, VoxelWorld::MissingChunkPolicy::CREATE);
+		InChunkVoxelLocation location(VOXEL_CHUNK_SIZE / 2, VOXEL_CHUNK_SIZE / 2, VOXEL_CHUNK_SIZE / 2);
+		auto &voxel = chunk.at(location);
+		voxel = m_voxel;
+		m_voxel.buildVertexData(chunk, location, vertexData);
+	}
 	std::vector<float> bufferData;
 	for (auto &vertex : vertexData) {
 		bufferData.insert(bufferData.end(), {

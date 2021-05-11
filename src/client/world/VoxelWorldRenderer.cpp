@@ -3,6 +3,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include "VoxelWorldRenderer.h"
 #include "world/VoxelWorld.h"
+#include "world/VoxelWorldUtils.h"
 
 VoxelWorldRenderer::VoxelWorldRenderer(VoxelWorld &world): m_world(world) {
 }
@@ -49,10 +50,6 @@ constexpr float VoxelWorldRenderer::convertLightLevel(VoxelLightLevel level) {
 	return std::max(std::min((float) level / MAX_VOXEL_LIGHT_LEVEL, 1.0f), 0.05f);
 }
 
-constexpr bool VoxelWorldRenderer::almostEqual(float a, float b) {
-	return fabsf(a - b) < 0.001f;
-}
-
 void VoxelWorldRenderer::build(
 		const VoxelChunkExtendedRef &chunk,
 		const InChunkVoxelLocation &location,
@@ -95,7 +92,7 @@ void VoxelWorldRenderer::build(
 	auto nextZLightLevel = convertLightLevel(nextZ.lightLevel());
 	
 	m_vertexDataBuffer.clear();
-	cur.buildVertexData(m_vertexDataBuffer);
+	cur.buildVertexData(chunk, location, m_vertexDataBuffer);
 	
 	auto it = parts.find(shaderProvider);
 	if (it == parts.end()) {
