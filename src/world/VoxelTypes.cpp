@@ -84,7 +84,7 @@ bool GrassVoxelType::update(
 	return false;
 }
 
-WaterVoxelType::WaterVoxelType(): VoxelType(8, 5, true, "water", "assets/textures/water.png", false, -2, true, false) {
+WaterVoxelType::WaterVoxelType(): VoxelType(8, 5, true, "water", "assets/textures/water.png", false, -1, true, false) {
 }
 
 void registerVoxelTypes(VoxelTypeRegistry &registry) {
