@@ -44,7 +44,7 @@ void GrassVoxelType::slowUpdate(
 					nLocation.z
 				});
 				if (nTop.lightLevel() < 9) continue;
-				if (nTop.shaderProvider() != nullptr) continue;
+				if (nTop.hasDensity()) continue;
 				n.setType(*this);
 				invalidatedLocations.emplace(nLocation);
 				break;
