@@ -248,6 +248,7 @@ template<typename T, typename Base=VoxelType, typename Data=Voxel, typename Flow
 		}
 		
 		virtual bool canFlow(
+				Data &source,
 				int sourceLevel,
 				const VoxelHolder &target,
 				int dy,
@@ -280,29 +281,37 @@ template<typename T, typename Base=VoxelType, typename Data=Voxel, typename Flow
 		virtual void setFlow(
 				const VoxelChunkExtendedMutableRef &chunk,
 				const InChunkVoxelLocation &location,
-				State &source,
-				int dy
+				Data &source,
+				int level
 		) {
 			auto &voxel = chunk.extendedAt(location);
 			voxel.setType(*m_flowType);
-			voxel.template get<FlowState>().level = dy >= 0 ? m_maxFlowLevel - 1 : m_maxFlowLevel;
+			voxel.template get<FlowState>().level = level;
 		}
 		
-		virtual void setFlow(
+		void setFlow(
+				const VoxelChunkExtendedMutableRef &chunk,
+				const InChunkVoxelLocation &location,
+				State &source,
+				int dy
+		) {
+			setFlow(chunk, location, source, dy >= 0 ? m_maxFlowLevel - 1 : m_maxFlowLevel);
+		}
+		
+		void setFlow(
 				const VoxelChunkExtendedMutableRef &chunk,
 				const InChunkVoxelLocation &location,
 				FlowState &source,
 				int dy
 		) {
 			assert(dy < 0 || source.level > 1);
-			auto &voxel = chunk.extendedAt(location);
-			voxel.setType(*m_flowType);
-			voxel.template get<FlowState>().level = dy >= 0 ? source.level - 1 : m_maxFlowLevel;
+			setFlow(chunk, location, source, dy >= 0 ? source.level - 1 : m_maxFlowLevel);
 		}
 		
 		virtual void setSource(
 				const VoxelChunkExtendedMutableRef &chunk,
-				const InChunkVoxelLocation &location
+				const InChunkVoxelLocation &location,
+				FlowState &flow
 		) {
 			chunk.extendedAt(location).setType(*this);
 		}
@@ -324,8 +333,8 @@ template<typename T, typename Base=VoxelType, typename Data=Voxel, typename Flow
 					{0, 0, 1}, {0, 0, -1}
 			};
 			InChunkVoxelLocation bottom(location.x, location.y - 1, location.z);
-			if (canFlow(m_maxFlowLevel, chunk.extendedAt(bottom), -1, false)) {
-				if (canFlow(m_maxFlowLevel, chunk.extendedAt(bottom), -1, true)) {
+			if (canFlow(voxel, m_maxFlowLevel, chunk.extendedAt(bottom), -1, false)) {
+				if (canFlow(voxel, m_maxFlowLevel, chunk.extendedAt(bottom), -1, true)) {
 					setFlow(chunk, bottom, voxel, -1);
 					invalidatedLocations.emplace(bottom);
 				}
@@ -336,7 +345,7 @@ template<typename T, typename Base=VoxelType, typename Data=Voxel, typename Flow
 							location.y + offset[1],
 							location.z + offset[2]
 					);
-					if (canFlow(m_maxFlowLevel, chunk.extendedAt(l), offset[1], true)) {
+					if (canFlow(voxel, m_maxFlowLevel, chunk.extendedAt(l), offset[1], true)) {
 						setFlow(chunk, l, voxel, offset[1]);
 						invalidatedLocations.emplace(l);
 					}
@@ -369,26 +378,32 @@ template<typename T, typename Base=VoxelType, typename Data=Voxel, typename Flow
 				InChunkVoxelLocation l(location.x + offset[0], location.y + offset[1], location.z + offset[2]);
 				auto &source = chunk.extendedAt(l);
 				if (&source.type() == this) {
-					if (canFlow(m_maxFlowLevel, voxelHolder, -offset[1], false)) {
+					if (canFlow(voxel, m_maxFlowLevel, voxelHolder, -offset[1], false)) {
 						sourceFound = true;
 						sourceCount++;
 					}
 				} else if (&source.type() == m_flowType) {
-					if (canFlow(source.template get<FlowState>().level, voxelHolder, -offset[1], false)) {
+					if (canFlow(
+							voxel,
+							source.template get<FlowState>().level,
+							voxelHolder,
+							-offset[1],
+							false
+					)) {
 						sourceFound = true;
 					}
 				}
 			}
 			InChunkVoxelLocation bottom(location.x, location.y - 1, location.z);
-			if (canFlow(m_maxFlowLevel, chunk.extendedAt(bottom), -1, false)) {
-				if (canFlow(voxel.level, chunk.extendedAt(bottom), -1, true)) {
+			if (canFlow(voxel, m_maxFlowLevel, chunk.extendedAt(bottom), -1, false)) {
+				if (canFlow(voxel, voxel.level, chunk.extendedAt(bottom), -1, true)) {
 					setFlow(chunk, bottom, voxel, -1);
 					invalidatedLocations.emplace(bottom);
 				}
 			} else {
 				for (auto &offset : offsets) {
 					InChunkVoxelLocation l(location.x + offset[0], location.y + offset[1], location.z + offset[2]);
-					if (canFlow(voxel.level, chunk.extendedAt(l), offset[1], true)) {
+					if (canFlow(voxel, voxel.level, chunk.extendedAt(l), offset[1], true)) {
 						setFlow(chunk, l, voxel, offset[1]);
 						invalidatedLocations.emplace(l);
 					}
@@ -403,7 +418,7 @@ template<typename T, typename Base=VoxelType, typename Data=Voxel, typename Flow
 				invalidatedLocations.emplace(location);
 				return true;
 			} else if (sourceCount >= 2 && m_canSpawn) {
-				setSource(chunk, location);
+				setSource(chunk, location, voxel);
 				invalidatedLocations.template emplace(location);
 			}
 			return false;
