@@ -55,6 +55,10 @@ public:
 		return false;
 	}
 	
+	bool hasDensity(const Voxel &voxel) {
+		return false;
+	}
+	
 };
 
 TEST(VoxelWorld, voxelType) {

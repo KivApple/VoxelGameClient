@@ -1,11 +1,13 @@
 #pragma once
 
 #include "Voxel.h"
+#include "LiquidVoxelType.h"
 #include "VoxelTypeRegistry.h"
 
 class AirVoxelType: public VoxelTypeHelper<AirVoxelType, Voxel, EmptyVoxelType> {
 public:
 	std::string toString(const Voxel &voxel);
+	bool hasDensity(const Voxel &voxel);
 	
 };
 
@@ -29,6 +31,12 @@ public:
 			unsigned long deltaTime,
 			std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
 	);
+	
+};
+
+class WaterVoxelType: public Liquid<WaterVoxelType, SimpleVoxelType>::VoxelType {
+public:
+	WaterVoxelType();
 	
 };
 

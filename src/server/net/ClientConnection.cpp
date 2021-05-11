@@ -20,6 +20,7 @@ ClientConnection::ClientConnection(ServerTransport &transport): m_transport(tran
 	m_inventory[2].setType(transport.engine()->voxelTypeRegistry().get("stone"));
 	m_inventory[3].setType(transport.engine()->voxelTypeRegistry().get("lava"));
 	m_inventory[4].setType(transport.engine()->voxelTypeRegistry().get("glass"));
+	m_inventory[4].setType(transport.engine()->voxelTypeRegistry().get("water"));
 }
 
 void ClientConnection::updatePosition(const glm::vec3 &position, float yaw, float pitch, int viewRadius) {

@@ -117,11 +117,11 @@ public:
 		m_updatedAt = updatedAt;
 	}
 	
-	[[nodiscard]] unsigned long storedAt() const {
+	[[nodiscard]] long storedAt() const {
 		return m_storedAt;
 	}
 	
-	void setStoredAt(unsigned long storedAt) {
+	void setStoredAt(long storedAt) {
 		m_storedAt = storedAt;
 	}
 	

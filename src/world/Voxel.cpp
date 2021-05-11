@@ -157,6 +157,10 @@ bool EmptyVoxelType::update(
 	return false;
 }
 
+bool EmptyVoxelType::hasDensity(const Voxel &voxel) {
+	return true;
+}
+
 void VoxelHolder::serialize(VoxelDeserializer &deserializer) {
 	auto &voxel = get();
 	auto savedPosition = deserializer.adapter().currentReadPos();
@@ -170,9 +174,11 @@ SimpleVoxelType::SimpleVoxelType(
 		const std::string &textureFileName,
 		bool unwrap,
 		VoxelLightLevel lightLevel,
-		bool transparent
+		bool transparent,
+		bool hasDensity
 ): m_name(std::move(name)), m_unwrap(unwrap), m_lightLevel(lightLevel), m_transparent(transparent),
-	VoxelTextureShaderProvider(textureFileName) {
+	m_hasDensity(hasDensity), VoxelTextureShaderProvider(textureFileName)
+{
 }
 
 #ifndef HEADLESS
@@ -181,9 +187,11 @@ SimpleVoxelType::SimpleVoxelType(
 		name, const GL::Texture &texture,
 		bool unwrap,
 		VoxelLightLevel lightLevel,
-		bool transparent
+		bool transparent,
+		bool hasDensity
 ): m_name(std::move(name)), m_unwrap(unwrap), m_lightLevel(lightLevel), m_transparent(transparent),
-	VoxelTextureShaderProvider(texture) {
+   m_hasDensity(hasDensity), VoxelTextureShaderProvider(texture)
+{
 }
 #endif
 
@@ -301,4 +309,8 @@ bool SimpleVoxelType::update(
 		std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
 ) {
 	return false;
+}
+
+bool SimpleVoxelType::hasDensity(const Voxel &voxel) {
+	return m_hasDensity;
 }

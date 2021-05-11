@@ -501,7 +501,7 @@ void VoxelChunkExtendedMutableRef::update(unsigned long time) {
 	assert(time > 0);
 	std::unordered_set<InChunkVoxelLocation> invalidatedLocations;
 	auto storedAt = m_chunk->storedAt();
-	assert(time > storedAt);
+	assert((signed long) time > storedAt);
 	auto deltaTime = time - m_chunk->updatedAt();
 	if (m_chunk->pendingInitialUpdate()) {
 		m_chunk->setPendingInitialUpdate(false);

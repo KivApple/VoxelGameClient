@@ -70,6 +70,8 @@ static const VoxelLightLevel MAX_VOXEL_LIGHT_LEVEL = 16;
 class VoxelType {
 public:
 	virtual ~VoxelType() = default;
+	virtual void registerChildren(const std::string &name, VoxelTypeRegistry &registry) {
+	}
 	virtual void link(VoxelTypeRegistry &registry) {
 	}
 	virtual Voxel &invokeInit(void *ptr) = 0;
@@ -98,6 +100,7 @@ public:
 			unsigned long deltaTime,
 			std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
 	) = 0;
+	virtual bool invokeHasDensity(const Voxel &voxel) = 0;
 	
 };
 
@@ -278,6 +281,10 @@ public:
 		);
 	}
 	
+	bool invokeHasDensity(const Voxel &voxel) override {
+		return static_cast<T*>(this)->T::hasDensity(static_cast<const Data&>(voxel));
+	}
+	
 };
 
 class EmptyVoxelType: public VoxelTypeHelper<EmptyVoxelType, Voxel> {
@@ -301,6 +308,7 @@ public:
 			unsigned long deltaTime,
 			std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
 	);
+	bool hasDensity(const Voxel &voxel);
 	
 };
 
@@ -424,6 +432,10 @@ public:
 		return get().type->invokeUpdate(chunk, location, get(), deltaTime, invalidatedLocations);
 	}
 	
+	bool hasDensity() const {
+		return get().type->invokeHasDensity(get());
+	}
+	
 };
 
 class SimpleVoxelType: public VoxelTypeHelper<SimpleVoxelType>, public VoxelTextureShaderProvider {
@@ -431,6 +443,7 @@ class SimpleVoxelType: public VoxelTypeHelper<SimpleVoxelType>, public VoxelText
 	bool m_unwrap;
 	VoxelLightLevel m_lightLevel;
 	bool m_transparent;
+	bool m_hasDensity;
 
 public:
 	SimpleVoxelType(
@@ -438,7 +451,8 @@ public:
 			const std::string &textureFileName,
 			bool unwrap = false,
 			VoxelLightLevel lightLevel = 0,
-			bool transparent = false
+			bool transparent = false,
+			bool hasDensity = true
 	);
 
 #ifndef HEADLESS
@@ -447,7 +461,8 @@ public:
 			const GL::Texture &texture,
 			bool unwrap = false,
 			VoxelLightLevel lightLevel = 0,
-			bool transparent = false
+			bool transparent = false,
+			bool hasDensity = true
 	);
 #endif
 	std::string toString(const Voxel &voxel);
@@ -468,5 +483,6 @@ public:
 			unsigned long deltaTime,
 			std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
 	);
+	bool hasDensity(const Voxel &voxel);
 	
 };

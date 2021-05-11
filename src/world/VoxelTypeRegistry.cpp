@@ -22,6 +22,7 @@ VoxelTypeRegistry::VoxelTypeRegistry() {
 }
 
 VoxelType &VoxelTypeRegistry::add(std::string name, std::unique_ptr<VoxelType> type) {
+	type->registerChildren(name, *this);
 	auto &typeRef = *type;
 	std::unique_lock<std::shared_mutex> lock(m_mutex);
 	LOG(INFO) << "Registered \"" << name << "\" voxel type";

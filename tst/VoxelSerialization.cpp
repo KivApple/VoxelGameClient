@@ -48,6 +48,10 @@ public:
 		return false;
 	}
 	
+	bool hasDensity(const Voxel &voxel) {
+		return false;
+	}
+	
 };
 
 TEST(VoxelSerialization, contextBasic) {

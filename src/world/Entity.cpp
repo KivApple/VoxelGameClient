@@ -155,11 +155,11 @@ void Entity::applyMovementConstraint(
 				if (!(dx == -width || dx == width
 					  || dz == -width || dz == width
 					  || dy == -1 || dy == height)) continue;
-				if (chunk.extendedAt(
+				if (!chunk.extendedAt(
 						(int) lroundf(prevPosition.x - (float) chunkLocationZero.x + (float) dx),
 						(int) lroundf(prevPosition.y - (float) chunkLocationZero.y + (float) dy),
 						(int) lroundf(prevPosition.z - (float) chunkLocationZero.z + (float) dz)
-				).shaderProvider() == nullptr) {
+				).hasDensity()) {
 					continue;
 				}
 				if ((dx > 0) && (dy > -1) && (dy < height) && (dz > -width) && (dz < width)) {              //x
@@ -196,11 +196,11 @@ void Entity::applyMovementConstraint(
 				if (!(dx == -width || dx == width
 					  || dz == -width || dz == width
 					  || dy == -1 || dy == height)) continue;
-				if (chunk.extendedAt(
+				if (!chunk.extendedAt(
 						(int) lroundf(prevPosition.x - (float) chunkLocationZero.x + (float) dx),
 						(int) lroundf(prevPosition.y - (float) chunkLocationZero.y + (float) dy),
 						(int) lroundf(prevPosition.z - (float) chunkLocationZero.z + (float) dz)
-				).shaderProvider() == nullptr) {
+				).hasDensity()) {
 					continue;
 				}
 				constraintMovementAxis(
@@ -231,11 +231,11 @@ void Entity::applyMovementConstraint(
 		for (int dy = -1; dy <= height; dy += height + 1) {
 			for (int dz = -width; dz <= width; dz += 2 * width) {
 				//if (dx == 0 && dy == 0 && dz == 0) continue;
-				if (chunk.extendedAt(
+				if (!chunk.extendedAt(
 					(int) lroundf(prevPosition.x - (float) chunkLocationZero.x + (float) dx),
 					(int) lroundf(prevPosition.y - (float) chunkLocationZero.y + (float) dy),
 					(int) lroundf(prevPosition.z - (float) chunkLocationZero.z + (float) dz)
-				).shaderProvider() == nullptr) {
+				).hasDensity()) {
 					continue;
 				}
 				if ((dx > 0) && (dy > 0) && (dz > 0)) {        //x y z

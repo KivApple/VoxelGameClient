@@ -5,6 +5,10 @@ std::string AirVoxelType::toString(const Voxel &voxel) {
 	return "air";
 }
 
+bool AirVoxelType::hasDensity(const Voxel &voxel) {
+	return false;
+}
+
 GrassVoxelType::GrassVoxelType(): VoxelTypeHelper("grass", "assets/textures/grass.png", true) {
 }
 
@@ -58,7 +62,7 @@ bool GrassVoxelType::update(
 		std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
 ) {
 	bool die = false;
-	if (chunk.extendedAt(location.x, location.y + 1, location.z).shaderProvider() != nullptr) {
+	if (chunk.extendedAt(location.x, location.y + 1, location.z).hasDensity()) {
 		die = true;
 	}
 	for (int dz = -1; dz <= 1; dz++) {
@@ -80,11 +84,15 @@ bool GrassVoxelType::update(
 	return false;
 }
 
+WaterVoxelType::WaterVoxelType(): VoxelType(7, 5, true, "water", "assets/textures/water.png", false, -2, true, false) {
+}
+
 void registerVoxelTypes(VoxelTypeRegistry &registry) {
 	registry.make<AirVoxelType>("air");
 	registry.make<GrassVoxelType>("grass");
 	registry.make<SimpleVoxelType>("dirt", "dirt", "assets/textures/mud.png");
 	registry.make<SimpleVoxelType>("stone", "stone", "assets/textures/stone.png");
+	registry.make<WaterVoxelType>("water");
 	registry.make<SimpleVoxelType>(
 			"lava",
 			"lava",
