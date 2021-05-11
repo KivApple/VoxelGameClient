@@ -1,5 +1,4 @@
 #include "VoxelTypes.h"
-#include "VoxelWorld.h"
 
 std::string AirVoxelType::toString(const Voxel &voxel) {
 	return "air";
