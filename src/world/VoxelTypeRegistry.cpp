@@ -1,9 +1,9 @@
 #include <easylogging++.h>
 #include "VoxelTypeRegistry.h"
 
-class UnknownVoxelType: public VoxelTypeHelper<UnknownVoxelType, Voxel, SimpleVoxelType> {
+class UnknownVoxelType: public VoxelType<UnknownVoxelType, Voxel, SimpleVoxelType> {
 public:
-	UnknownVoxelType(VoxelTypeRegistry &registry, std::string name): VoxelTypeHelper(
+	UnknownVoxelType(VoxelTypeRegistry &registry, std::string name): VoxelType(
 			std::move(name),
 #ifdef HEADLESS
 			"assets/textures/unknown_block.png"
@@ -21,7 +21,7 @@ VoxelTypeRegistry::VoxelTypeRegistry() {
 #endif
 }
 
-VoxelType &VoxelTypeRegistry::add(std::string name, std::unique_ptr<VoxelType> type) {
+VoxelTypeInterface &VoxelTypeRegistry::add(std::string name, std::unique_ptr<VoxelTypeInterface> type) {
 	type->registerChildren(name, *this);
 	auto &typeRef = *type;
 	std::unique_lock<std::shared_mutex> lock(m_mutex);
@@ -30,7 +30,7 @@ VoxelType &VoxelTypeRegistry::add(std::string name, std::unique_ptr<VoxelType> t
 	return typeRef;
 }
 
-VoxelType &VoxelTypeRegistry::get(const std::string &name) {
+VoxelTypeInterface &VoxelTypeRegistry::get(const std::string &name) {
 	if (name == "empty") {
 		return EmptyVoxelType::INSTANCE;
 	}

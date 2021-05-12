@@ -8,7 +8,7 @@ bool AirVoxelType::hasDensity(const Voxel &voxel) {
 	return false;
 }
 
-GrassVoxelType::GrassVoxelType(): VoxelTypeHelper("grass", "assets/textures/grass.png", true) {
+GrassVoxelType::GrassVoxelType(): VoxelType("grass", "assets/textures/grass.png", true) {
 }
 
 void GrassVoxelType::link(VoxelTypeRegistry &registry) {
@@ -83,7 +83,7 @@ bool GrassVoxelType::update(
 	return false;
 }
 
-WaterVoxelType::WaterVoxelType(): VoxelType(8, 5, true, "water", "assets/textures/water.png", false, -1, true, false) {
+WaterVoxelType::WaterVoxelType(): SourceVoxelType(8, 5, true, "water", "assets/textures/water.png", false, -1, true, false) {
 }
 
 void registerVoxelTypes(VoxelTypeRegistry &registry) {

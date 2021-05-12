@@ -13,7 +13,7 @@ struct MyVoxel: public Voxel {
 	}
 };
 
-class MyVoxelType: public VoxelTypeHelper<MyVoxelType, MyVoxel> {
+class MyVoxelType: public VoxelType<MyVoxelType, MyVoxel> {
 public:
 	std::string toString(const MyVoxel &voxel) {
 		return "test";

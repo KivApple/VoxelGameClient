@@ -68,9 +68,9 @@ typedef bitsery::Deserializer<bitsery::InputBufferAdapter<std::string>, const Vo
 typedef int8_t VoxelLightLevel;
 static const VoxelLightLevel MAX_VOXEL_LIGHT_LEVEL = 16;
 
-class VoxelType {
+class VoxelTypeInterface {
 public:
-	virtual ~VoxelType() = default;
+	virtual ~VoxelTypeInterface() = default;
 	virtual void registerChildren(const std::string &name, VoxelTypeRegistry &registry) {
 	}
 	virtual void link(VoxelTypeRegistry &registry) {
@@ -112,13 +112,13 @@ public:
 
 class VoxelTypeSerializationContext {
 	VoxelTypeRegistry &m_registry;
-	std::vector<std::pair<std::string, std::reference_wrapper<VoxelType>>> m_types;
-	std::unordered_map<const VoxelType*, int> m_typeMap;
+	std::vector<std::pair<std::string, std::reference_wrapper<VoxelTypeInterface>>> m_types;
+	std::unordered_map<const VoxelTypeInterface*, int> m_typeMap;
 	
 public:
 	explicit VoxelTypeSerializationContext(VoxelTypeRegistry &registry);
-	int typeId(const VoxelType &type) const;
-	VoxelType &findTypeById(int id) const;
+	int typeId(const VoxelTypeInterface &type) const;
+	VoxelTypeInterface &findTypeById(int id) const;
 	std::vector<std::string> names() const;
 	void setTypeId(int id, const std::string &name);
 	[[nodiscard]] int size() const {
@@ -192,7 +192,7 @@ namespace bitsery::traits {
 }
 
 struct Voxel {
-	VoxelType *type;
+	VoxelTypeInterface *type;
 	VoxelLightLevel lightLevel = MAX_VOXEL_LIGHT_LEVEL;
 	
 	template<typename S> void serialize(S& s) {
@@ -204,9 +204,9 @@ struct Voxel {
 
 static const size_t MAX_VOXEL_DATA_SIZE = sizeof(Voxel) + 16;
 
-template<typename T, typename Data=Voxel, typename Base=VoxelType> class VoxelTypeHelper: public Base {
+template<typename T, typename Data=Voxel, typename Base=VoxelTypeInterface> class VoxelType: public Base {
 public:
-	template<typename ...Args> explicit VoxelTypeHelper(Args&&... args): Base(std::forward<Args>(args)...) {
+	template<typename ...Args> explicit VoxelType(Args&&... args): Base(std::forward<Args>(args)...) {
 	}
 	
 	Voxel &invokeInit(void *ptr) override {
@@ -298,7 +298,7 @@ public:
 	
 };
 
-class EmptyVoxelType: public VoxelTypeHelper<EmptyVoxelType, Voxel> {
+class EmptyVoxelType: public VoxelType<EmptyVoxelType, Voxel> {
 public:
 	static EmptyVoxelType INSTANCE;
 	
@@ -343,7 +343,7 @@ public:
 	VoxelHolder(): VoxelHolder(EmptyVoxelType::INSTANCE) {
 	}
 	
-	explicit VoxelHolder(VoxelType &type) {
+	explicit VoxelHolder(VoxelTypeInterface &type) {
 		type.invokeInit(m_data);
 	}
 	
@@ -390,11 +390,11 @@ public:
 		return *reinterpret_cast<T*>(m_data);
 	}
 
-	[[nodiscard]] VoxelType &type() const {
+	[[nodiscard]] VoxelTypeInterface &type() const {
 		return *get().type;
 	}
 
-	void setType(VoxelType &newType) {
+	void setType(VoxelTypeInterface &newType) {
 		auto savedLightLevel = lightLevel();
 		get().type->invokeDestroy(get());
 		newType.invokeInit(m_data);
@@ -458,7 +458,7 @@ public:
 	
 };
 
-class SimpleVoxelType: public VoxelTypeHelper<SimpleVoxelType>, public VoxelTextureShaderProvider {
+class SimpleVoxelType: public VoxelType<SimpleVoxelType>, public VoxelTextureShaderProvider {
 	std::string m_name;
 	bool m_unwrap;
 	VoxelLightLevel m_lightLevel;

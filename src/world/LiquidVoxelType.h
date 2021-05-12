@@ -8,7 +8,7 @@
 #include "VoxelTypeRegistry.h"
 #include "VoxelWorldUtils.h"
 
-template<typename T, typename Base=VoxelType, typename Data=Voxel, typename FlowData=Data> struct Liquid {
+template<typename T, typename Base=VoxelTypeInterface, typename Data=Voxel, typename FlowData=Data> struct Liquid {
 	struct FlowState: public FlowData {
 		uint8_t level = 0;
 		uint8_t countdown = 0;
@@ -20,25 +20,25 @@ template<typename T, typename Base=VoxelType, typename Data=Voxel, typename Flow
 		}
 	};
 	
-	class VoxelType;
+	class SourceVoxelType;
 	
-	class FlowVoxelType: public VoxelTypeHelper<FlowVoxelType, FlowState, Base> {
-		VoxelType &m_type;
+	class FlowVoxelType: public VoxelType<FlowVoxelType, FlowState, Base> {
+		VoxelTypeInterface &m_type;
 		
 	public:
 		template<typename ...Args> explicit FlowVoxelType(
-				VoxelType &type, Args&&... args
-		): VoxelTypeHelper<FlowVoxelType, FlowState, Base>(std::forward<Args>(args)...), m_type(type) {
+				VoxelTypeInterface &type, Args&&... args
+		): VoxelType<FlowVoxelType, FlowState, Base>(std::forward<Args>(args)...), m_type(type) {
 		}
 		
 		void registerChildren(const std::string &name, VoxelTypeRegistry &registry) override {
 		}
 		
-		const VoxelType &sourceType() const {
+		[[nodiscard]] const VoxelTypeInterface &sourceType() const {
 			return m_type;
 		}
 		
-		VoxelType &sourceType() {
+		VoxelTypeInterface &sourceType() {
 			return m_type;
 		}
 		
@@ -92,31 +92,31 @@ template<typename T, typename Base=VoxelType, typename Data=Voxel, typename Flow
 		}
 	};
 	
-	class VoxelType: public VoxelTypeHelper<T, State, Base> {
+	class SourceVoxelType: public VoxelType<T, State, Base> {
 		FlowVoxelType *m_flowType;
 		int m_maxFlowLevel;
 		int m_flowSlowdown;
 		bool m_canSpawn;
 		bool m_flowRegistered = false;
-		::VoxelType *m_air = nullptr;
+		::VoxelTypeInterface *m_air = nullptr;
 		
 	public:
-		template<typename ...Args> explicit VoxelType(
+		template<typename ...Args> explicit SourceVoxelType(
 				int maxFlowLevel, int flowSlowdown, bool canSpawn, Args&&... args
-		): VoxelTypeHelper<T, State, Base>(args...), m_flowType(new FlowVoxelType(
+		): VoxelType<T, State, Base>(args...), m_flowType(new FlowVoxelType(
 				*this,
 				std::forward<Args>(args)...
 		)), m_maxFlowLevel(maxFlowLevel), m_flowSlowdown(flowSlowdown), m_canSpawn(canSpawn) {
 			assert(maxFlowLevel < VOXEL_CHUNK_SIZE);
 		}
 		
-		~VoxelType() override {
+		~SourceVoxelType() override {
 			if (m_flowRegistered) return;
 			delete m_flowType;
 		}
 		
 		void link(VoxelTypeRegistry &registry) override {
-			VoxelTypeHelper<T, State, Base>::link(registry);
+			VoxelType<T, State, Base>::link(registry);
 			m_air = &registry.get("air");
 		}
 		
@@ -386,9 +386,13 @@ template<typename T, typename Base=VoxelType, typename Data=Voxel, typename Flow
 				}
 			} else {
 				for (auto &offset : offsets) {
-					InChunkVoxelLocation l(location.x + offset[0], location.y + offset[1], location.z + offset[2]);
+					InChunkVoxelLocation l(
+							location.x + offset[0],
+							location.y + offset[1],
+							location.z + offset[2]
+					);
 					if (canFlow(voxel, voxel.level, chunk.extendedAt(l), offset[1], true)) {
-						setFlow(chunk, l, voxel, offset[1] >= 0 ? m_maxFlowLevel - 1 : m_maxFlowLevel);
+						setFlow(chunk, l, voxel, voxel.level - 1);
 						invalidatedLocations.emplace(l);
 					}
 				}

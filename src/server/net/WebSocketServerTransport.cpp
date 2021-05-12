@@ -107,7 +107,7 @@ void WebSocketServerTransport::Connection::newPendingChunk() {
 
 /* WebSocketServerTransport */
 
-WebSocketServerTransport::WebSocketServerTransport(uint16_t port): m_port(port), m_worker("WebSocketServerWorker") {
+WebSocketServerTransport::WebSocketServerTransport(uint16_t port): m_port(port), m_worker("WebSocketServer") {
 	m_server.clear_access_channels(websocketpp::log::alevel::all);
 	m_server.init_asio();
 }

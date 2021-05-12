@@ -46,7 +46,7 @@ VoxelTypeSerializationContext::VoxelTypeSerializationContext(VoxelTypeRegistry &
 }
 
 void VoxelTypeSerializationContext::update() {
-	m_registry.forEach([this] (const std::string &name, VoxelType &type) {
+	m_registry.forEach([this] (const std::string &name, VoxelTypeInterface &type) {
 		if (m_typeMap.emplace(&type, (int) m_types.size()).second) {
 			m_types.emplace_back(name, type);
 		}
@@ -103,12 +103,12 @@ void VoxelTypeSerializationContext::setTypeId(int id, const std::string &name) {
 	m_typeMap[&type] = id;
 }
 
-int VoxelTypeSerializationContext::typeId(const VoxelType &type) const {
+int VoxelTypeSerializationContext::typeId(const VoxelTypeInterface &type) const {
 	auto it = m_typeMap.find(&type);
 	return it != m_typeMap.end() ? it->second : -1;
 }
 
-VoxelType &VoxelTypeSerializationContext::findTypeById(int id) const {
+VoxelTypeInterface &VoxelTypeSerializationContext::findTypeById(int id) const {
 	return id >= 0 && id < m_types.size() ?
 		m_types[id].second.get() :
 		m_registry.get("unknown_" + std::to_string(id));

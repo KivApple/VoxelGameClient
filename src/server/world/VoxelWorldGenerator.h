@@ -18,12 +18,12 @@ struct VoxelWorldGeneratorJob {
 
 class VoxelWorldGenerator: public VoxelChunkLoader, public Worker<VoxelWorldGeneratorJob> {
 	VoxelTypeRegistry &m_registry;
-	VoxelType &m_air;
-	VoxelType &m_grass;
-	VoxelType &m_dirt;
-	VoxelType &m_stone;
-	VoxelType &m_lava;
-	VoxelType &m_glass;
+	VoxelTypeInterface &m_air;
+	VoxelTypeInterface &m_grass;
+	VoxelTypeInterface &m_dirt;
+	VoxelTypeInterface &m_stone;
+	VoxelTypeInterface &m_lava;
+	VoxelTypeInterface &m_glass;
 
 public:
 	explicit VoxelWorldGenerator(VoxelTypeRegistry &registry);
@@ -31,7 +31,7 @@ public:
 	void load(VoxelChunkMutableRef &chunk) override;
 	void loadAsync(VoxelWorld &world, const VoxelChunkLocation &location) override;
 	void cancelLoadAsync(VoxelWorld &world, const VoxelChunkLocation &location) override;
-	VoxelType &air() {
+	VoxelTypeInterface &air() {
 		return m_air;
 	}
 	

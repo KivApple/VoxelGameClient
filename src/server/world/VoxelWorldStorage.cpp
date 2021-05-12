@@ -116,7 +116,7 @@ void VoxelWorldStorage::openDatabase() {
 		return;
 	}
 	retVal = SQLITE_DONE;
-	m_registry.forEach([this, &existingTypes, stmt, &retVal](const std::string &name, VoxelType &type) {
+	m_registry.forEach([this, &existingTypes, stmt, &retVal](const std::string &name, VoxelTypeInterface &type) {
 		if (existingTypes.count(name)) return;
 		if (retVal != SQLITE_DONE) return;
 		auto id = m_serializationContext.typeId(type);

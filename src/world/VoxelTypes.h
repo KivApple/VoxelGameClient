@@ -4,16 +4,16 @@
 #include "LiquidVoxelType.h"
 #include "VoxelTypeRegistry.h"
 
-class AirVoxelType: public VoxelTypeHelper<AirVoxelType, Voxel, EmptyVoxelType> {
+class AirVoxelType: public VoxelType<AirVoxelType, Voxel, EmptyVoxelType> {
 public:
 	std::string toString(const Voxel &voxel);
 	bool hasDensity(const Voxel &voxel);
 	
 };
 
-class GrassVoxelType: public VoxelTypeHelper<GrassVoxelType, Voxel, SimpleVoxelType> {
-	VoxelType *m_dirt = nullptr;
-	VoxelType *m_lava = nullptr;
+class GrassVoxelType: public VoxelType<GrassVoxelType, Voxel, SimpleVoxelType> {
+	VoxelTypeInterface *m_dirt = nullptr;
+	VoxelTypeInterface *m_lava = nullptr;
 	
 public:
 	GrassVoxelType();
@@ -34,7 +34,7 @@ public:
 	
 };
 
-class WaterVoxelType: public Liquid<WaterVoxelType, SimpleVoxelType>::VoxelType {
+class WaterVoxelType: public Liquid<WaterVoxelType, SimpleVoxelType>::SourceVoxelType {
 public:
 	WaterVoxelType();
 	
