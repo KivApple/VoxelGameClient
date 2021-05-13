@@ -18,7 +18,7 @@
 #include "../client/ShaderProgram.h"
 #endif
 
-class InChunkVoxelLocation;
+struct InChunkVoxelLocation;
 class VoxelChunkExtendedRef;
 class VoxelChunkExtendedMutableRef;
 class VoxelTypeRegistry;

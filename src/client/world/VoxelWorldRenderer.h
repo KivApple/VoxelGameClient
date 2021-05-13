@@ -59,7 +59,7 @@ class VoxelWorldRenderer {
 	void buildInvalidated(const glm::vec3 &playerPosition);
 	GL::Buffer allocateBuffer();
 	void freeBuffer(GL::Buffer &&buffer);
-	constexpr static bool isChunkVisible(
+	static bool isChunkVisible(
 			const VoxelChunkLocation &location,
 			const VoxelChunkLocation &playerLocation,
 			int radius

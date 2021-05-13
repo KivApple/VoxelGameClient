@@ -155,7 +155,7 @@ template<typename T, typename Base=VoxelTypeInterface, typename Data=Voxel, type
 			if (level == INT_MAX) {
 				level = m_maxFlowLevel - 1;
 			}
-			return (float) (m_maxFlowLevel - (std::min(level, m_maxFlowLevel))) / m_maxFlowLevel;
+			return static_cast<float>(m_maxFlowLevel - std::min(level, m_maxFlowLevel)) / m_maxFlowLevel;
 		}
 		
 		float calculateModelOffset(const VoxelHolder &voxel) {
@@ -345,7 +345,9 @@ template<typename T, typename Base=VoxelTypeInterface, typename Data=Voxel, type
 				unsigned long deltaTime,
 				std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
 		) {
-			voxel.countdown = deltaTime < m_flowSlowdown ? voxel.countdown + deltaTime : m_flowSlowdown;
+			voxel.countdown = deltaTime < (unsigned) m_flowSlowdown ?
+					voxel.countdown + deltaTime :
+					(unsigned) m_flowSlowdown;
 			if (voxel.countdown < m_flowSlowdown) {
 				return true;
 			}
@@ -407,7 +409,7 @@ template<typename T, typename Base=VoxelTypeInterface, typename Data=Voxel, type
 				return true;
 			} else if (sourceCount >= 2 && m_canSpawn) {
 				setSource(chunk, location, voxel);
-				invalidatedLocations.template emplace(location);
+				invalidatedLocations.emplace(location);
 			}
 			return false;
 		}

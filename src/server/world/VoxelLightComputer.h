@@ -46,7 +46,7 @@ class VoxelLightComputer: public Worker<VoxelLightComputerJob> {
 	void computeInitialLightLevels(VoxelChunkMutableRef &chunk, bool load);
 	void runJob(const VoxelLightComputerJob &job);
 	
-	friend class VoxelLightComputerJob;
+	friend struct VoxelLightComputerJob;
 
 public:
 	VoxelLightComputer();

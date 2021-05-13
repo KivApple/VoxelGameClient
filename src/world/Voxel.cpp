@@ -67,9 +67,9 @@ void VoxelTypeSerializationContext::setTypeId(int id, const std::string &name) {
 			//LOG(TRACE) << "Type \"" << name << "\" has id=" << it->second;
 		}
 	}
-	if (id >= m_types.size()) {
+	if (id >= (int) m_types.size()) {
 		m_types.reserve(id + 1);
-		while (m_types.size() < id) {
+		while ((int) m_types.size() < id) {
 			//LOG(TRACE) << "Adding empty voxel type with id=" << m_types.size();
 			m_types.emplace_back("empty", EmptyVoxelType::INSTANCE);
 		}
@@ -109,7 +109,7 @@ int VoxelTypeSerializationContext::typeId(const VoxelTypeInterface &type) const 
 }
 
 VoxelTypeInterface &VoxelTypeSerializationContext::findTypeById(int id) const {
-	return id >= 0 && id < m_types.size() ?
+	return id >= 0 && id < (int) m_types.size() ?
 		m_types[id].second.get() :
 		m_registry.get("unknown_" + std::to_string(id));
 }

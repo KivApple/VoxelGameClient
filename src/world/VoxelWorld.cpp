@@ -1,4 +1,5 @@
 #include <random>
+#include <optional>
 #include <vector>
 #include <easylogging++.h>
 #include "VoxelWorld.h"
@@ -742,7 +743,7 @@ void VoxelWorld::unloadChunks(const std::vector<VoxelChunkLocation> &locations) 
 	for (auto &location : locations) {
 		auto it = m_chunks.find(location);
 		if (it == m_chunks.end()) continue;
-		if (it->second->storedAt() < it->second->updatedAt() && m_chunkLoader != nullptr) {
+		if (it->second->storedAt() < (long) it->second->updatedAt() && m_chunkLoader != nullptr) {
 			if (it->second->unloading()) continue;
 			it->second->setUnloading(true);
 			m_chunkLoader->storeChunkAsync(*this, location);
@@ -760,7 +761,7 @@ void VoxelWorld::unload() {
 	std::unique_lock<std::mutex> lock(m_mutex);
 	auto it = m_chunks.begin();
 	while (it != m_chunks.end()) {
-		if (it->second->storedAt() < it->second->updatedAt() && m_chunkLoader != nullptr) {
+		if (it->second->storedAt() < (long) it->second->updatedAt() && m_chunkLoader != nullptr) {
 			if (it->second->unloading()) continue;
 			it->second->setUnloading(true);
 			m_chunkLoader->storeChunkAsync(*this, it->first);

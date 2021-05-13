@@ -50,7 +50,7 @@ class VoxelWorldStorage: public VoxelChunkLoader, public Worker<VoxelWorldStorag
 	void closeDatabase();
 	void store(const VoxelChunkRef &chunk);
 	
-	friend class VoxelWorldStorageJob;
+	friend struct VoxelWorldStorageJob;
 	
 public:
 	VoxelWorldStorage(std::string fileName, VoxelTypeRegistry &registry, VoxelChunkLoader &generator);

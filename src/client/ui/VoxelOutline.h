@@ -6,9 +6,9 @@
 #include "../OpenGL.h"
 #include "world/VoxelLocation.h"
 
-class VoxelVertexData;
+struct VoxelVertexData;
 class VoxelChunkExtendedRef;
-class PlayerPointingAt;
+struct PlayerPointingAt;
 
 class VoxelOutline {
 	GL::Buffer m_buffer;

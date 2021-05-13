@@ -66,7 +66,7 @@ public:
 	}
 	
 	void invalidateStorage() {
-		if (m_storedAt >= m_updatedAt) {
+		if (m_storedAt >= (long) m_updatedAt) {
 			m_storedAt = m_updatedAt - 1;
 		}
 	}

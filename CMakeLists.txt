@@ -40,17 +40,23 @@ else()
 	target_compile_definitions(asio::asio INTERFACE ASIO_STANDALONE)
 	#target_sources(asio::asio INTERFACE lib/asio/asio/src/asio.cpp)
 	
+	add_subdirectory(lib/zlib)
+	include_directories(lib/zlib ${CMAKE_CURRENT_BINARY_DIR}/lib/zlib)
+	
 	add_library(websocketpp::websocketpp INTERFACE IMPORTED)
 	target_include_directories(websocketpp::websocketpp INTERFACE lib/websocketpp)
-	target_compile_definitions(websocketpp::websocketpp INTERFACE _WEBSOCKETPP_CPP11_THREAD_)
+	target_compile_definitions(websocketpp::websocketpp INTERFACE _WEBSOCKETPP_CPP11_STL_ _WEBSOCKETPP_CPP11_THREAD_)
 	
 	add_subdirectory(lib/googletest)
-	add_subdirectory(lib/zlib)
 	
 	if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
 		message("Detected Windows")
 		
-		set(CMAKE_EXE_LINKER_FLAGS "-static -static-libgcc -static-libstdc++ -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive")
+		if(MSVC)
+			add_compile_definitions(NOMINMAX)
+		else()
+			set(CMAKE_EXE_LINKER_FLAGS "-static -static-libgcc -static-libstdc++ -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive")
+		endif()
 		
 		set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake" ${CMAKE_MODULE_PATH})
 	endif()

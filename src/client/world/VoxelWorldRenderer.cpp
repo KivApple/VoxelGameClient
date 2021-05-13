@@ -105,7 +105,7 @@ void VoxelWorldRenderer::build(
 	auto y0 = (float) location.y;
 	auto z0 = (float) location.z;
 	
-	for (int i = 0; i < m_vertexDataBuffer.size(); i += 3) {
+	for (unsigned int i = 0; i < m_vertexDataBuffer.size(); i += 3) {
 		auto &v0 = m_vertexDataBuffer[i];
 		auto &v1 = m_vertexDataBuffer[i + 1];
 		auto &v2 = m_vertexDataBuffer[i + 2];
@@ -278,7 +278,7 @@ void VoxelWorldRenderer::updateBuffersAndScheduleRender(
 	}
 }
 
-constexpr bool VoxelWorldRenderer::isChunkVisible(
+bool VoxelWorldRenderer::isChunkVisible(
 		const VoxelChunkLocation &location,
 		const VoxelChunkLocation &playerLocation,
 		int radius
