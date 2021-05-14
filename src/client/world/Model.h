@@ -5,6 +5,8 @@
 #include "client/OpenGL.h"
 #include "client/ShaderProgram.h"
 
+class Asset;
+
 class Model {
 	const CommonShaderProgram &m_program;
 	GL::Buffer m_buffer;
@@ -13,7 +15,7 @@ class Model {
 	glm::vec3 m_dimensions;
 
 public:
-	Model(const std::string &fileName, const CommonShaderProgram &program, const GL::Texture *texture = nullptr);
+	Model(Asset fileName, const CommonShaderProgram &program, const GL::Texture *texture = nullptr);
 	[[nodiscard]] const glm::vec3 &dimensions() const {
 		return m_dimensions;
 	}

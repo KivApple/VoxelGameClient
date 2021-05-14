@@ -3,6 +3,8 @@
 #include <string>
 #include <initializer_list>
 
+class Asset;
+
 namespace GL {
 	class Buffer;
 	
@@ -51,7 +53,7 @@ namespace GL {
 	
 	public:
 		Texture();
-		explicit Texture(const std::string &fileName);
+		explicit Texture(Asset asset);
 		Texture(int width, int height, bool filter);
 		Texture(Texture &&texture) noexcept;
 		Texture &operator=(Texture &&texture) noexcept;
@@ -91,7 +93,7 @@ namespace GL {
 		std::string m_name;
 		
 	public:
-		Shader(unsigned int type, const std::string &fileName);
+		Shader(unsigned int type, Asset asset);
 		Shader(unsigned int type, std::string name, const std::string &source);
 		Shader(Shader &&shader) noexcept;
 		Shader &operator=(Shader &&shader) noexcept;

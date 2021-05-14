@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <memory>
 #include <shared_mutex>
+#include "Asset.h"
 #include "world/VoxelWorld.h"
 #include "world/VoxelTypeRegistry.h"
 #include "world/VoxelWorldGenerator.h"
@@ -16,6 +17,7 @@
 #include "net/ClientConnection.h"
 
 class GameServerEngine: VoxelChunkListener {
+	AssetLoader m_assetLoader;
 	VoxelTypeRegistry m_voxelTypeRegistry;
 	VoxelTypesRegistration m_voxelTypesRegistration;
 	VoxelWorld m_voxelWorld;

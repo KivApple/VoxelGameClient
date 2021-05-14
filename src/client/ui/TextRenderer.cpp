@@ -1,17 +1,18 @@
-#include <fstream>
+#include <sstream>
 #include <GL/glew.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include "TextRenderer.h"
 #include "client/GameEngine.h"
 
-BitmapFont::BitmapFont(const std::string &fileName): m_texture(fileName) {
-	std::ifstream file(fileName + ".txt");
+BitmapFont::BitmapFont(AssetLoader &loader, const std::string &fileName): m_texture(loader.load(fileName)) {
+	auto asset = loader.load(fileName + ".txt");
+	std::istringstream file(std::string(asset.data(), asset.dataSize()));
 	file >> m_sizeX >> m_sizeY >> m_defaultChar;
 	int index = 0;
-	while (!file.eof()) {
+	while (!file.eof() && file.tellg() != -1) {
 		int charCode;
 		file >> charCode;
-		if (!file.eof()) {
+		if (!file.eof() && file.tellg() != -1) {
 			m_charMap[charCode] = index++;
 		}
 	}

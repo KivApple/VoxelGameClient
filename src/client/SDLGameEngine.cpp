@@ -84,6 +84,13 @@ bool SDLGameEngine::platformInit() {
 	return true;
 }
 
+std::string SDLGameEngine::prefix() {
+	auto path = SDL_GetBasePath();
+	std::string pathStr(path);
+	SDL_free(path);
+	return pathStr;
+}
+
 void SDLGameEngine::handleWindowEvent(const SDL_WindowEvent &event) {
 	switch (event.event) {
 		case SDL_WINDOWEVENT_RESIZED:

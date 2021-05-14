@@ -6,7 +6,6 @@
 #include <GL/glew.h>
 #include "GameEngine.h"
 #include "world/VoxelTypes.h"
-#include "world/VoxelWorldUtils.h"
 
 GameEngine *GameEngine::s_instance = nullptr;
 
@@ -39,14 +38,15 @@ bool GameEngine::init() {
 		LOG(ERROR) << "Failed to initialize GLEW";
 		return false;
 	}
-	
-	m_commonShaderPrograms = std::make_unique<CommonShaderPrograms>();
-	m_font = std::make_unique<BitmapFont>("assets/fonts/ter-u32n.png");
+
+	m_assetLoader = std::make_unique<AssetLoader>(prefix());
+	m_commonShaderPrograms = std::make_unique<CommonShaderPrograms>(*m_assetLoader);
+	m_font = std::make_unique<BitmapFont>(*m_assetLoader, "assets/fonts/ter-u32n.png");
 	m_debugTextRenderer = std::make_unique<BitmapFontRenderer>(*m_font);
 	m_userInterface = std::make_unique<UserInterface>();
 
-	m_voxelTypeRegistry = std::make_unique<VoxelTypeRegistry>();
-	registerVoxelTypes(*m_voxelTypeRegistry);
+	m_voxelTypeRegistry = std::make_unique<VoxelTypeRegistry>(*m_assetLoader);
+	registerVoxelTypes(*m_voxelTypeRegistry, *m_assetLoader);
 	m_voxelWorld = std::make_unique<VoxelWorld>(static_cast<VoxelChunkListener*>(this));
 	m_voxelWorldRenderer = std::make_unique<VoxelWorldRenderer>(*m_voxelWorld);
 	m_voxelOutline = std::make_unique<VoxelOutline>();
@@ -63,8 +63,11 @@ bool GameEngine::init() {
 			nullptr
 	);
 	
-	m_cowTexture = std::make_unique<GL::Texture>("assets/textures/cow.png");
-	m_cowModel = std::make_unique<Model>("assets/models/cow.obj", commonShaderPrograms().texture, m_cowTexture.get());
+	m_cowTexture = std::make_unique<GL::Texture>(m_assetLoader->load("assets/textures/cow.png"));
+	m_cowModel = std::make_unique<Model>(
+			m_assetLoader->load("assets/models/cow.obj"),
+			commonShaderPrograms().texture, m_cowTexture.get()
+	);
 	m_cowEntity = std::make_unique<Entity>(
 			*m_voxelWorld,
 			glm::vec3(2.0f, 0.0f, 0.0f),

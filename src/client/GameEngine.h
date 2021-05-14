@@ -3,6 +3,7 @@
 #include <chrono>
 #include <memory>
 #include <unordered_set>
+#include "Asset.h"
 #include "ShaderProgram.h"
 #include "client/ui/TextRenderer.h"
 #include "ui/UIRoot.h"
@@ -44,6 +45,7 @@ class GameEngine: VoxelChunkListener {
 	int m_viewportHeight = 0;
 	std::chrono::milliseconds m_lastRenderAt = std::chrono::milliseconds(0);
 	float m_framePerSecond = 0;
+	std::unique_ptr<AssetLoader> m_assetLoader;
 	std::unique_ptr<CommonShaderPrograms> m_commonShaderPrograms;
 	std::unique_ptr<BitmapFont> m_font;
 	std::unique_ptr<TextRenderer> m_debugTextRenderer;
@@ -72,9 +74,10 @@ class GameEngine: VoxelChunkListener {
 
 protected:
 	virtual bool platformInit() = 0;
+	virtual std::string prefix() = 0;
 	void handleResize(int width, int height);
 	void render();
-
+	
 public:
 	static GameEngine &instance();
 	GameEngine();
@@ -106,6 +109,9 @@ public:
 		return m_viewportHeight;
 	}
 	[[nodiscard]] float viewportWidthOverHeight() const;
+	[[nodiscard]] AssetLoader &assetLoader() const {
+		return *m_assetLoader;
+	}
 	[[nodiscard]] const CommonShaderPrograms &commonShaderPrograms() const {
 		return *m_commonShaderPrograms;
 	}

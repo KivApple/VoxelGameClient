@@ -3,6 +3,8 @@ project(VoxelGameClient)
 
 set(CMAKE_CXX_STANDARD 20)
 
+find_package(Python3 COMPONENTS Interpreter)
+
 add_library(easyloggingpp::easyloggingpp INTERFACE IMPORTED)
 target_include_directories(easyloggingpp::easyloggingpp INTERFACE lib/easyloggingpp/src)
 target_compile_definitions(easyloggingpp::easyloggingpp INTERFACE ELPP_THREAD_SAFE ELPP_NO_DEFAULT_LOG_FILE)
@@ -27,10 +29,7 @@ if("${CMAKE_SYSTEM_NAME}" STREQUAL "Emscripten")
 	)
 	set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} ${EMSCRIPTEN_FLAGS})
 	set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} ${EMSCRIPTEN_FLAGS})
-	set(
-			CMAKE_EXE_LINKER_FLAGS
-			"${CMAKE_EXE_LINKER_FLAGS} --embed-file \"${CMAKE_CURRENT_LIST_DIR}/assets@assets\" --use-preload-plugins ${EMSCRIPTEN_FLAGS}"
-	)
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${EMSCRIPTEN_FLAGS}")
 else()
 	set(THREADS_PREFER_PTHREAD_FLAG ON)
 	find_package(Threads REQUIRED)
@@ -75,9 +74,38 @@ include_directories(lib)
 include_directories(src)
 
 set(
+		COMMON_ASSETS
+		--text assets/models/*.obj
+)
+
+set(
+		CLIENT_ASSETS
+		--text assets/shaders/*.glsl
+		--binary assets/textures/*.png
+		--binary assets/fonts/*.png
+		--text assets/fonts/*.png.txt
+)
+
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/gen")
+add_custom_target(
+		client_assets
+		COMMAND
+		"${Python3_EXECUTABLE}"
+		"scripts/pack_assets.py"
+		"${CMAKE_CURRENT_BINARY_DIR}/gen/client-assets.cpp"
+		${CLIENT_ASSETS}
+		${COMMON_ASSETS}
+		WORKING_DIRECTORY
+		${CMAKE_CURRENT_LIST_DIR}
+		BYPRODUCTS
+		"${CMAKE_CURRENT_BINARY_DIR}/gen/client-assets.cpp"
+)
+
+set(
 		COMMON_SRC
 		src/world/Voxel.cpp src/world/VoxelChunk.cpp src/world/VoxelWorld.cpp src/world/VoxelTypeRegistry.cpp
 		src/world/VoxelTypes.cpp src/world/VoxelWorldUtils.cpp src/world/Entity.cpp
+		src/Asset.cpp
 )
 
 add_executable(
@@ -89,6 +117,7 @@ add_executable(
 		src/client/ui/UIBase.cpp src/client/ui/UIJoystick.cpp src/client/ui/UIRoot.cpp src/client/ui/Inventory.cpp
 		src/client/ui/Crosshair.cpp src/client/ui/VoxelOutline.cpp
 		src/client/world/VoxelWorldRenderer.cpp
+		"${CMAKE_CURRENT_BINARY_DIR}/gen/client-assets.cpp"
 		${COMMON_SRC}
 )
 target_link_libraries(VoxelGameClient easyloggingpp::easyloggingpp glm::glm Bitsery::bitsery)
@@ -103,6 +132,19 @@ else()
 	else()
 		target_link_libraries(VoxelGameClient ${SDL2_LIBRARIES} OpenGL::OpenGL)
 	endif()
+
+	add_custom_target(
+			server_assets
+			COMMAND
+			"${Python3_EXECUTABLE}"
+			"scripts/pack_assets.py"
+			"${CMAKE_CURRENT_BINARY_DIR}/gen/server-assets.cpp"
+			${COMMON_ASSETS}
+			WORKING_DIRECTORY
+			${CMAKE_CURRENT_LIST_DIR}
+			BYPRODUCTS
+			"${CMAKE_CURRENT_BINARY_DIR}/gen/server-assets.cpp"
+	)
 	
 	add_executable(
 			VoxelGameServer
@@ -110,6 +152,7 @@ else()
 			src/server/net/ClientConnection.cpp src/server/net/BinaryServerTransport.cpp
 			src/server/world/VoxelWorldGenerator.cpp src/server/world/VoxelWorldStorage.cpp
 			src/server/world/VoxelLightComputer.cpp src/server/world/VoxelWorldUpdater.cpp
+			"${CMAKE_CURRENT_BINARY_DIR}/gen/server-assets.cpp"
 			${COMMON_SRC}
 	)
 	target_compile_definitions(VoxelGameServer PUBLIC HEADLESS)
@@ -136,6 +179,7 @@ if(TARGET gtest)
 			tst/main.cpp
 			tst/VoxelLocation.cpp tst/VoxelWorld.cpp tst/VoxelSerialization.cpp
 			${COMMON_SRC}
+			"${CMAKE_CURRENT_BINARY_DIR}/gen/server-assets.cpp"
 	)
 	target_compile_definitions(VoxelGameClient_tst PUBLIC HEADLESS)
 	target_link_libraries(VoxelGameClient_tst easyloggingpp::easyloggingpp glm::glm Bitsery::bitsery gtest gmock)

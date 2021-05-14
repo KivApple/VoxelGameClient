@@ -1,12 +1,12 @@
-#include <fstream>
-#include <vector>
 #include <sstream>
+#include <vector>
 #include <easylogging++.h>
 #include <GL/glew.h>
 #include "Model.h"
+#include "Asset.h"
 
 Model::Model(
-		const std::string &fileName,
+		Asset asset,
 		const CommonShaderProgram &program,
 		const GL::Texture *texture
 ): m_program(program), m_buffer(GL_ARRAY_BUFFER), m_texture(texture) {
@@ -15,11 +15,11 @@ Model::Model(
 	std::vector<float> vertexData;
 	glm::vec3 minCoords(INFINITY), maxCoords(-INFINITY);
 	
-	std::ifstream file(fileName);
+	std::istringstream file(std::string(asset.data(), asset.dataSize()));
 	if (file.good()) {
 		std::vector<std::string> tokens;
 		std::string line, token;
-		while (!file.eof()) {
+		while (!file.eof() && file.tellg() != -1) {
 			tokens.clear();
 			std::getline(file, line);
 			line = line.substr(0, line.find('#'));
@@ -55,7 +55,7 @@ Model::Model(
 			}
 		}
 	} else {
-		LOG(ERROR) << "Failed to load model " << fileName;
+		LOG(ERROR) << "Failed to load model " << asset.fileName();
 	}
 	
 	m_buffer.setData(vertexData.data(), vertexData.size() * sizeof(float), GL_STATIC_DRAW);

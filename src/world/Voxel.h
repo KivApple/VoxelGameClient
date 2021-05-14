@@ -18,6 +18,7 @@
 #include "../client/ShaderProgram.h"
 #endif
 
+class Asset;
 struct InChunkVoxelLocation;
 class VoxelChunkExtendedRef;
 class VoxelChunkExtendedMutableRef;
@@ -49,7 +50,7 @@ class VoxelTextureShaderProvider: public VoxelShaderProvider {
 #endif
 
 public:
-	explicit VoxelTextureShaderProvider(const std::string &fileName);
+	explicit VoxelTextureShaderProvider(Asset asset);
 #ifndef HEADLESS
 	explicit VoxelTextureShaderProvider(const GL::Texture &texture);
 	[[nodiscard]] const CommonShaderProgram &get() const override;
@@ -468,7 +469,7 @@ class SimpleVoxelType: public VoxelType<SimpleVoxelType>, public VoxelTextureSha
 public:
 	SimpleVoxelType(
 			std::string name,
-			const std::string &textureFileName,
+			Asset asset,
 			bool unwrap = false,
 			VoxelLightLevel lightLevel = 0,
 			bool transparent = false,
@@ -494,7 +495,7 @@ public:
 			std::vector<VoxelVertexData> &data
 	);
 	VoxelLightLevel lightLevel(const Voxel &voxel);
-	int priority() const override;
+	[[nodiscard]] int priority() const override;
 	void slowUpdate(
 			const VoxelChunkExtendedMutableRef &chunk,
 			const InChunkVoxelLocation &location,

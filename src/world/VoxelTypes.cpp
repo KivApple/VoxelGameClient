@@ -1,4 +1,5 @@
 #include "VoxelTypes.h"
+#include "Asset.h"
 
 std::string AirVoxelType::toString(const Voxel &voxel) {
 	return "air";
@@ -8,7 +9,11 @@ bool AirVoxelType::hasDensity(const Voxel &voxel) {
 	return false;
 }
 
-GrassVoxelType::GrassVoxelType(): VoxelType("grass", "assets/textures/grass.png", true) {
+GrassVoxelType::GrassVoxelType(AssetLoader &loader): VoxelType(
+		"grass",
+		loader.load("assets/textures/grass.png"),
+		true
+) {
 }
 
 void GrassVoxelType::link(VoxelTypeRegistry &registry) {
@@ -83,26 +88,36 @@ bool GrassVoxelType::update(
 	return false;
 }
 
-WaterVoxelType::WaterVoxelType(): SourceVoxelType(8, 5, true, "water", "assets/textures/water.png", false, -1, true, false) {
+WaterVoxelType::WaterVoxelType(AssetLoader &loader): SourceVoxelType(
+		8,
+		5,
+		true,
+		"water",
+		loader.load("assets/textures/water.png"),
+		false,
+		-1,
+		true,
+		false
+) {
 }
 
-void registerVoxelTypes(VoxelTypeRegistry &registry) {
+void registerVoxelTypes(VoxelTypeRegistry &registry, AssetLoader &loader) {
 	registry.make<AirVoxelType>("air");
-	registry.make<GrassVoxelType>("grass");
-	registry.make<SimpleVoxelType>("dirt", "dirt", "assets/textures/mud.png");
-	registry.make<SimpleVoxelType>("stone", "stone", "assets/textures/stone.png");
-	registry.make<WaterVoxelType>("water");
+	registry.make<GrassVoxelType>("grass", loader);
+	registry.make<SimpleVoxelType>("dirt", "dirt", loader.load("assets/textures/mud.png"));
+	registry.make<SimpleVoxelType>("stone", "stone", loader.load("assets/textures/stone.png"));
+	registry.make<WaterVoxelType>("water", loader);
 	registry.make<SimpleVoxelType>(
 			"lava",
 			"lava",
-			"assets/textures/lava.png",
+			loader.load("assets/textures/lava.png"),
 			false,
 			MAX_VOXEL_LIGHT_LEVEL - 1
 	);
 	registry.make<SimpleVoxelType>(
 			"glass",
 			"glass",
-			"assets/textures/glass.png",
+			loader.load("assets/textures/glass.png"),
 			false,
 			0,
 			true

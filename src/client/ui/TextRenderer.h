@@ -5,6 +5,8 @@
 #include "../OpenGL.h"
 #include <glm/vec4.hpp>
 
+class AssetLoader;
+
 class TextRenderer {
 public:
 	virtual ~TextRenderer() = default;
@@ -21,7 +23,7 @@ class BitmapFont {
 	int m_sizeY = 32;
 	
 public:
-	explicit BitmapFont(const std::string &fileName);
+	BitmapFont(AssetLoader &loader, const std::string &fileName);
 	[[nodiscard]] const GL::Texture &texture() const;
 	[[nodiscard]] int sizeX() const {
 		return m_sizeX;

@@ -1,4 +1,5 @@
 #include "gtest/gtest.h"
+#include "Asset.h"
 #include "world/Voxel.h"
 #include "world/VoxelTypeRegistry.h"
 #include "world/VoxelWorld.h"
@@ -60,7 +61,8 @@ public:
 };
 
 TEST(VoxelSerialization, contextBasic) {
-	VoxelTypeRegistry typeRegistry;
+	AssetLoader assetLoader(".");
+	VoxelTypeRegistry typeRegistry(assetLoader);
 	VoxelTypeSerializationContext typeSerializationContext(typeRegistry);
 	
 	EXPECT_EQ(typeSerializationContext.size(), 1);
@@ -175,7 +177,8 @@ TEST(VoxelSerialization, context) {
 	int emptyTypeId, testTypeId;
 	
 	{
-		VoxelTypeRegistry typeRegistry;
+		AssetLoader assetLoader(".");
+		VoxelTypeRegistry typeRegistry(assetLoader);
 		typeRegistry.add("test", std::make_unique<MyVoxelType>());
 		VoxelTypeSerializationContext typeSerializationContext(typeRegistry);
 		emptyTypeId = typeSerializationContext.typeId(typeRegistry.get("empty"));
@@ -193,7 +196,8 @@ TEST(VoxelSerialization, context) {
 	printf("\n");
 	
 	{
-		VoxelTypeRegistry typeRegistry;
+		AssetLoader assetLoader(".");
+		VoxelTypeRegistry typeRegistry(assetLoader);
 		VoxelTypeSerializationContext typeSerializationContext(typeRegistry);
 		
 		bitsery::Deserializer<bitsery::InputBufferAdapter<std::string>> deserializer(buffer.cbegin(), buffer.cend());
@@ -206,7 +210,8 @@ TEST(VoxelSerialization, context) {
 }
 
 TEST(VoxelSerialization, holder) {
-	VoxelTypeRegistry typeRegistry;
+	AssetLoader assetLoader(".");
+	VoxelTypeRegistry typeRegistry(assetLoader);
 	typeRegistry.add("test", std::make_unique<MyVoxelType>());
 	VoxelTypeSerializationContext typeSerializationContext(typeRegistry);
 	
@@ -244,7 +249,8 @@ TEST(VoxelSerialization, holder) {
 }
 
 TEST(VoxelSerialization, chunk) {
-	VoxelTypeRegistry typeRegistry;
+	AssetLoader assetLoader(".");
+	VoxelTypeRegistry typeRegistry(assetLoader);
 	typeRegistry.add("test", std::make_unique<MyVoxelType>());
 	VoxelTypeSerializationContext typeSerializationContext(typeRegistry);
 	
@@ -282,7 +288,8 @@ TEST(VoxelSerialization, chunk) {
 }
 
 TEST(VoxelSerialization, world) {
-	VoxelTypeRegistry typeRegistry;
+	AssetLoader assetLoader(".");
+	VoxelTypeRegistry typeRegistry(assetLoader);
 	typeRegistry.add("test", std::make_unique<MyVoxelType>());
 	VoxelTypeSerializationContext typeSerializationContext(typeRegistry);
 	

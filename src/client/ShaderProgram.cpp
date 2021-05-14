@@ -2,6 +2,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include "ShaderProgram.h"
 #include "OpenGL.h"
+#include "Asset.h"
 
 CommonShaderProgram::CommonShaderProgram(
 		std::string name,
@@ -62,14 +63,14 @@ void CommonShaderProgram::setColors(const GL::BufferPointer &pointer) const {
 	pointer.bind(m_colorLocation, 4);
 }
 
-CommonShaderPrograms::CommonShaderPrograms(): texture("texture", {
-		GL::Shader(GL_VERTEX_SHADER, "assets/shaders/texture_vertex.glsl"),
-		GL::Shader(GL_FRAGMENT_SHADER, "assets/shaders/texture_fragment.glsl")
+CommonShaderPrograms::CommonShaderPrograms(AssetLoader &loader): texture("texture", {
+		GL::Shader(GL_VERTEX_SHADER, loader.load("assets/shaders/texture_vertex.glsl")),
+		GL::Shader(GL_FRAGMENT_SHADER, loader.load("assets/shaders/texture_fragment.glsl"))
 }), color("color", {
-		GL::Shader(GL_VERTEX_SHADER, "assets/shaders/color_vertex.glsl"),
-		GL::Shader(GL_FRAGMENT_SHADER, "assets/shaders/color_fragment.glsl")
+		GL::Shader(GL_VERTEX_SHADER, loader.load("assets/shaders/color_vertex.glsl")),
+		GL::Shader(GL_FRAGMENT_SHADER, loader.load("assets/shaders/color_fragment.glsl"))
 }), font("font", {
-		GL::Shader(GL_VERTEX_SHADER, "assets/shaders/font_vertex.glsl"),
-		GL::Shader(GL_FRAGMENT_SHADER, "assets/shaders/font_fragment.glsl")
+		GL::Shader(GL_VERTEX_SHADER, loader.load("assets/shaders/font_vertex.glsl")),
+		GL::Shader(GL_FRAGMENT_SHADER, loader.load("assets/shaders/font_fragment.glsl"))
 }) {
 }

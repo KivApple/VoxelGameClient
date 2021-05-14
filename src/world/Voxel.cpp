@@ -1,6 +1,7 @@
 #include <easylogging++.h>
 #include "Voxel.h"
 #include "VoxelTypeRegistry.h"
+#include "Asset.h"
 #ifndef HEADLESS
 #include "../client/GameEngine.h"
 #endif
@@ -10,11 +11,9 @@ VoxelTextureShaderProvider::VoxelTextureShaderProvider(const GL::Texture &textur
 }
 #endif
 
-VoxelTextureShaderProvider::VoxelTextureShaderProvider(
-		const std::string &fileName
-)
+VoxelTextureShaderProvider::VoxelTextureShaderProvider(Asset asset)
 #ifndef HEADLESS
-: m_texture(std::make_unique<GL::Texture>(fileName))
+: m_texture(std::make_unique<GL::Texture>(asset))
 #endif
 {
 }
@@ -176,13 +175,13 @@ void VoxelHolder::serialize(VoxelDeserializer &deserializer) {
 
 SimpleVoxelType::SimpleVoxelType(
 		std::string name,
-		const std::string &textureFileName,
+		Asset asset,
 		bool unwrap,
 		VoxelLightLevel lightLevel,
 		bool transparent,
 		bool hasDensity
 ): m_name(std::move(name)), m_unwrap(unwrap), m_lightLevel(lightLevel), m_transparent(transparent),
-	m_hasDensity(hasDensity), VoxelTextureShaderProvider(textureFileName)
+	m_hasDensity(hasDensity), VoxelTextureShaderProvider(std::move(asset))
 {
 }
 

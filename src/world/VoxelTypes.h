@@ -4,6 +4,8 @@
 #include "LiquidVoxelType.h"
 #include "VoxelTypeRegistry.h"
 
+class AssetLoader;
+
 class AirVoxelType: public VoxelType<AirVoxelType, Voxel, EmptyVoxelType> {
 public:
 	std::string toString(const Voxel &voxel);
@@ -16,7 +18,7 @@ class GrassVoxelType: public VoxelType<GrassVoxelType, Voxel, SimpleVoxelType> {
 	VoxelTypeInterface *m_lava = nullptr;
 	
 public:
-	GrassVoxelType();
+	explicit GrassVoxelType(AssetLoader &loader);
 	void link(VoxelTypeRegistry &registry) override;
 	void slowUpdate(
 			const VoxelChunkExtendedMutableRef &chunk,
@@ -36,16 +38,16 @@ public:
 
 class WaterVoxelType: public Liquid<WaterVoxelType, SimpleVoxelType>::SourceVoxelType {
 public:
-	WaterVoxelType();
+	explicit WaterVoxelType(AssetLoader &loader);
 	
 };
 
-void registerVoxelTypes(VoxelTypeRegistry &registry);
+void registerVoxelTypes(VoxelTypeRegistry &registry, AssetLoader &loader);
 
 class VoxelTypesRegistration {
 public:
-	explicit VoxelTypesRegistration(VoxelTypeRegistry &registry) {
-		registerVoxelTypes(registry);
+	explicit VoxelTypesRegistration(VoxelTypeRegistry &registry, AssetLoader &loader) {
+		registerVoxelTypes(registry, loader);
 	}
 	
 };

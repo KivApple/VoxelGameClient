@@ -1,9 +1,9 @@
-#include <fstream>
-#include <streambuf>
 #include <GL/glew.h>
 #include <easylogging++.h>
 #include "OpenGL.h"
+#include "Asset.h"
 #define STB_IMAGE_IMPLEMENTATION
+#define STBI_FAILURE_USERMSG
 #include <stb/stb_image.h>
 
 /* BufferPointer */
@@ -53,9 +53,16 @@ GL::Texture::Texture(): m_id(0), m_width(0), m_height(0) {
 	glGenTextures(1, &m_id);
 }
 
-GL::Texture::Texture(const std::string &fileName): Texture() {
+GL::Texture::Texture(Asset asset): Texture() {
 	int channels;
-	auto *data = stbi_load(fileName.c_str(), (int*) &m_width, (int*) &m_height, &channels, 4);
+	auto *data = stbi_load_from_memory(
+			(const unsigned char*) asset.data(),
+			asset.dataSize(),
+			(int*) &m_width,
+			(int*) &m_height,
+			&channels,
+			4
+	);
 	if (data) {
 		bind();
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -65,7 +72,7 @@ GL::Texture::Texture(const std::string &fileName): Texture() {
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_width, m_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 		stbi_image_free(data);
 	} else {
-		LOG(ERROR) << "Failed to load texture asset " << fileName;
+		LOG(ERROR) << "Failed to load texture asset " << asset.fileName() << ": " << stbi_failure_reason();
 	}
 }
 
@@ -170,15 +177,11 @@ void GL::Framebuffer::bind() const {
 
 /* Shader */
 
-static std::string loadStringFromFile(const std::string &fileName) {
-	std::ifstream file(fileName);
-	if (!file.good()) {
-		LOG(ERROR) << "Failed to open asset file " << fileName;
-	}
-	return std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
-}
-
-GL::Shader::Shader(unsigned int type, const std::string &fileName): Shader(type, fileName, loadStringFromFile(fileName)) {
+GL::Shader::Shader(unsigned int type, Asset asset): Shader(
+		type,
+		asset.fileName(),
+		std::string(asset.data(), asset.dataSize())
+) {
 }
 
 GL::Shader::Shader(

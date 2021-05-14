@@ -9,9 +9,12 @@
 #include "client/OpenGL.h"
 #endif
 
+class AssetLoader;
+
 class VoxelTypeRegistry {
 	std::unordered_map<std::string, std::unique_ptr<VoxelTypeInterface>> m_types;
 	std::shared_mutex m_mutex;
+	AssetLoader &m_assetLoader;
 #ifndef HEADLESS
 	GL::Texture m_unknownBlockTexture;
 #endif
@@ -19,7 +22,7 @@ class VoxelTypeRegistry {
 	friend class UnknownVoxelType;
 
 public:
-	VoxelTypeRegistry();
+	explicit VoxelTypeRegistry(AssetLoader &assetLoader);
 	template<typename T, typename ...Args> T &make(std::string name, Args&&... args) {
 		return reinterpret_cast<T&>(add(std::move(name), std::make_unique<T>(std::forward<Args>(args)...)));
 	}

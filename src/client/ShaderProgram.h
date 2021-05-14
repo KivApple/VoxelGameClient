@@ -3,6 +3,8 @@
 #include <glm/mat4x4.hpp>
 #include "OpenGL.h"
 
+class AssetLoader;
+
 class CommonShaderProgram: public GL::ShaderProgram {
 	int m_modelLocation;
 	int m_viewLocation;
@@ -37,5 +39,5 @@ struct CommonShaderPrograms {
 	const CommonShaderProgram color;
 	const CommonShaderProgram font;
 	
-	CommonShaderPrograms();
+	explicit CommonShaderPrograms(AssetLoader &loader);
 };

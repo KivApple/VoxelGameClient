@@ -3,7 +3,9 @@
 #include "GameServerEngine.h"
 
 GameServerEngine::GameServerEngine(
-): m_voxelTypesRegistration(m_voxelTypeRegistry), m_voxelWorldGenerator(m_voxelTypeRegistry),
+): m_assetLoader("."), m_voxelTypeRegistry(m_assetLoader),
+	m_voxelTypesRegistration(m_voxelTypeRegistry, m_assetLoader),
+	m_voxelWorldGenerator(m_voxelTypeRegistry),
 	m_voxelWorldStorage("world.sqlite", m_voxelTypeRegistry, m_voxelWorldGenerator),
 	m_voxelWorld(this), m_voxelWorldUpdater(m_voxelWorld)
 {

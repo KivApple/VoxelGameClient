@@ -33,6 +33,7 @@ class SDLGameEngine: public GameEngine {
 	
 protected:
 	bool platformInit() override;
+	std::string prefix() override;
 
 public:
 	SDLGameEngine();
