@@ -1,3 +1,9 @@
+# Build requirements
+
+- CMake
+- C++20 compiler (GCC, Clang, MinGW, MSVC)
+- Python 3
+
 # CLion + Emscripten
 
 Install Emscripten by following commands:
