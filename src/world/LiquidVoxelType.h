@@ -3,417 +3,154 @@
 #include <memory>
 #include <utility>
 #include "Voxel.h"
-#include "VoxelLocation.h"
-#include "VoxelWorld.h"
 #include "VoxelTypeRegistry.h"
-#include "VoxelWorldUtils.h"
 
-template<typename T, typename Base=VoxelTypeInterface, typename Data=Voxel, typename FlowData=Data> struct Liquid {
-	struct FlowState: public FlowData {
-		uint8_t level = 0;
-		uint8_t countdown = 0;
-		
-		template<typename S> void serialize(S &s) {
-			FlowData::serialize(s);
-			s.value1b(level);
-			s.value1b(countdown);
-		}
-	};
+struct LiquidFlowVoxelState {
+	uint8_t level = 0;
+	uint8_t countdown = 0;
 	
-	class SourceVoxelType;
+	template<typename S> void serialize(S &s) {
+		s.value1b(level);
+		s.value1b(countdown);
+	}
+};
+
+class LiquidVoxelBaseTrait;
+
+class LiquidFlowVoxelTrait: public VoxelTypeTrait<LiquidFlowVoxelState> {
+	LiquidVoxelBaseTrait *m_trait = nullptr;
 	
-	class FlowVoxelType: public VoxelType<FlowVoxelType, FlowState, Base> {
-		VoxelTypeInterface &m_type;
-		
-	public:
-		template<typename ...Args> explicit FlowVoxelType(
-				VoxelTypeInterface &type, Args&&... args
-		): VoxelType<FlowVoxelType, FlowState, Base>(std::forward<Args>(args)...), m_type(type) {
-		}
-		
-		void registerChildren(const std::string &name, VoxelTypeRegistry &registry) override {
-		}
-		
-		[[nodiscard]] const VoxelTypeInterface &sourceType() const {
-			return m_type;
-		}
-		
-		VoxelTypeInterface &sourceType() {
-			return m_type;
-		}
-		
-		std::string toString(const FlowState &voxel) {
-			return static_cast<T&>(m_type).T::flowToString(voxel);
-		}
-		
-		const VoxelShaderProvider *shaderProvider(const FlowState &voxel) {
-			return static_cast<T&>(m_type).T::flowShaderProvider(voxel);
-		}
-		
-		void buildVertexData(
-				const VoxelChunkExtendedRef &chunk,
-				const InChunkVoxelLocation &location,
-				const FlowState &voxel,
-				std::vector<VoxelVertexData> &data
-		) {
-			static_cast<T&>(m_type).T::flowBuildVertexData(chunk, location, voxel, data);
-		}
-		
-		VoxelLightLevel lightLevel(const FlowState &voxel) {
-			return static_cast<T&>(m_type).T::flowLightLevel(voxel);
-		}
-		
-		void slowUpdate(
-				const VoxelChunkExtendedMutableRef &chunk,
-				const InChunkVoxelLocation &location,
-				FlowState &voxel,
-				std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
-		) {
-			static_cast<T&>(m_type).T::flowSlowUpdate(chunk, location, voxel, invalidatedLocations);
-		}
-		
-		bool update(
-				const VoxelChunkExtendedMutableRef &chunk,
-				const InChunkVoxelLocation &location,
-				FlowState &voxel,
-				unsigned long deltaTime,
-				std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
-		) {
-			return static_cast<T&>(m_type).T::flowUpdate(chunk, location, voxel, deltaTime, invalidatedLocations);
-		}
-	};
+public:
+	LiquidFlowVoxelTrait() = default;
+	void setTrait(LiquidVoxelBaseTrait &trait);
+	std::string toString(const State &voxel);
+	void buildVertexData(
+			const VoxelChunkExtendedRef &chunk,
+			const InChunkVoxelLocation &location,
+			const State &voxel,
+			std::vector<VoxelVertexData> &data
+	);
+	bool update(
+			const VoxelChunkExtendedMutableRef &chunk,
+			const InChunkVoxelLocation &location,
+			Voxel &rawVoxel,
+			State &voxel,
+			unsigned long deltaTime,
+			std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
+	);
 	
-	struct State: public Data {
-		uint8_t countdown = 0;
-		
-		template<typename S> void serialize(S &s) {
-			Data::serialize(s);
-			s.value1b(countdown);
-		}
-	};
+};
+
+struct LiquidVoxelState {
+	uint8_t countdown = 0;
 	
-	class SourceVoxelType: public VoxelType<T, State, Base> {
-		FlowVoxelType *m_flowType;
-		int m_maxFlowLevel;
-		int m_flowSlowdown;
-		bool m_canSpawn;
-		bool m_flowRegistered = false;
-		::VoxelTypeInterface *m_air = nullptr;
-		
-	public:
-		template<typename ...Args> explicit SourceVoxelType(
-				int maxFlowLevel, int flowSlowdown, bool canSpawn, Args&&... args
-		): VoxelType<T, State, Base>(args...), m_flowType(new FlowVoxelType(
-				*this,
-				std::forward<Args>(args)...
-		)), m_maxFlowLevel(maxFlowLevel), m_flowSlowdown(flowSlowdown), m_canSpawn(canSpawn) {
-			assert(maxFlowLevel < VOXEL_CHUNK_SIZE);
-		}
-		
-		~SourceVoxelType() override {
-			if (m_flowRegistered) return;
-			delete m_flowType;
-		}
-		
-		void link(VoxelTypeRegistry &registry) override {
-			VoxelType<T, State, Base>::link(registry);
-			m_air = &registry.get("air");
-		}
-		
-		void registerChildren(const std::string &name, VoxelTypeRegistry &registry) override {
-			assert(!m_flowRegistered);
-			registry.add(name + "_flow", std::unique_ptr<FlowVoxelType>(m_flowType));
-			m_flowRegistered = true;
-		}
-		
-		[[nodiscard]] const FlowVoxelType &flowType() const {
-			return m_flowType;
-		}
-		
-		FlowVoxelType &flowType() {
-			return m_flowType;
-		}
-		
-		[[nodiscard]] int maxFlowLevel() const {
-			return m_maxFlowLevel;
-		}
-		
-		[[nodiscard]] int flowSlowdown() const {
-			return m_flowSlowdown;
-		}
-		
-		virtual std::string flowToString(const FlowState &voxel) {
-			return static_cast<Base*>(m_flowType)->Base::toString(voxel) +
-				"[level=" + std::to_string(voxel.level) + "]";
-		}
-		
-		virtual const VoxelShaderProvider *flowShaderProvider(const FlowState &voxel) {
-			return static_cast<Base*>(m_flowType)->Base::shaderProvider(voxel);
-		}
-		
-		float calculateModelOffset(int level) {
-			if (level == INT_MAX) {
-				level = m_maxFlowLevel - 1;
-			}
-			return static_cast<float>(m_maxFlowLevel - std::min(level, m_maxFlowLevel)) / m_maxFlowLevel;
-		}
-		
-		float calculateModelOffset(const VoxelHolder &voxel) {
-			if (&voxel.type() == this) {
-				return calculateModelOffset(INT_MAX);
-			} else if (&voxel.type() == m_flowType) {
-				return calculateModelOffset(voxel.template get<FlowState>().level);
-			} else {
-				return 1.0f;
-			}
-		}
-		
-		void adjustMesh(
-				const VoxelChunkExtendedRef &chunk,
-				const InChunkVoxelLocation &location,
-				int level,
-				std::vector<VoxelVertexData> &data
-		) {
-			auto &posY = chunk.extendedAt(location.x, location.y + 1, location.z);
-			if (&posY.type() == this || &posY.type() == m_flowType) return;
-			
-			float offset = calculateModelOffset(level);
-			
-			float negXOffset = calculateModelOffset(chunk.extendedAt(location.x - 1, location.y, location.z));
-			float posXOffset = calculateModelOffset(chunk.extendedAt(location.x + 1, location.y, location.z));
-			float negZOffset = calculateModelOffset(chunk.extendedAt(location.x, location.y, location.z - 1));
-			float posZOffset = calculateModelOffset(chunk.extendedAt(location.x, location.y, location.z + 1));
-			
-			float negXNegZOffset = calculateModelOffset(chunk.extendedAt(location.x - 1, location.y, location.z - 1));
-			float negXPosZOffset = calculateModelOffset(chunk.extendedAt(location.x - 1, location.y, location.z + 1));
-			float posXNegZOffset = calculateModelOffset(chunk.extendedAt(location.x + 1, location.y, location.z - 1));
-			float posXPosZOffset = calculateModelOffset(chunk.extendedAt(location.x + 1, location.y, location.z + 1));
-			
-			for (auto &v : data) {
-				if (almostEqual(v.y, 0.5f)) {
-					if (almostEqual(v.x, -0.5f) && almostEqual(v.z, -0.5f)) {
-						v.y -= std::min(
-								std::min(offset, negXNegZOffset),
-								std::min(negXOffset, negZOffset)
-						);
-					} else if (almostEqual(v.x, -0.5f) && almostEqual(v.z, 0.5f)) {
-						v.y -= std::min(
-								std::min(offset, negXPosZOffset),
-								std::min(negXOffset, posZOffset)
-						);
-					} else if (almostEqual(v.x, 0.5f) && almostEqual(v.z, -0.5f)) {
-						v.y -= std::min(
-								std::min(offset, posXNegZOffset),
-								std::min(posXOffset, negZOffset)
-						);
-					} else if (almostEqual(v.x, 0.5f) && almostEqual(v.z, 0.5f)) {
-						v.y -= std::min(
-								std::min(offset, posXPosZOffset),
-								std::min(posXOffset, posZOffset)
-						);
-					}
-				}
-			}
-		}
-		
-		void buildVertexData(
-				const VoxelChunkExtendedRef &chunk,
-				const InChunkVoxelLocation &location,
-				const State &voxel,
-				std::vector<VoxelVertexData> &data
-		) {
-			static_cast<Base*>(this)->Base::buildVertexData(chunk, location, voxel, data);
-			adjustMesh(chunk, location, INT_MAX, data);
-		}
-		
-		virtual void flowBuildVertexData(
-				const VoxelChunkExtendedRef &chunk,
-				const InChunkVoxelLocation &location,
-				const FlowState &voxel,
-				std::vector<VoxelVertexData> &data
-		) {
-			static_cast<Base*>(m_flowType)->Base::buildVertexData(chunk, location, voxel, data);
-			adjustMesh(chunk, location, voxel.level, data);
-		}
-		
-		virtual VoxelLightLevel flowLightLevel(const FlowState &voxel) {
-			return static_cast<Base*>(m_flowType)->Base::lightLevel(voxel);
-		}
-		
-		virtual void flowSlowUpdate(
-				const VoxelChunkExtendedMutableRef &chunk,
-				const InChunkVoxelLocation &location,
-				FlowState &voxel,
-				std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
-		) {
-			static_cast<Base*>(m_flowType)->Base::slowUpdate(chunk, location, voxel, invalidatedLocations);
-		}
-		
-		virtual bool canFlow(
-				Data &source,
-				int sourceLevel,
-				const VoxelHolder &target,
-				int dy,
-				bool strict
-		) {
-			if (dy > 0) {
-				return false;
-			}
-			if (sourceLevel <= 1 && dy == 0) {
-				return false;
-			}
-			if (&target.type() == m_flowType) {
-				auto &flow = target.get<FlowState>();
-				if (strict) {
-					if (sourceLevel > flow.level + 1 || (dy < 0 && flow.level < m_maxFlowLevel)) {
-						return true;
-					}
-				} else {
-					if (sourceLevel >= flow.level + 1 || dy < 0) {
-						return true;
-					}
-				}
-			}
-			if (&target.type() == m_air) {
-				return true;
-			}
-			return false;
-		}
-		
-		virtual void setFlow(
-				const VoxelChunkExtendedMutableRef &chunk,
-				const InChunkVoxelLocation &location,
-				Data &source,
-				int level
-		) {
-			assert(level >= 1);
-			auto &voxel = chunk.extendedAt(location);
-			voxel.setType(*m_flowType);
-			voxel.template get<FlowState>().level = level;
-		}
-		
-		virtual void setSource(
-				const VoxelChunkExtendedMutableRef &chunk,
-				const InChunkVoxelLocation &location,
-				FlowState &flow
-		) {
-			chunk.extendedAt(location).setType(*this);
-		}
-		
-		bool update(
-				const VoxelChunkExtendedMutableRef &chunk,
-				const InChunkVoxelLocation &location,
-				State &voxel,
-				unsigned long deltaTime,
-				std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
-		) {
-			voxel.countdown = deltaTime < m_flowSlowdown ? voxel.countdown + deltaTime : m_flowSlowdown;
-			if (voxel.countdown < m_flowSlowdown) {
-				return true;
-			}
-			voxel.countdown = 0;
-			static const int offsets[][3] = {
-					{1, 0, 0}, {-1, 0, 0},
-					{0, 0, 1}, {0, 0, -1}
-			};
-			InChunkVoxelLocation bottom(location.x, location.y - 1, location.z);
-			if (canFlow(voxel, m_maxFlowLevel, chunk.extendedAt(bottom), -1, false)) {
-				if (canFlow(voxel, m_maxFlowLevel, chunk.extendedAt(bottom), -1, true)) {
-					setFlow(chunk, bottom, voxel, m_maxFlowLevel);
-					invalidatedLocations.emplace(bottom);
-				}
-			} else {
-				for (auto &offset : offsets) {
-					InChunkVoxelLocation l(
-							location.x + offset[0],
-							location.y + offset[1],
-							location.z + offset[2]
-					);
-					if (canFlow(voxel, m_maxFlowLevel, chunk.extendedAt(l), offset[1], true)) {
-						setFlow(chunk, l, voxel, offset[1] >= 0 ? m_maxFlowLevel - 1 : m_maxFlowLevel);
-						invalidatedLocations.emplace(l);
-					}
-				}
-			}
-			return false;
-		}
-		
-		virtual bool flowUpdate(
-				const VoxelChunkExtendedMutableRef &chunk,
-				const InChunkVoxelLocation &location,
-				FlowState &voxel,
-				unsigned long deltaTime,
-				std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
-		) {
-			voxel.countdown = deltaTime < (unsigned) m_flowSlowdown ?
-					voxel.countdown + deltaTime :
-					(unsigned) m_flowSlowdown;
-			if (voxel.countdown < m_flowSlowdown) {
-				return true;
-			}
-			voxel.countdown = 0;
-			static const int offsets[][3] = {
-					{1, 0, 0}, {-1, 0, 0},
-					{0, 1, 0},
-					{0, 0, 1}, {0, 0, -1}
-			};
-			bool sourceFound = false;
-			int sourceCount = 0;
-			auto &voxelHolder = chunk.extendedAt(location);
-			for (auto &offset : offsets) {
-				InChunkVoxelLocation l(location.x + offset[0], location.y + offset[1], location.z + offset[2]);
-				auto &source = chunk.extendedAt(l);
-				if (&source.type() == this) {
-					if (canFlow(voxel, m_maxFlowLevel, voxelHolder, -offset[1], false)) {
-						sourceFound = true;
-						sourceCount++;
-					}
-				} else if (&source.type() == m_flowType) {
-					if (canFlow(
-							voxel,
-							source.template get<FlowState>().level,
-							voxelHolder,
-							-offset[1],
-							false
-					)) {
-						sourceFound = true;
-					}
-				}
-			}
-			InChunkVoxelLocation bottom(location.x, location.y - 1, location.z);
-			if (canFlow(voxel, m_maxFlowLevel, chunk.extendedAt(bottom), -1, false)) {
-				if (canFlow(voxel, voxel.level, chunk.extendedAt(bottom), -1, true)) {
-					setFlow(chunk, bottom, voxel, m_maxFlowLevel);
-					invalidatedLocations.emplace(bottom);
-				}
-			} else {
-				for (auto &offset : offsets) {
-					InChunkVoxelLocation l(
-							location.x + offset[0],
-							location.y + offset[1],
-							location.z + offset[2]
-					);
-					if (canFlow(voxel, voxel.level, chunk.extendedAt(l), offset[1], true)) {
-						setFlow(chunk, l, voxel, voxel.level - 1);
-						invalidatedLocations.emplace(l);
-					}
-				}
-			}
-			if (!sourceFound) {
-				if (voxel.level > 1) {
-					voxel.level--;
-				} else {
-					voxelHolder.setType(*m_air);
-				}
-				invalidatedLocations.emplace(location);
-				return true;
-			} else if (sourceCount >= 2 && m_canSpawn) {
-				setSource(chunk, location, voxel);
-				invalidatedLocations.emplace(location);
-			}
-			return false;
-		}
-		
-	};
+	template<typename S> void serialize(S &s) {
+		s.value1b(countdown);
+	}
+};
+
+class LiquidVoxelBaseTrait: public VoxelTypeTrait<LiquidVoxelState> {
+	int m_maxFlowLevel;
+	int m_flowSlowdown;
+	bool m_canSpawn;
+	VoxelTypeInterface *m_air = &EmptyVoxelType::INSTANCE;
+
+public:
+	LiquidVoxelBaseTrait(
+			int maxFlowLevel,
+			int flowSlowdown,
+			bool canSpawn
+	);
+	virtual VoxelTypeInterface &flowType() = 0;
+	void link(VoxelTypeRegistry &registry);
+	float calculateModelOffset(int level) const;
+	float calculateModelOffset(const VoxelHolder &voxel);
+	void adjustMesh(
+			const VoxelChunkExtendedRef &chunk,
+			const InChunkVoxelLocation &location,
+			int level,
+			std::vector<VoxelVertexData> &data
+	);
+	void buildVertexData(
+			const VoxelChunkExtendedRef &chunk,
+			const InChunkVoxelLocation &location,
+			const State &voxel,
+			std::vector<VoxelVertexData> &data
+	);
+	void flowBuildVertexData(
+			const VoxelChunkExtendedRef &chunk,
+			const InChunkVoxelLocation &location,
+			const LiquidFlowVoxelTrait::State &voxel,
+			std::vector<VoxelVertexData> &data
+	);
+	bool canFlow(int sourceLevel, const VoxelHolder &target, int dy, bool strict);
+	void setSource(
+			const VoxelChunkExtendedMutableRef &chunk,
+			const InChunkVoxelLocation &location,
+			LiquidFlowVoxelTrait::State &flow
+	);
+	void setFlow(
+			const VoxelChunkExtendedMutableRef &chunk,
+			const InChunkVoxelLocation &location,
+			int level
+	);
+	bool update(
+			const VoxelChunkExtendedMutableRef &chunk,
+			const InChunkVoxelLocation &location,
+			Voxel &rawVoxel,
+			State &voxel,
+			unsigned long deltaTime,
+			std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
+	);
+	bool flowUpdate(
+			const VoxelChunkExtendedMutableRef &chunk,
+			const InChunkVoxelLocation &location,
+			Voxel &rawVoxel,
+			LiquidFlowVoxelTrait::State &voxel,
+			unsigned long deltaTime,
+			std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
+	);
 	
+};
+
+template<typename ...Traits> class LiquidFlowVoxelType: public VoxelType<
+        LiquidFlowVoxelType<Traits...>,
+        EmptyVoxelTypeTraitState,
+        Traits...,
+        LiquidFlowVoxelTrait
+> {
+public:
+	template<typename ...Args> explicit LiquidFlowVoxelType(Args&&... args): VoxelType<
+        LiquidFlowVoxelType<Traits...>,
+        EmptyVoxelTypeTraitState,
+        Traits...,
+        LiquidFlowVoxelTrait
+	>(std::forward<Args>(args)..., LiquidFlowVoxelTrait()) {
+	}
+	
+};
+
+template<typename ...FlowTraits> class LiquidVoxelTrait: public LiquidVoxelBaseTrait {
+	std::unique_ptr<LiquidFlowVoxelType<FlowTraits...>> m_flowTypePtr;
+	VoxelTypeInterface *m_flowType;
+	
+public:
+	template<typename ...Args> explicit LiquidVoxelTrait(
+			int maxFlowLevel,
+			int flowSlowdown,
+			bool canSpawn,
+			Args&&... args
+	): LiquidVoxelBaseTrait(maxFlowLevel, flowSlowdown, canSpawn) {
+		m_flowTypePtr = std::make_unique<LiquidFlowVoxelType<FlowTraits...>>(std::forward<Args>(args)...);
+		m_flowType = m_flowTypePtr.get();
+	}
+	VoxelTypeInterface &flowType() final {
+		return *m_flowType;
+	}
+	void handleRegistration(const std::string &name, VoxelTypeRegistry &registry) {
+		assert(m_flowTypePtr);
+		m_flowTypePtr->setTrait(*this);
+		registry.add(name + "_flow", std::move(m_flowTypePtr));
+	}
+
 };

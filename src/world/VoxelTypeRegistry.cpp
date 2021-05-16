@@ -2,16 +2,16 @@
 #include "VoxelTypeRegistry.h"
 #include "Asset.h"
 
-class UnknownVoxelType: public VoxelType<UnknownVoxelType, Voxel, SimpleVoxelType> {
+class UnknownVoxelType: public VoxelType<UnknownVoxelType, EmptyVoxelTypeTraitState, SimpleVoxelType> {
 public:
-	UnknownVoxelType(VoxelTypeRegistry &registry, std::string name, AssetLoader &loader): VoxelType(
+	UnknownVoxelType(VoxelTypeRegistry &registry, std::string name, AssetLoader &loader): VoxelType(SimpleVoxelType(
 			std::move(name),
 #ifdef HEADLESS
 			loader.load("assets/textures/unknown_block.png")
 #else
 			registry.m_unknownBlockTexture
 #endif
-	) {
+	)) {
 	}
 	
 };
@@ -23,7 +23,7 @@ VoxelTypeRegistry::VoxelTypeRegistry(AssetLoader &assetLoader): m_assetLoader(as
 }
 
 VoxelTypeInterface &VoxelTypeRegistry::add(std::string name, std::unique_ptr<VoxelTypeInterface> type) {
-	type->registerChildren(name, *this);
+	type->invokeHandleRegistration(name, *this);
 	auto &typeRef = *type;
 	std::unique_lock<std::shared_mutex> lock(m_mutex);
 	LOG(INFO) << "Registered \"" << name << "\" voxel type";
@@ -47,6 +47,6 @@ VoxelTypeInterface &VoxelTypeRegistry::get(const std::string &name) {
 
 void VoxelTypeRegistry::link() {
 	for (auto &type : m_types) {
-		type.second->link(*this);
+		type.second->invokeLink(*this);
 	}
 }

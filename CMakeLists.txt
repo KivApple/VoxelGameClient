@@ -104,7 +104,8 @@ add_custom_target(
 set(
 		COMMON_SRC
 		src/world/Voxel.cpp src/world/VoxelChunk.cpp src/world/VoxelWorld.cpp src/world/VoxelTypeRegistry.cpp
-		src/world/VoxelTypes.cpp src/world/VoxelWorldUtils.cpp src/world/Entity.cpp
+		src/world/VoxelTypes.cpp src/world/LiquidVoxelType.cpp
+		src/world/VoxelWorldUtils.cpp src/world/Entity.cpp
 		src/Asset.cpp
 )
 

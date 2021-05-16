@@ -6,6 +6,7 @@
 #include <GL/glew.h>
 #include "GameEngine.h"
 #include "world/VoxelTypes.h"
+#include "world/VoxelWorldUtils.h"
 
 GameEngine *GameEngine::s_instance = nullptr;
 

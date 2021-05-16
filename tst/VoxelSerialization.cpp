@@ -4,58 +4,24 @@
 #include "world/VoxelTypeRegistry.h"
 #include "world/VoxelWorld.h"
 
-struct MyVoxel: public Voxel {
+struct MyVoxel {
 	int a = 10;
 	int b = 20;
 	
 	template<typename S> void serialize(S &s) {
-		Voxel::serialize(s);
 		s.value4b(a);
 	}
 };
 
-class MyVoxelType: public VoxelType<MyVoxelType, MyVoxel> {
+class MyVoxelType: public VoxelType<MyVoxelType, MyVoxel, SimpleVoxelType> {
 public:
+	explicit MyVoxelType(
+			AssetLoader &loader
+	): VoxelType(SimpleVoxelType("test", loader.load("dummy.png"))) {
+	}
+	
 	std::string toString(const MyVoxel &voxel) {
 		return "test";
-	}
-	
-	const VoxelShaderProvider *shaderProvider(const Voxel &voxel) {
-		return nullptr;
-	}
-	
-	void buildVertexData(
-			const VoxelChunkExtendedRef &chunk,
-			const InChunkVoxelLocation &location,
-			const MyVoxel &voxel,
-			std::vector<VoxelVertexData> &data
-	) {
-	}
-
-	VoxelLightLevel lightLevel(const MyVoxel &voxel) {
-		return 0;
-	}
-	
-	void slowUpdate(
-			const VoxelChunkExtendedMutableRef &chunk,
-			const InChunkVoxelLocation &location,
-			Voxel &voxel,
-			std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
-	) {
-	}
-	
-	bool update(
-			const VoxelChunkExtendedMutableRef &chunk,
-			const InChunkVoxelLocation &location,
-			Voxel &voxel,
-			unsigned long deltaTime,
-			std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
-	) {
-		return false;
-	}
-	
-	bool hasDensity(const Voxel &voxel) {
-		return false;
 	}
 	
 };
@@ -179,7 +145,7 @@ TEST(VoxelSerialization, context) {
 	{
 		AssetLoader assetLoader(".");
 		VoxelTypeRegistry typeRegistry(assetLoader);
-		typeRegistry.add("test", std::make_unique<MyVoxelType>());
+		typeRegistry.add("test", std::make_unique<MyVoxelType>(assetLoader));
 		VoxelTypeSerializationContext typeSerializationContext(typeRegistry);
 		emptyTypeId = typeSerializationContext.typeId(typeRegistry.get("empty"));
 		testTypeId = typeSerializationContext.typeId(typeRegistry.get("test"));
@@ -212,14 +178,14 @@ TEST(VoxelSerialization, context) {
 TEST(VoxelSerialization, holder) {
 	AssetLoader assetLoader(".");
 	VoxelTypeRegistry typeRegistry(assetLoader);
-	typeRegistry.add("test", std::make_unique<MyVoxelType>());
+	typeRegistry.add("test", std::make_unique<MyVoxelType>(assetLoader));
 	VoxelTypeSerializationContext typeSerializationContext(typeRegistry);
 	
 	std::string buffer;
 	
 	{
 		VoxelHolder voxel1, voxel2(typeRegistry.get("test"));
-		voxel2.get<MyVoxel>().a = 100;
+		voxel2.get<MyVoxelType::State>().a = 100;
 		
 		VoxelSerializer serializer(typeSerializationContext, buffer);
 		serializer.object(voxel1);
@@ -243,15 +209,15 @@ TEST(VoxelSerialization, holder) {
 		
 		EXPECT_EQ(voxel1.toString(), "empty");
 		EXPECT_EQ(voxel2.toString(), "test");
-		EXPECT_EQ(voxel2.get<MyVoxel>().a, 100);
-		EXPECT_EQ(voxel2.get<MyVoxel>().b, 20);
+		EXPECT_EQ(voxel2.get<MyVoxelType::State>().a, 100);
+		EXPECT_EQ(voxel2.get<MyVoxelType::State>().b, 20);
 	}
 }
 
 TEST(VoxelSerialization, chunk) {
 	AssetLoader assetLoader(".");
 	VoxelTypeRegistry typeRegistry(assetLoader);
-	typeRegistry.add("test", std::make_unique<MyVoxelType>());
+	typeRegistry.add("test", std::make_unique<MyVoxelType>(assetLoader));
 	VoxelTypeSerializationContext typeSerializationContext(typeRegistry);
 	
 	std::string buffer;
@@ -259,7 +225,7 @@ TEST(VoxelSerialization, chunk) {
 	{
 		VoxelChunk chunk({0, 0, 0});
 		chunk.at(7, 11, 13).setType(typeRegistry.get("test"));
-		chunk.at(7, 11, 13).get<MyVoxel>().a = 100;
+		chunk.at(7, 11, 13).get<MyVoxelType::State>().a = 100;
 		
 		VoxelSerializer serializer(typeSerializationContext, buffer);
 		serializer.object(chunk);
@@ -283,14 +249,14 @@ TEST(VoxelSerialization, chunk) {
 		EXPECT_EQ(chunk.at(7, 11, 14).toString(), "empty");
 		
 		EXPECT_EQ(chunk.at(7, 11, 13).toString(), "test");
-		EXPECT_EQ(chunk.at(7, 11, 13).get<MyVoxel>().a, 100);
+		EXPECT_EQ(chunk.at(7, 11, 13).get<MyVoxelType::State>().a, 100);
 	}
 }
 
 TEST(VoxelSerialization, world) {
 	AssetLoader assetLoader(".");
 	VoxelTypeRegistry typeRegistry(assetLoader);
-	typeRegistry.add("test", std::make_unique<MyVoxelType>());
+	typeRegistry.add("test", std::make_unique<MyVoxelType>(assetLoader));
 	VoxelTypeSerializationContext typeSerializationContext(typeRegistry);
 	
 	std::string buffer;
@@ -301,7 +267,7 @@ TEST(VoxelSerialization, world) {
 		{
 			auto chunk = world.mutableChunk({0, 0, 0}, VoxelWorld::MissingChunkPolicy::CREATE);
 			chunk.at(7, 11, 13).setType(typeRegistry.get("test"));
-			chunk.at(7, 11, 13).get<MyVoxel>().a = 100;
+			chunk.at(7, 11, 13).get<MyVoxelType::State>().a = 100;
 		}
 		
 		{
@@ -330,6 +296,6 @@ TEST(VoxelSerialization, world) {
 		EXPECT_EQ(chunk.at(7, 11, 14).toString(), "empty");
 		
 		EXPECT_EQ(chunk.at(7, 11, 13).toString(), "test");
-		EXPECT_EQ(chunk.at(7, 11, 13).get<MyVoxel>().a, 100);
+		EXPECT_EQ(chunk.at(7, 11, 13).get<MyVoxelType::State>().a, 100);
 	}
 }

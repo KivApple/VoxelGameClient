@@ -6,39 +6,56 @@
 
 class AssetLoader;
 
-class AirVoxelType: public VoxelType<AirVoxelType, Voxel, EmptyVoxelType> {
+class AirVoxelType: public VoxelType<AirVoxelType, EmptyVoxelTypeTraitState, EmptyVoxelType> {
 public:
-	std::string toString(const Voxel &voxel);
-	bool hasDensity(const Voxel &voxel);
+	AirVoxelType();
+	std::string toString(const State &voxel);
+	bool hasDensity(const State &voxel);
 	
 };
 
-class GrassVoxelType: public VoxelType<GrassVoxelType, Voxel, SimpleVoxelType> {
+class GrassVoxelType: public VoxelType<GrassVoxelType, EmptyVoxelTypeTraitState, SimpleVoxelType> {
 	VoxelTypeInterface *m_dirt = nullptr;
 	VoxelTypeInterface *m_lava = nullptr;
 	
 public:
 	explicit GrassVoxelType(AssetLoader &loader);
-	void link(VoxelTypeRegistry &registry) override;
+	void link(VoxelTypeRegistry &registry);
 	void slowUpdate(
 			const VoxelChunkExtendedMutableRef &chunk,
 			const InChunkVoxelLocation &location,
-			Voxel &voxel,
+			Voxel &rawVoxel,
+			State &voxel,
 			std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
 	);
 	bool update(
 			const VoxelChunkExtendedMutableRef &chunk,
 			const InChunkVoxelLocation &location,
-			Voxel &voxel,
+			Voxel &rawVoxel,
+			State &voxel,
 			unsigned long deltaTime,
 			std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
 	);
 	
 };
 
-class WaterVoxelType: public Liquid<WaterVoxelType, SimpleVoxelType>::SourceVoxelType {
+class WaterVoxelType: public VoxelType<
+		WaterVoxelType,
+		EmptyVoxelTypeTraitState,
+		SimpleVoxelType, LiquidVoxelTrait<SimpleVoxelType>
+> {
 public:
 	explicit WaterVoxelType(AssetLoader &loader);
+	bool update(
+			const VoxelChunkExtendedMutableRef &chunk,
+			const InChunkVoxelLocation &location,
+			Voxel &rawVoxel,
+			State &voxel,
+			unsigned long deltaTime,
+			std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
+	) {
+		return VoxelType::update(chunk, location, rawVoxel, voxel, deltaTime, invalidatedLocations);
+	}
 	
 };
 

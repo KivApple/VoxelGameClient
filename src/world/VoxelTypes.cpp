@@ -1,22 +1,27 @@
 #include "VoxelTypes.h"
+#include "VoxelWorld.h"
 #include "Asset.h"
 
-std::string AirVoxelType::toString(const Voxel &voxel) {
+AirVoxelType::AirVoxelType(): VoxelType(EmptyVoxelType()) {
+}
+
+std::string AirVoxelType::toString(const State &voxel) {
 	return "air";
 }
 
-bool AirVoxelType::hasDensity(const Voxel &voxel) {
+bool AirVoxelType::hasDensity(const State &voxel) {
 	return false;
 }
 
-GrassVoxelType::GrassVoxelType(AssetLoader &loader): VoxelType(
+GrassVoxelType::GrassVoxelType(AssetLoader &loader): VoxelType(SimpleVoxelType(
 		"grass",
 		loader.load("assets/textures/grass.png"),
 		true
-) {
+)) {
 }
 
 void GrassVoxelType::link(VoxelTypeRegistry &registry) {
+	VoxelType::link(registry);
 	m_dirt = &registry.get("dirt");
 	m_lava = &registry.get("lava");
 }
@@ -24,7 +29,8 @@ void GrassVoxelType::link(VoxelTypeRegistry &registry) {
 void GrassVoxelType::slowUpdate(
 		const VoxelChunkExtendedMutableRef &chunk,
 		const InChunkVoxelLocation &location,
-		Voxel &voxel,
+		Voxel &rawVoxel,
+		State &voxel,
 		std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
 ) {
 	if (chunk.extendedAt(location.x, location.y + 1, location.z).lightLevel() <= 4) {
@@ -61,7 +67,8 @@ void GrassVoxelType::slowUpdate(
 bool GrassVoxelType::update(
 		const VoxelChunkExtendedMutableRef &chunk,
 		const InChunkVoxelLocation &location,
-		Voxel &voxel,
+		Voxel &rawVoxel,
+		State &voxel,
 		unsigned long deltaTime,
 		std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
 ) {
@@ -88,16 +95,28 @@ bool GrassVoxelType::update(
 	return false;
 }
 
-WaterVoxelType::WaterVoxelType(AssetLoader &loader): SourceVoxelType(
-		8,
-		5,
-		true,
-		"water",
-		loader.load("assets/textures/water.png"),
-		false,
-		-1,
-		true,
-		false
+WaterVoxelType::WaterVoxelType(AssetLoader &loader): VoxelType(
+		SimpleVoxelType(
+				"water",
+				loader.load("assets/textures/water.png"),
+				false,
+				-1,
+				true,
+				false
+		),
+		LiquidVoxelTrait(
+				8,
+				5,
+				true,
+				SimpleVoxelType(
+						"water",
+						loader.load("assets/textures/water.png"),
+						false,
+						-1,
+						true,
+						false
+				)
+		)
 ) {
 }
 

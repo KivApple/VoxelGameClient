@@ -1,3 +1,4 @@
+#include <functional>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include "world/VoxelWorld.h"
@@ -6,7 +7,7 @@ struct Observer {
 	MOCK_METHOD0(invoke, void());
 };
 
-struct TestVoxel: public Voxel {
+struct TestVoxel {
 	Observer *destructorObserver = nullptr;
 	
 	~TestVoxel() {
@@ -15,54 +16,70 @@ struct TestVoxel: public Voxel {
 		}
 	}
 	
-};
-
-class TestVoxelType: public VoxelType<TestVoxelType, TestVoxel> {
-public:
-	std::string toString(const TestVoxel &voxel) {
-		return "test";
+	template<typename S> void serialize(S &s) {
 	}
 	
-	const VoxelShaderProvider *shaderProvider(const Voxel &voxel) {
-		return nullptr;
+};
+
+struct TestVoxelTraitState {
+	int a = 10;
+	
+	template<typename S> void serialize(S &s) {
+		s.value4b(a);
+	}
+
+};
+
+class TestVoxelTrait: public VoxelTypeTrait<TestVoxelTraitState> {
+	std::function<void()> m_callback;
+	
+public:
+	explicit TestVoxelTrait(std::function<void()> callback): m_callback(std::move(callback)) {
 	}
 	
 	void buildVertexData(
 			const VoxelChunkExtendedRef &chunk,
 			const InChunkVoxelLocation &location,
-			const TestVoxel &voxel,
+			const TestVoxelTraitState &voxel,
 			std::vector<VoxelVertexData> &data
 	) {
+		m_callback();
+	}
+	
+};
+
+class EmptyVoxelTrait: public VoxelTypeTrait<> {
+};
+
+class TestVoxelType: public VoxelType<
+        TestVoxelType,
+        TestVoxel,
+        TestVoxelTrait,
+        EmptyVoxelTrait
+> {
+public:
+	TestVoxelType(): VoxelType(TestVoxelTrait([this]() {
+		traitBuildVertexDataCalled();
+	}), EmptyVoxelTrait()) {
+	}
+	
+	std::string toString(const State &voxel) {
+		return "test";
+	}
+	
+	void buildVertexData(
+			const VoxelChunkExtendedRef &chunk,
+			const InChunkVoxelLocation &location,
+			const State &voxel,
+			std::vector<VoxelVertexData> &data
+	) {
+		VoxelType::buildVertexData(chunk, location, voxel, data);
 		buildVertexDataCalled();
 	}
 
-	VoxelLightLevel lightLevel(const TestVoxel &voxel) {
-		return 0;
-	}
-	
 	MOCK_METHOD0(buildVertexDataCalled, void());
 	
-	void slowUpdate(
-			const VoxelChunkExtendedMutableRef &chunk,
-			const InChunkVoxelLocation &location,
-			Voxel &voxel,
-			std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
-	) {
-	}
-	
-	bool update(
-			const VoxelChunkExtendedMutableRef &chunk,
-			const InChunkVoxelLocation &location,
-			Voxel &voxel,
-			unsigned long deltaTime,
-			std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
-	) {
-		return false;
-	}
-	
-	bool hasDensity(const Voxel &voxel) {
-		return false;
-	}
+	MOCK_METHOD0(traitBuildVertexDataCalled, void());
 	
 };
 
@@ -75,12 +92,13 @@ TEST(VoxelWorld, voxelType) {
 	ASSERT_EQ(chunk.at(0, 0, 0).toString(), "test");
 	
 	EXPECT_CALL(testVoxelType, buildVertexDataCalled()).Times(1);
+	EXPECT_CALL(testVoxelType, traitBuildVertexDataCalled()).Times(1);
 	{
 		std::vector<VoxelVertexData> data;
 		chunk.at(0, 0, 0).buildVertexData(VoxelChunkExtendedRef(), InChunkVoxelLocation(), data);
 	}
 	
-	((TestVoxel&) chunk.at(0, 0, 0)).destructorObserver = &destructorObserver;
+	((TestVoxelType::Data&) chunk.at(0, 0, 0)).destructorObserver = &destructorObserver;
 	EXPECT_CALL(destructorObserver, invoke()).Times(1);
 }
 

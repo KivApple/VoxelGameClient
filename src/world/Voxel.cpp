@@ -123,46 +123,8 @@ std::vector<std::string> VoxelTypeSerializationContext::names() const {
 
 EmptyVoxelType EmptyVoxelType::INSTANCE;
 
-std::string EmptyVoxelType::toString(const Voxel &voxel) {
+std::string EmptyVoxelType::toString(const State &voxel) {
 	return "empty";
-}
-
-const VoxelShaderProvider *EmptyVoxelType::shaderProvider(const Voxel &voxel) {
-	return nullptr;
-}
-
-void EmptyVoxelType::buildVertexData(
-		const VoxelChunkExtendedRef &chunk,
-		const InChunkVoxelLocation &location,
-		const Voxel &voxel,
-		std::vector<VoxelVertexData> &data
-) {
-}
-
-VoxelLightLevel EmptyVoxelType::lightLevel(const Voxel &voxel) {
-	return 0;
-}
-
-void EmptyVoxelType::slowUpdate(
-		const VoxelChunkExtendedMutableRef &chunk,
-		const InChunkVoxelLocation &location,
-		Voxel &voxel,
-		std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
-) {
-}
-
-bool EmptyVoxelType::update(
-		const VoxelChunkExtendedMutableRef &chunk,
-		const InChunkVoxelLocation &location,
-		Voxel &voxel,
-		unsigned long deltaTime,
-		std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
-) {
-	return false;
-}
-
-bool EmptyVoxelType::hasDensity(const Voxel &voxel) {
-	return true;
 }
 
 void VoxelHolder::serialize(VoxelDeserializer &deserializer) {
@@ -199,18 +161,18 @@ SimpleVoxelType::SimpleVoxelType(
 }
 #endif
 
-std::string SimpleVoxelType::toString(const Voxel &voxel) {
+std::string SimpleVoxelType::toString(const State &voxel) {
 	return m_name;
 }
 
-const VoxelShaderProvider *SimpleVoxelType::shaderProvider(const Voxel &voxel) {
+const VoxelShaderProvider *SimpleVoxelType::shaderProvider(const State &voxel) {
 	return this;
 }
 
 void SimpleVoxelType::buildVertexData(
 		const VoxelChunkExtendedRef &chunk,
 		const InChunkVoxelLocation &location,
-		const Voxel &voxel,
+		const State &voxel,
 		std::vector<VoxelVertexData> &data
 ) {
 	if (m_unwrap) {
@@ -292,9 +254,10 @@ void SimpleVoxelType::buildVertexData(
 			{0.5, -0.5, -0.5, 0.0, 0.0}
 		});
 	}
+	VoxelType::buildVertexData(chunk, location, voxel, data);
 }
 
-VoxelLightLevel SimpleVoxelType::lightLevel(const Voxel &voxel) {
+VoxelLightLevel SimpleVoxelType::lightLevel(const State &voxel) {
 	return m_lightLevel;
 }
 
@@ -302,24 +265,6 @@ int SimpleVoxelType::priority() const {
 	return m_transparent ? MAX_VOXEL_SHADER_PRIORITY - 1 : MAX_VOXEL_SHADER_PRIORITY;
 }
 
-void SimpleVoxelType::slowUpdate(
-		const VoxelChunkExtendedMutableRef &chunk,
-		const InChunkVoxelLocation &location,
-		Voxel &voxel,
-		std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
-) {
-}
-
-bool SimpleVoxelType::update(
-		const VoxelChunkExtendedMutableRef &chunk,
-		const InChunkVoxelLocation &location,
-		Voxel &voxel,
-		unsigned long deltaTime,
-		std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
-) {
-	return false;
-}
-
-bool SimpleVoxelType::hasDensity(const Voxel &voxel) {
+bool SimpleVoxelType::hasDensity(const State &voxel) {
 	return m_hasDensity;
 }
