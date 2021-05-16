@@ -162,6 +162,7 @@ void SDLGameEngine::handleMouseButtonDownEvent(SDL_MouseButtonEvent &event) {
 		return;
 	}
 	if (!SDL_GetRelativeMouseMode()) {
+		SDL_SetRelativeMouseMode(SDL_TRUE);
 		return;
 	}
 	switch (event.button) {
@@ -186,7 +187,6 @@ void SDLGameEngine::handleMouseButtonUpEvent(SDL_MouseButtonEvent &event) {
 		return;
 	}
 	if (!SDL_GetRelativeMouseMode()) {
-		SDL_SetRelativeMouseMode(SDL_TRUE);
 		return;
 	}
 	switch (event.button) {
