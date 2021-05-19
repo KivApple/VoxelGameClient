@@ -34,7 +34,11 @@
                 }, false);
                 return canvas;
             })(),
-            arguments: ["ws://" + window.location.hostname + ":9002/"]
+            arguments: [
+                window.location.protocol === "https:" ?
+                    "wss://" + window.location.hostname + "/voxel-game/ws" :
+                    "ws://" + window.location.hostname + ":9002/"
+            ]
         };
 
         const script = document.createElement("script");
