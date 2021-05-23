@@ -20,7 +20,7 @@ VoxelTextureShaderProvider::VoxelTextureShaderProvider(Asset asset)
 
 #ifndef HEADLESS
 const CommonShaderProgram &VoxelTextureShaderProvider::get() const {
-	return GameEngine::instance().commonShaderPrograms().texture;
+	return GameEngine::instance().commonShaderPrograms().world.texture;
 }
 
 void VoxelTextureShaderProvider::setup(const CommonShaderProgram &program) const {

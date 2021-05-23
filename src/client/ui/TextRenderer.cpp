@@ -72,7 +72,7 @@ void BitmapFontRenderer::setText(const std::string &text, const glm::vec4 &color
 }
 
 void BitmapFontRenderer::render(float x, float y, float size) const {
-	auto &program = GameEngine::instance().commonShaderPrograms().font;
+	auto &program = GameEngine::instance().commonShaderPrograms().ui.font;
 	
 	program.use();
 	

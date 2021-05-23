@@ -67,7 +67,7 @@ bool GameEngine::init() {
 	m_cowTexture = std::make_unique<GL::Texture>(m_assetLoader->load("assets/textures/cow.png"));
 	m_cowModel = std::make_unique<Model>(
 			m_assetLoader->load("assets/models/cow.obj"),
-			commonShaderPrograms().texture, m_cowTexture.get()
+			commonShaderPrograms().world.texture, m_cowTexture.get()
 	);
 	m_cowEntity = std::make_unique<Entity>(
 			*m_voxelWorld,

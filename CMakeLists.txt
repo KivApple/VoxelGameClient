@@ -80,7 +80,7 @@ set(
 
 set(
 		CLIENT_ASSETS
-		--text assets/shaders/*.glsl
+		--text assets/shaders/*/*.glsl
 		--binary assets/textures/*.png
 		--binary assets/fonts/*.png
 		--text assets/fonts/*.png.txt

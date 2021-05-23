@@ -63,14 +63,31 @@ void CommonShaderProgram::setColors(const GL::BufferPointer &pointer) const {
 	pointer.bind(m_colorLocation, 4);
 }
 
-CommonShaderPrograms::CommonShaderPrograms(AssetLoader &loader): texture("texture", {
-		GL::Shader(GL_VERTEX_SHADER, loader.load("assets/shaders/texture_vertex.glsl")),
-		GL::Shader(GL_FRAGMENT_SHADER, loader.load("assets/shaders/texture_fragment.glsl"))
-}), color("color", {
-		GL::Shader(GL_VERTEX_SHADER, loader.load("assets/shaders/color_vertex.glsl")),
-		GL::Shader(GL_FRAGMENT_SHADER, loader.load("assets/shaders/color_fragment.glsl"))
-}), font("font", {
-		GL::Shader(GL_VERTEX_SHADER, loader.load("assets/shaders/font_vertex.glsl")),
-		GL::Shader(GL_FRAGMENT_SHADER, loader.load("assets/shaders/font_fragment.glsl"))
-}) {
+CommonShaderPrograms::CommonShaderPrograms(AssetLoader &loader): ui {
+	{
+		"ui:texture", {
+			GL::Shader(GL_VERTEX_SHADER, loader.load("assets/shaders/ui/texture_vertex.glsl")),
+			GL::Shader(GL_FRAGMENT_SHADER, loader.load("assets/shaders/ui/texture_fragment.glsl"))
+		}
+	},
+	{
+		"ui:color", {
+			GL::Shader(GL_VERTEX_SHADER, loader.load("assets/shaders/ui/color_vertex.glsl")),
+			GL::Shader(GL_FRAGMENT_SHADER, loader.load("assets/shaders/ui/color_fragment.glsl"))
+		}
+	},
+	{
+		"ui:font", {
+			GL::Shader(GL_VERTEX_SHADER, loader.load("assets/shaders/ui/font_vertex.glsl")),
+			GL::Shader(GL_FRAGMENT_SHADER, loader.load("assets/shaders/ui/font_fragment.glsl"))
+		}
+	}
+}, world {
+	{
+		"world:texture", {
+			GL::Shader(GL_VERTEX_SHADER, loader.load("assets/shaders/world/texture_vertex.glsl")),
+			GL::Shader(GL_FRAGMENT_SHADER, loader.load("assets/shaders/world/texture_fragment.glsl"))
+		}
+	}
+} {
 }

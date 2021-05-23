@@ -35,9 +35,15 @@ public:
 };
 
 struct CommonShaderPrograms {
-	const CommonShaderProgram texture;
-	const CommonShaderProgram color;
-	const CommonShaderProgram font;
+	struct {
+		const CommonShaderProgram texture;
+		const CommonShaderProgram color;
+		const CommonShaderProgram font;
+	} ui;
+	
+	struct {
+		const CommonShaderProgram texture;
+	} world;
 	
 	explicit CommonShaderPrograms(AssetLoader &loader);
 };

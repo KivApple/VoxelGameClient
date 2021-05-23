@@ -32,7 +32,7 @@ void VoxelOutline::set(const VoxelChunkExtendedRef &chunk, std::optional<PlayerP
 void VoxelOutline::render(const glm::mat4 &view, const glm::mat4 &projection) {
 	if (m_vertexData.empty()) return;
 	
-	auto &program = GameEngine::instance().commonShaderPrograms().color;
+	auto &program = GameEngine::instance().commonShaderPrograms().ui.color;
 
 	program.use();
 	

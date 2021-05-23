@@ -5,13 +5,13 @@
 #include "../GameEngine.h"
 
 const float InventoryItem::FILL_BUFFER_DATA[] = {
-		-1.0f, 1.0f, 0.0f, /**/ 1.0f, 1.0f, 1.0f, 1.0f, /**/ 0.0f, 1.0f, /**/ 1.0f,
-		1.0f, 1.0f, 0.0f, /**/ 1.0f, 1.0f, 1.0f, 1.0f, /**/ 1.0f, 1.0f, /**/ 1.0f,
-		-1.0f, -1.0f, 0.0f, /**/ 1.0f, 1.0f, 1.0f, 1.0f, /**/ 0.0f, 0.0f, /**/ 1.0f,
+		-1.0f, 1.0f, 0.0f, /**/ 1.0f, 1.0f, 1.0f, 1.0f, /**/ 0.0f, 1.0f,
+		1.0f, 1.0f, 0.0f, /**/ 1.0f, 1.0f, 1.0f, 1.0f, /**/ 1.0f, 1.0f,
+		-1.0f, -1.0f, 0.0f, /**/ 1.0f, 1.0f, 1.0f, 1.0f, /**/ 0.0f, 0.0f,
 		
-		-1.0f, -1.0f, 0.0f, /**/ 1.0f, 1.0f, 1.0f, 1.0f, /**/ 0.0f, 0.0f, /**/ 1.0f,
-		1.0f,  1.0f, 0.0f, /**/ 1.0f, 1.0f, 1.0f, 1.0f, /**/ 1.0f, 1.0f, /**/ 1.0f,
-		1.0f, -1.0f, 0.0f, /**/ 1.0f, 1.0f, 1.0f, 1.0f, /**/ 1.0f, 0.0f, /**/ 1.0f
+		-1.0f, -1.0f, 0.0f, /**/ 1.0f, 1.0f, 1.0f, 1.0f, /**/ 0.0f, 0.0f,
+		1.0f,  1.0f, 0.0f, /**/ 1.0f, 1.0f, 1.0f, 1.0f, /**/ 1.0f, 1.0f,
+		1.0f, -1.0f, 0.0f, /**/ 1.0f, 1.0f, 1.0f, 1.0f, /**/ 1.0f, 0.0f
 };
 
 const float InventoryItem::OUTLINE_BUFFER_DATA[] = {
@@ -33,7 +33,7 @@ void InventoryItem::render(const glm::mat4 &transform) {
 	auto &fillBuffer = staticBufferInstance(FILL_BUFFER_DATA, sizeof(FILL_BUFFER_DATA));
 	auto &outlineBuffer = staticBufferInstance(OUTLINE_BUFFER_DATA, sizeof(OUTLINE_BUFFER_DATA));
 	
-	auto &colorProgram = GameEngine::instance().commonShaderPrograms().color;
+	auto &colorProgram = GameEngine::instance().commonShaderPrograms().ui.color;
 	colorProgram.use();
 	
 	colorProgram.setModel(transform);
@@ -46,13 +46,13 @@ void InventoryItem::render(const glm::mat4 &transform) {
 			glm::vec4(0.5f, 0.5f, 0.5f, 0.25f)
 	);
 	
-	colorProgram.setPositions(fillBuffer.pointer(GL_FLOAT, 0, 10 * sizeof(float)));
-	colorProgram.setColors(fillBuffer.pointer(GL_FLOAT, 3 * sizeof(float), 10 * sizeof(float)));
+	colorProgram.setPositions(fillBuffer.pointer(GL_FLOAT, 0, 9 * sizeof(float)));
+	colorProgram.setColors(fillBuffer.pointer(GL_FLOAT, 3 * sizeof(float), 9 * sizeof(float)));
 	
-	glDrawArrays(GL_TRIANGLES, 0, sizeof(FILL_BUFFER_DATA) / sizeof(float) / 10);
+	glDrawArrays(GL_TRIANGLES, 0, sizeof(FILL_BUFFER_DATA) / sizeof(float) / 9);
 	
 	if (m_voxel.shaderProvider() != nullptr) {
-		auto &textureProgram = GameEngine::instance().commonShaderPrograms().texture;
+		auto &textureProgram = GameEngine::instance().commonShaderPrograms().ui.texture;
 		textureProgram.use();
 		
 		textureProgram.setModel(transform);
@@ -64,20 +64,15 @@ void InventoryItem::render(const glm::mat4 &transform) {
 		textureProgram.setPositions(fillBuffer.pointer(
 				GL_FLOAT,
 				0,
-				10 * sizeof(float)
+				9 * sizeof(float)
 		));
 		textureProgram.setTexCoords(fillBuffer.pointer(
 				GL_FLOAT,
 				7 * sizeof(float),
-				10 * sizeof(float)
-		));
-		textureProgram.setLightLevels(fillBuffer.pointer(
-				GL_FLOAT,
-				9 * sizeof(float),
-				10 * sizeof(float)
+				9 * sizeof(float)
 		));
 		
-		glDrawArrays(GL_TRIANGLES, 0, sizeof(FILL_BUFFER_DATA) / sizeof(float) / 10);
+		glDrawArrays(GL_TRIANGLES, 0, sizeof(FILL_BUFFER_DATA) / sizeof(float) / 9);
 	}
 	
 	colorProgram.use();

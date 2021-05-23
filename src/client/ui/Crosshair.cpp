@@ -12,7 +12,7 @@ const float Crosshair::BUFFER_DATA[] = {
 void Crosshair::render(const glm::mat4 &transform) {
 	auto &buffer = staticBufferInstance(BUFFER_DATA, sizeof(BUFFER_DATA));
 	
-	auto &program = GameEngine::instance().commonShaderPrograms().color;
+	auto &program = GameEngine::instance().commonShaderPrograms().ui.color;
 	
 	program.use();
 	
