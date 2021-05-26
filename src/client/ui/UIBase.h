@@ -9,6 +9,7 @@
 namespace GL {
 	class Buffer;
 	class Framebuffer;
+	class Texture;
 }
 
 class UserInterface;
@@ -41,6 +42,7 @@ public:
 	virtual void touchEnd(long long id, const glm::vec2 &position);
 	const GL::Buffer &sharedBufferInstance();
 	const GL::Buffer &staticBufferInstance(const void *data, size_t dataSize);
+	const GL::Texture &staticTextureInstance(unsigned int width, unsigned int height, bool filter, const void *data);
 	const GL::Framebuffer &sharedFramebufferInstance(unsigned int width, unsigned int height, bool depth);
 	
 };

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <vector>
 #include <unordered_set>
 #include <unordered_map>
@@ -23,15 +24,18 @@ struct VoxelMeshPart {
 
 struct VoxelChunkMesh {
 	std::unordered_map<const VoxelShaderProvider*, std::vector<float>> parts;
+	std::array<uint8_t, (5 * (VOXEL_CHUNK_SIZE + 2) * 5 * (VOXEL_CHUNK_SIZE + 2)) * 4> textureData;
 	std::atomic<bool> valid = false;
 	std::mutex mutex;
 	std::unordered_map<const VoxelShaderProvider*, VoxelMeshPart> buffers;
+	std::optional<GL::Texture> texture;
 };
 
 struct VoxelChunkRenderStep {
 	VoxelChunkLocation location;
 	const VoxelShaderProvider *shaderProvider;
 	const VoxelMeshPart *part;
+	const GL::Texture *chunkTexture;
 };
 
 class VoxelWorldRenderer {
@@ -42,6 +46,7 @@ class VoxelWorldRenderer {
 	std::shared_mutex m_meshesMutex;
 	std::vector<VoxelVertexData> m_vertexDataBuffer;
 	std::vector<GL::Buffer> m_buffers;
+	std::vector<GL::Texture> m_textures;
 	std::vector<VoxelChunkRenderStep> m_renderSchedule;
 	PerformanceCounter m_buildPerformanceCounter;
 	PerformanceCounter m_renderPerformanceCounter;
@@ -49,6 +54,17 @@ class VoxelWorldRenderer {
 	std::optional<VoxelChunkLocation> getInvalidated(const glm::vec3 &playerPosition);
 	constexpr static int shaderProviderPriority(const VoxelShaderProvider *shaderProvider);
 	constexpr static float convertLightLevel(VoxelLightLevel level);
+	static void buildTexturePixel(
+			VoxelChunkMesh &mesh,
+			int x,
+			int y,
+			int z,
+			const VoxelHolder &voxel
+	);
+	static void buildTexture(
+			const VoxelChunkExtendedRef &chunk,
+			VoxelChunkMesh &mesh
+	);
 	void build(
 			const VoxelChunkExtendedRef &chunk,
 			const InChunkVoxelLocation &location,
@@ -59,6 +75,8 @@ class VoxelWorldRenderer {
 	void buildInvalidated(const glm::vec3 &playerPosition);
 	GL::Buffer allocateBuffer();
 	void freeBuffer(GL::Buffer &&buffer);
+	GL::Texture allocateTexture();
+	void freeTexture(GL::Texture &&texture);
 	static bool isChunkVisible(
 			const VoxelChunkLocation &location,
 			const VoxelChunkLocation &playerLocation,
@@ -95,5 +113,6 @@ public:
 		return m_renderPerformanceCounter;
 	}
 	void reset();
+	void saveChunkTexture(const glm::vec3 &playerPosition);
 
 };

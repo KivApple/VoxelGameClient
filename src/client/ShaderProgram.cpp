@@ -13,6 +13,7 @@ CommonShaderProgram::CommonShaderProgram(
 	m_projectionLocation = uniformLocation("projection", true);
 	m_texImageLocation = uniformLocation("texImage");
 	m_colorUniformLocation = uniformLocation("uColor");
+	m_chunkTextureLocation = uniformLocation("chunkTexture");
 
 	m_positionLocation = attribLocation("position", true);
 	m_lightLevelLocation = attribLocation("lightLevel");
@@ -45,6 +46,13 @@ void CommonShaderProgram::setTexImage(const GL::Texture &texImage) const {
 void CommonShaderProgram::setColorUniform(const glm::vec4 &color) const {
 	if (m_colorUniformLocation < 0) return;
 	glUniform4fv(m_colorUniformLocation, 1, glm::value_ptr(color));
+}
+
+void CommonShaderProgram::setChunkTexture(const GL::Texture &chunkTexture) const {
+	if (m_chunkTextureLocation < 0) return;
+	glActiveTexture(GL_TEXTURE1);
+	chunkTexture.bind();
+	glUniform1i(m_chunkTextureLocation, 1);
 }
 
 void CommonShaderProgram::setPositions(const GL::BufferPointer &pointer) const {
@@ -89,5 +97,12 @@ CommonShaderPrograms::CommonShaderPrograms(AssetLoader &loader): ui {
 			GL::Shader(GL_FRAGMENT_SHADER, loader.load("assets/shaders/world/texture_fragment.glsl"))
 		}
 	}
+}, entity {
+		{
+			"entity:texture", {
+				GL::Shader(GL_VERTEX_SHADER, loader.load("assets/shaders/entity/texture_vertex.glsl")),
+				GL::Shader(GL_FRAGMENT_SHADER, loader.load("assets/shaders/entity/texture_fragment.glsl"))
+			}
+		}
 } {
 }

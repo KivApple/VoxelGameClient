@@ -67,7 +67,7 @@ bool GameEngine::init() {
 	m_cowTexture = std::make_unique<GL::Texture>(m_assetLoader->load("assets/textures/cow.png"));
 	m_cowModel = std::make_unique<Model>(
 			m_assetLoader->load("assets/models/cow.obj"),
-			commonShaderPrograms().world.texture, m_cowTexture.get()
+			commonShaderPrograms().entity.texture, m_cowTexture.get()
 	);
 	m_cowEntity = std::make_unique<Entity>(
 			*m_voxelWorld,
@@ -199,8 +199,11 @@ void GameEngine::updateDebugInfo() {
 			lightLevel = chunk.at(playerLocation.inChunk()).lightLevel();
 		}
 	}
+	auto playerInChunkLocation = playerLocation.inChunk();
 	ss << " (chunk X=" << playerChunkLocation.x << ", Y=" << playerChunkLocation.y <<
-			", Z=" << playerChunkLocation.z << ") lightLevel=" << (int) lightLevel;
+			", Z=" << playerChunkLocation.z << ") (" <<
+			"in-chunk X=" << playerInChunkLocation.x << ", Y=" << playerInChunkLocation.y <<
+			", Z=" << playerInChunkLocation.z << ") lightLevel=" << (int) lightLevel;
 	ss << " yaw=" << m_player->yaw() << ", pitch=" << m_player->pitch() << "\n";
 	if (m_voxelOutline->voxelDetected()) {
 		auto &l = m_voxelOutline->voxelLocation();
@@ -235,6 +238,9 @@ void GameEngine::keyDown(KeyCode keyCode) {
 			m_voxelWorldRenderer->renderPerformanceCounter().reset();
 			m_voxelWorldRenderer->buildPerformanceCounter().reset();
 			m_voxelWorldRenderer->reset();
+			break;
+		case KeyCode::SAVE_CHUNK_TEXTURE:
+			m_voxelWorldRenderer->saveChunkTexture(m_player->position());
 			break;
 		case KeyCode::PRIMARY_CLICK:
 			if (m_mouseClicked) break;

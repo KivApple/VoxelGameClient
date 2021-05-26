@@ -45,11 +45,11 @@ void ClientConnection::updatePosition(const glm::vec3 &position, float yaw, floa
 	bool chunkChanged = false;
 	if (!resetPosition) {
 		m_player.setPosition(position);
-		VoxelChunkLocation positionChunk(
-				(int) roundf(position.x) / VOXEL_CHUNK_SIZE,
-				(int) roundf(position.y) / VOXEL_CHUNK_SIZE,
-				(int) roundf(position.z) / VOXEL_CHUNK_SIZE
-		);
+		auto positionChunk = VoxelLocation(
+				(int) roundf(position.x),
+				(int) roundf(position.y),
+				(int) roundf(position.z)
+		).chunk();
 		if (!m_positionValid || positionChunk != m_positionChunk) {
 			m_positionChunk = positionChunk;
 			chunkChanged = true;

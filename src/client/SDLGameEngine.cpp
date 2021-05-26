@@ -27,6 +27,7 @@ SDLGameEngine::SDLGameEngine(): m_keyMap({
 		{SDLK_RSHIFT, KeyCode::CLIMB_DOWN},
 		{SDLK_F1, KeyCode::TOGGLE_DEBUG_INFO},
 		{SDLK_F2, KeyCode::RESET_PERFORMANCE_COUNTERS},
+		{SDLK_F12, KeyCode::SAVE_CHUNK_TEXTURE},
 		{SDLK_LCTRL, KeyCode::SPEEDUP},
 		{SDLK_RCTRL, KeyCode::SPEEDUP},
 		{SDLK_1, KeyCode::INVENTORY_1},

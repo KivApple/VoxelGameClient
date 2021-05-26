@@ -1,9 +1,14 @@
 #include <algorithm>
+#include <easylogging++.h>
 #include <GL/glew.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include "VoxelWorldRenderer.h"
 #include "world/VoxelWorld.h"
 #include "world/VoxelWorldUtils.h"
+#ifndef __EMSCRIPTEN__
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <stb/stb_image_write.h>
+#endif
 
 VoxelWorldRenderer::VoxelWorldRenderer(VoxelWorld &world): m_world(world) {
 }
@@ -81,16 +86,6 @@ void VoxelWorldRenderer::build(
 			curPriority == prevXPriority && curPriority == prevYPriority && curPriority == prevZPriority
 	) return;
 	
-	auto curLightLevel = convertLightLevel(cur.lightLevel());
-
-	auto prevXLightLevel = convertLightLevel(prevX.lightLevel());
-	auto prevYLightLevel = convertLightLevel(prevY.lightLevel());
-	auto prevZLightLevel = convertLightLevel(prevZ.lightLevel());
-
-	auto nextXLightLevel = convertLightLevel(nextX.lightLevel());
-	auto nextYLightLevel = convertLightLevel(nextY.lightLevel());
-	auto nextZLightLevel = convertLightLevel(nextZ.lightLevel());
-	
 	m_vertexDataBuffer.clear();
 	cur.buildVertexData(chunk, location, m_vertexDataBuffer);
 	
@@ -110,47 +105,61 @@ void VoxelWorldRenderer::build(
 		auto &v1 = m_vertexDataBuffer[i + 1];
 		auto &v2 = m_vertexDataBuffer[i + 2];
 
-		auto lightLevel = curLightLevel;
-		
 		if (almostEqual(v0.x, v1.x) && almostEqual(v1.x, v2.x)) {
 			if (almostEqual(v0.x , -0.5f)) {
 				if (&prevX.type() == &EmptyVoxelType::INSTANCE) continue;
 				if (prevXPriority >= curPriority) continue;
-				lightLevel = std::max(lightLevel, prevXLightLevel);
 			} else if (almostEqual(v0.x, 0.5f)) {
 				if (&nextX.type() == &EmptyVoxelType::INSTANCE) continue;
 				if (nextXPriority >= curPriority) continue;
-				lightLevel = std::max(lightLevel, nextXLightLevel);
 			}
 		}
 		if (almostEqual(v0.y, v1.y) && almostEqual(v1.y, v2.y)) {
 			if (almostEqual(v0.y , -0.5f)) {
 				if (&prevY.type() == &EmptyVoxelType::INSTANCE) continue;
 				if (prevYPriority >= curPriority) continue;
-				lightLevel = std::max(lightLevel, prevYLightLevel);
 			} else if (almostEqual(v0.y, 0.5f)) {
 				if (&nextY.type() == &EmptyVoxelType::INSTANCE) continue;
 				if (nextYPriority >= curPriority) continue;
-				lightLevel = std::max(lightLevel, nextYLightLevel);
 			}
 		}
 		if (almostEqual(v0.z, v1.z) && almostEqual(v1.z, v2.z)) {
 			if (almostEqual(v0.z , -0.5f)) {
 				if (&prevZ.type() == &EmptyVoxelType::INSTANCE) continue;
 				if (prevZPriority >= curPriority && &prevZ.type() != &EmptyVoxelType::INSTANCE) continue;
-				lightLevel = std::max(lightLevel, prevZLightLevel);
 			} else if (almostEqual(v0.z, 0.5f)) {
 				if (&nextZ.type() == &EmptyVoxelType::INSTANCE) continue;
 				if (nextZPriority >= curPriority && &nextZ.type() != &EmptyVoxelType::INSTANCE) continue;
-				lightLevel = std::max(lightLevel, nextZLightLevel);
 			}
 		}
 		
-		outData.insert(outData.end(), {
-			x0 + v0.x, y0 + v0.y, z0 + v0.z, v0.u, 1.0f - v0.v, lightLevel,
-			x0 + v1.x, y0 + v1.y, z0 + v1.z, v1.u, 1.0f - v1.v, lightLevel,
-			x0 + v2.x, y0 + v2.y, z0 + v2.z, v2.u, 1.0f - v2.v, lightLevel
-		});
+		for (unsigned int j = 0; j < 3; j++) {
+			auto &v = m_vertexDataBuffer[i + j];
+			outData.insert(outData.end(), {
+				x0 + v.x, y0 + v.y, z0 + v.z, v.u, 1.0f - v.v
+			});
+		}
+	}
+}
+
+void VoxelWorldRenderer::buildTexturePixel(VoxelChunkMesh &mesh, int x, int y, int z, const VoxelHolder &voxel) {
+	int x0 = ((y + 1) % 5) * (VOXEL_CHUNK_SIZE + 2);
+	int y0 = ((y + 1) / 5) * (VOXEL_CHUNK_SIZE + 2);
+	int i = ((y0 + (z + 1)) * 5 * (VOXEL_CHUNK_SIZE + 2) + (x0 + (x + 1))) * 4;
+	assert((i + 4) <= mesh.textureData.size());
+	mesh.textureData[i + 0] = (int) (convertLightLevel(voxel.lightLevel()) * 255); // R
+	mesh.textureData[i + 1] = 0; // G
+	mesh.textureData[i + 2] = 0; // B
+	mesh.textureData[i + 3] = 255; // A
+}
+
+void VoxelWorldRenderer::buildTexture(const VoxelChunkExtendedRef &chunk, VoxelChunkMesh &mesh) {
+	for (int z = -1; z <= VOXEL_CHUNK_SIZE; z++) {
+		for (int y = -1; y <= VOXEL_CHUNK_SIZE; y++) {
+			for (int x = -1; x <= VOXEL_CHUNK_SIZE; x++) {
+				buildTexturePixel(mesh, x, y, z, chunk.extendedAt(x, y, z));
+			}
+		}
 	}
 }
 
@@ -161,6 +170,7 @@ bool VoxelWorldRenderer::build(const VoxelChunkLocation &location, VoxelChunkMes
 	for (auto &&part : mesh.parts) {
 		part.second.clear();
 	}
+	buildTexture(chunk, mesh);
 	for (int z = 0; z < VOXEL_CHUNK_SIZE; z++) {
 		for (int y = 0; y < VOXEL_CHUNK_SIZE; y++) {
 			for (int x = 0; x < VOXEL_CHUNK_SIZE; x++) {
@@ -219,6 +229,24 @@ void VoxelWorldRenderer::freeBuffer(GL::Buffer &&buffer) {
 	m_buffers.emplace_back(std::move(buffer));
 }
 
+GL::Texture VoxelWorldRenderer::allocateTexture() {
+	if (!m_textures.empty()) {
+		auto it = m_textures.begin() + m_textures.size() - 1;
+		auto texture = std::move(*it);
+		m_textures.erase(it);
+		return texture;
+	}
+	return GL::Texture(
+			5 * (VOXEL_CHUNK_SIZE + 2),
+			5 * (VOXEL_CHUNK_SIZE + 2),
+			false
+	);
+}
+
+void VoxelWorldRenderer::freeTexture(GL::Texture &&texture) {
+	m_textures.emplace_back(std::move(texture));
+}
+
 void VoxelWorldRenderer::updateBuffersAndScheduleRender(
 		const VoxelChunkLocation &location,
 		std::shared_lock<std::shared_mutex> &meshesLock
@@ -233,6 +261,10 @@ void VoxelWorldRenderer::updateBuffersAndScheduleRender(
 		std::unique_lock<std::mutex> lock(mesh.mutex);
 		meshesLock.unlock();
 		if (mesh.valid) {
+			if (!mesh.texture.has_value()) {
+				mesh.texture.emplace(allocateTexture());
+			}
+			mesh.texture->setData(mesh.textureData.data());
 			for (auto &part : mesh.buffers) {
 				part.second.vertexCount = 0;
 			}
@@ -242,11 +274,11 @@ void VoxelWorldRenderer::updateBuffersAndScheduleRender(
 				if (it2 == mesh.buffers.end()) {
 					mesh.buffers.emplace(part.first, VoxelMeshPart {
 							allocateBuffer(),
-							(unsigned int) part.second.size() / 6
+							(unsigned int) part.second.size() / 5
 					});
 					it2 = mesh.buffers.find(part.first);
 				} else {
-					it2->second.vertexCount = (unsigned int) part.second.size() / 6;
+					it2->second.vertexCount = (unsigned int) part.second.size() / 5;
 				}
 				it2->second.buffer.setData(
 						part.second.data(),
@@ -273,7 +305,8 @@ void VoxelWorldRenderer::updateBuffersAndScheduleRender(
 		m_renderSchedule.emplace_back(VoxelChunkRenderStep {
 			location,
 			part.first,
-			&part.second
+			&part.second,
+			&mesh.texture.value()
 		});
 	}
 }
@@ -314,6 +347,9 @@ void VoxelWorldRenderer::freeBuffers(const VoxelChunkLocation &playerLocation, i
 				for (auto &&part : mesh.buffers) {
 					freeBuffer(std::move(part.second.buffer));
 				}
+				if (mesh.texture.has_value()) {
+					freeTexture(std::move(mesh.texture.value()));
+				}
 				lock.unlock();
 				it = m_meshes.erase(it);
 			} else {
@@ -342,6 +378,7 @@ void VoxelWorldRenderer::updateBuffersAndScheduleRender(const VoxelChunkLocation
 void VoxelWorldRenderer::renderScheduled(const glm::mat4 &view, const glm::mat4 &projection) {
 	const CommonShaderProgram *prevProgram = nullptr;
 	const VoxelShaderProvider *prevShaderProvider = nullptr;
+	const GL::Texture *prevChunkTexture = nullptr;
 	for (auto &step : m_renderSchedule) {
 		auto &program = step.shaderProvider->get();
 		if (prevProgram != &program) {
@@ -366,20 +403,19 @@ void VoxelWorldRenderer::renderScheduled(const glm::mat4 &view, const glm::mat4 
 			prevShaderProvider = step.shaderProvider;
 			step.shaderProvider->setup(program);
 		}
+		if (prevChunkTexture != step.chunkTexture && step.chunkTexture != nullptr) {
+			prevChunkTexture = step.chunkTexture;
+			program.setChunkTexture(*step.chunkTexture);
+		}
 		program.setPositions(step.part->buffer.pointer(
 				GL_FLOAT,
 				0,
-				sizeof(float) * 6
-		));
-		program.setLightLevels(step.part->buffer.pointer(
-				GL_FLOAT,
-				sizeof(float) * 5,
-				sizeof(float) * 6
+				sizeof(float) * 5
 		));
 		program.setTexCoords(step.part->buffer.pointer(
 				GL_FLOAT,
 				sizeof(float) * 3,
-				sizeof(float) * 6
+				sizeof(float) * 5
 		));
 		glDrawArrays(GL_TRIANGLES, 0, step.part->vertexCount);
 	}
@@ -392,11 +428,11 @@ void VoxelWorldRenderer::render(
 		const glm::mat4 &projection
 ) {
 	PerformanceMeasurement measurement(m_renderPerformanceCounter);
-	VoxelChunkLocation playerChunkLocation(
-			(int) roundf(playerPosition.x) / VOXEL_CHUNK_SIZE,
-			(int) roundf(playerPosition.y) / VOXEL_CHUNK_SIZE,
-			(int) roundf(playerPosition.z) / VOXEL_CHUNK_SIZE
-	);
+	auto playerChunkLocation = VoxelLocation(
+			(int) roundf(playerPosition.x),
+			(int) roundf(playerPosition.y),
+			(int) roundf(playerPosition.z)
+	).chunk();
 	cleanupQueue(playerChunkLocation, radius);
 	buildInvalidated(playerPosition);
 	updateBuffersAndScheduleRender(playerChunkLocation, radius);
@@ -405,7 +441,13 @@ void VoxelWorldRenderer::render(
 			m_renderSchedule.begin(),
 			m_renderSchedule.end(),
 			[](const VoxelChunkRenderStep &a, const VoxelChunkRenderStep &b) {
-				return a.shaderProvider->priority() > b.shaderProvider->priority();
+				if (a.shaderProvider->priority() > b.shaderProvider->priority()) {
+					return true;
+				} else if (a.shaderProvider->priority() == b.shaderProvider->priority()) {
+					return a.shaderProvider > b.shaderProvider;
+				} else {
+					return false;
+				}
 			}
 	);
 	renderScheduled(view, projection);
@@ -417,4 +459,32 @@ void VoxelWorldRenderer::reset() {
 	m_queue.clear();
 	m_meshes.clear();
 	m_buffers.clear();
+}
+
+void VoxelWorldRenderer::saveChunkTexture(const glm::vec3 &playerPosition) {
+#ifndef __EMSCRIPTEN__
+	auto l = VoxelLocation(
+			(int) roundf(playerPosition.x),
+			(int) roundf(playerPosition.y),
+			(int) roundf(playerPosition.z)
+	).chunk();
+	std::shared_lock<std::shared_mutex> meshesLock(m_meshesMutex);
+	auto it = m_meshes.find(l);
+	if (it == m_meshes.end()) {
+		return;
+	}
+	LOG(INFO) << "Saving the texture for chunk x=" << l.x << ",y=" << l.y << ",z=" << l.z;
+	std::unique_lock<std::mutex> lock(it->second->mutex);
+	std::array<uint8_t, (5 * (VOXEL_CHUNK_SIZE + 2) * 5 * (VOXEL_CHUNK_SIZE + 2)) * 4> buffer;
+	it->second->texture->bind();
+	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer.data());
+	stbi_write_png(
+			"chunk_texture.png",
+			5 * (VOXEL_CHUNK_SIZE + 2),
+			5 * (VOXEL_CHUNK_SIZE + 2),
+			4,
+			buffer.data(),
+			5 * 18 * 4
+	);
+#endif
 }

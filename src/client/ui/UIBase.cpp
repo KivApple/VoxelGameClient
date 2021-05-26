@@ -36,6 +36,16 @@ const GL::Buffer &UIElement::staticBufferInstance(const void *data, size_t dataS
 	return m_root->staticBufferInstanceImpl(data, dataSize);
 }
 
+const GL::Texture &UIElement::staticTextureInstance(
+		unsigned int width,
+		unsigned int height,
+		bool filter,
+		const void *data
+) {
+	assert(m_root != nullptr);
+	return m_root->staticTextureInstanceImpl(width, height, filter, data);
+}
+
 const GL::Framebuffer &UIElement::sharedFramebufferInstance(unsigned int width, unsigned int height, bool depth) {
 	assert(m_root != nullptr);
 	return m_root->sharedFrameBufferInstanceImpl(width, height, depth);

@@ -11,6 +11,7 @@ class CommonShaderProgram: public GL::ShaderProgram {
 	int m_projectionLocation;
 	int m_texImageLocation;
 	int m_colorUniformLocation;
+	int m_chunkTextureLocation;
 	
 	int m_positionLocation;
 	int m_lightLevelLocation;
@@ -26,6 +27,7 @@ public:
 	
 	void setTexImage(const GL::Texture &texImage) const;
 	void setColorUniform(const glm::vec4 &color) const;
+	void setChunkTexture(const GL::Texture &chunkTexture) const;
 	
 	void setPositions(const GL::BufferPointer &pointer) const;
 	void setLightLevels(const GL::BufferPointer &pointer) const;
@@ -44,6 +46,10 @@ struct CommonShaderPrograms {
 	struct {
 		const CommonShaderProgram texture;
 	} world;
+	
+	struct {
+		const CommonShaderProgram texture;
+	} entity;
 	
 	explicit CommonShaderPrograms(AssetLoader &loader);
 };

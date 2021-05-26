@@ -111,11 +111,13 @@ void InventoryItem::updateTexture() {
 		bufferData.insert(bufferData.end(), {
 				vertex.x, vertex.y, vertex.z,
 				vertex.u, 1.0f - vertex.v,
-				1.0f // Light level
 		});
 	}
 	auto &buffer = sharedBufferInstance();
 	buffer.setData(bufferData.data(), bufferData.size() * sizeof(float), GL_DYNAMIC_DRAW);
+	
+	static const uint8_t textureData[] = {255, 255, 255, 255};
+	auto &texture = staticTextureInstance(1, 1, false, textureData);
 	
 	auto &framebuffer = sharedFramebufferInstance(256, 256, true);
 	framebuffer.setTexture(m_texture);
@@ -142,6 +144,7 @@ void InventoryItem::updateTexture() {
 	);
 	program.setModel(transform);
 	program.setView(glm::mat4(1.0f));
+	program.setChunkTexture(texture);
 	program.setProjection(glm::ortho(
 			-1.0f, 1.0f,
 			-1.0f, 1.0f,
@@ -150,17 +153,12 @@ void InventoryItem::updateTexture() {
 	program.setPositions(buffer.pointer(
 			GL_FLOAT,
 			0,
-			sizeof(float) * 6
+			sizeof(float) * 5
 	));
 	program.setTexCoords(buffer.pointer(
 			GL_FLOAT,
 			sizeof(float) * 3,
-			sizeof(float) * 6
-	));
-	program.setLightLevels(buffer.pointer(
-			GL_FLOAT,
-			sizeof(float) * 5,
-			sizeof(float) * 6
+			sizeof(float) * 5
 	));
 	shaderProvider->setup(program);
 	glDrawArrays(GL_TRIANGLES, 0, vertexData.size());

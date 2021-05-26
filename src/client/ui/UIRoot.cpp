@@ -94,6 +94,20 @@ const GL::Buffer &UserInterface::staticBufferInstanceImpl(const void *data, size
 	return *it->second;
 }
 
+const GL::Texture &UserInterface::staticTextureInstanceImpl(
+		unsigned int width,
+		unsigned int height,
+		bool filter,
+		const void *data
+) {
+	auto it = m_staticTextureInstances.find(data);
+	if (it == m_staticTextureInstances.end()) {
+		it = m_staticTextureInstances.emplace(data, std::make_unique<GL::Texture>(width, height, filter)).first;
+		it->second->setData(data);
+	}
+	return *it->second;
+}
+
 const GL::Framebuffer &UserInterface::sharedFrameBufferInstanceImpl(unsigned int width, unsigned int height, bool depth) {
 	assert(width <= 32768);
 	assert(height <= 32768);

@@ -68,6 +68,7 @@ namespace GL {
 			return m_height;
 		}
 		void bind() const;
+		void setData(const void *data);
 	
 	};
 	

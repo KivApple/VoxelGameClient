@@ -80,6 +80,8 @@ def main():
 				line_length = 0
 				if not asset[1]:
 					source.write("\n\t\"")
+				else:
+					source.write("\n")
 				while True:
 					buffer = f.read(1024)
 					if len(buffer) == 0:
