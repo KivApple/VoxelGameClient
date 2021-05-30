@@ -119,6 +119,7 @@ void GameEngine::render() {
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_BLEND);
 	
+	auto chunk = m_player->chunk(*m_voxelWorld, false);
 	auto playerDirection = m_player->direction(true);
 	auto playerPosition = m_player->position() + glm::vec3(
 			0.0f,
@@ -130,6 +131,9 @@ void GameEngine::render() {
 			playerPosition + playerDirection,
 			m_player->upDirection()
 	);
+	if (chunk) {
+		chunk.unlock();
+	}
 	
 	m_voxelWorldRenderer->render(playerPosition, 2, view, m_projection);
 	updatePointingAt(view);
@@ -158,16 +162,13 @@ void GameEngine::render() {
 
 void GameEngine::updatePointingAt(const glm::mat4 &view) {
 	m_debugStr.clear();
+	auto chunk = m_player->extendedChunk(*m_voxelWorld, false);
+	if (!chunk) return;
 	auto playerPosition = m_player->position() + glm::vec3(
 			0.0f,
 			(float) m_player->physics().height() - 0.75f - m_player->physics().paddingY(),
 			0.0f
 	);
-	auto chunk = m_voxelWorld->extendedChunk(VoxelLocation(
-		(int) roundf(playerPosition.x),
-		(int) roundf(playerPosition.y),
-		(int) roundf(playerPosition.z)
-	).chunk());
 	m_voxelOutline->set(chunk, findPlayerPointingAt(
 			chunk,
 			playerPosition,
@@ -293,6 +294,8 @@ void GameEngine::mouseWheel(int delta) {
 
 void GameEngine::updatePlayerDirection(float dx, float dy) {
 	static const float sensitivity = 100.0f;
+	auto chunk = m_player->mutableChunk(*m_voxelWorld, false);
+	if (!chunk) return;
 	m_player->adjustRotation(dx * sensitivity, dy * sensitivity);
 }
 
@@ -336,15 +339,16 @@ void GameEngine::updatePlayerPosition() {
 	if (m_pressedKeys.count(KeyCode::CLIMB_DOWN)) {
 		moveDirection.y -= SPEED * delta;
 	}
-	m_player->move(*m_voxelWorld, moveDirection);
+	auto chunk = m_player->extendedMutableChunk(*m_voxelWorld, false);
+	if (!chunk) return;
+	m_player->move(chunk, moveDirection);
 	
 	if (m_transport) {
-		m_transport->updatePlayerPosition(
-				m_player->position(),
-				m_player->orientation().yaw,
-				m_player->orientation().pitch,
-				2
-		);
+		auto position = m_player->position();
+		auto yaw = m_player->orientation().yaw;
+		auto pitch = m_player->orientation().pitch;
+		chunk.unlock();
+		m_transport->updatePlayerPosition(position, yaw, pitch, 2);
 	}
 }
 
