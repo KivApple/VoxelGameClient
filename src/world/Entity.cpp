@@ -60,6 +60,20 @@ VoxelChunkRef Entity::chunk(VoxelWorld &world, bool load) {
 	}
 }
 
+VoxelChunkExtendedRef Entity::extendedChunk(VoxelWorld &world, bool load) {
+	while (true) {
+		std::shared_lock<std::shared_mutex> sharedLock(m_chunkLocationMutex);
+		auto prevChunkLocation = m_chunkLocation;
+		sharedLock.unlock();
+		auto chunk = world.extendedChunk(
+				prevChunkLocation,
+				load ? VoxelWorld::MissingChunkPolicy::LOAD : VoxelWorld::MissingChunkPolicy::NONE
+		);
+		if (chunk.location() != m_chunkLocation) continue;
+		return chunk;
+	}
+}
+
 VoxelChunkMutableRef Entity::mutableChunk(VoxelWorld &world, bool load) {
 	while (true) {
 		std::shared_lock<std::shared_mutex> sharedLock(m_chunkLocationMutex);

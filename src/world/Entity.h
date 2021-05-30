@@ -85,6 +85,7 @@ public:
 	virtual ~Entity() = default;
 	
 	VoxelChunkRef chunk(VoxelWorld &world, bool load);
+	VoxelChunkExtendedRef extendedChunk(VoxelWorld &world, bool load);
 	VoxelChunkMutableRef mutableChunk(VoxelWorld &world, bool load);
 	VoxelChunkExtendedMutableRef extendedMutableChunk(VoxelWorld &world, bool load);
 	
