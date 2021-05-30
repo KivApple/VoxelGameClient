@@ -11,7 +11,7 @@
 #include "world/VoxelTypeRegistry.h"
 #include "world/VoxelWorld.h"
 #include "client/world/VoxelWorldRenderer.h"
-#include "world/Entity.h"
+#include "world/Player.h"
 #include "client/net/ClientTransport.h"
 #include "OpenGL.h"
 
@@ -58,16 +58,13 @@ class GameEngine: VoxelChunkListener {
 	std::unique_ptr<VoxelOutline> m_voxelOutline;
 	std::unique_ptr<UserInterface> m_userInterface;
 	glm::mat4 m_projection = glm::mat4(1.0f);
-	std::unique_ptr<Entity> m_player;
+	std::unique_ptr<EntityTypeInterface> m_playerType;
+	Entity *m_player = nullptr;
 	std::chrono::milliseconds m_lastPlayerPositionUpdateTime = std::chrono::milliseconds(0);
 	glm::vec3 m_playerSpeed = glm::vec3(0.0f);
 	std::string m_debugStr;
 	bool m_mouseClicked = false;
 	bool m_mouseSecondaryClicked = false;
-	
-	std::unique_ptr<GL::Texture> m_cowTexture;
-	std::unique_ptr<Model> m_cowModel;
-	std::unique_ptr<Entity> m_cowEntity;
 	
 	std::unique_ptr<ClientTransport> m_transport;
 	

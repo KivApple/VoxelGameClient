@@ -52,19 +52,14 @@ bool GameEngine::init() {
 	m_voxelWorldRenderer = std::make_unique<VoxelWorldRenderer>(*m_voxelWorld);
 	m_voxelOutline = std::make_unique<VoxelOutline>();
 	
-	m_player = std::make_unique<Entity>(
-			*m_voxelWorld,
-			glm::vec3(1.0f, 1.0f, -1.0f),
-			45.0f,
-			0.0f,
-			1,
-			2,
-			0.25f,
-			0.05f,
-			nullptr
+	m_playerType = std::make_unique<PlayerEntityType>();
+	m_player = m_playerType->invokeNew(
+			VoxelLocation(1, 1, -1),
+			EntityOrientation { 45.0f, 0.0f, 0.0f }
 	);
+	m_player->mutableChunk(*m_voxelWorld, true).addEntity(m_player);
 	
-	m_cowTexture = std::make_unique<GL::Texture>(m_assetLoader->load("assets/textures/cow.png"));
+	/* m_cowTexture = std::make_unique<GL::Texture>(m_assetLoader->load("assets/textures/cow.png"));
 	m_cowModel = std::make_unique<Model>(
 			m_assetLoader->load("assets/models/cow.obj"),
 			commonShaderPrograms().entity.texture, m_cowTexture.get()
@@ -79,7 +74,7 @@ bool GameEngine::init() {
 			0.25f,
 			0.05f,
 			m_cowModel.get()
-	);
+	); */
 	
 	LOG(INFO) << "Game engine initialized";
 	return true;
@@ -127,7 +122,7 @@ void GameEngine::render() {
 	auto playerDirection = m_player->direction(true);
 	auto playerPosition = m_player->position() + glm::vec3(
 			0.0f,
-			(float) m_player->height() - 0.75f - m_player->paddingY(),
+			(float) m_player->physics().height() - 0.75f - m_player->physics().paddingY(),
 			0.0f
 	);
 	auto view = glm::lookAt(
@@ -135,8 +130,6 @@ void GameEngine::render() {
 			playerPosition + playerDirection,
 			m_player->upDirection()
 	);
-	
-	m_cowEntity->render(view, m_projection);
 	
 	m_voxelWorldRenderer->render(playerPosition, 2, view, m_projection);
 	updatePointingAt(view);
@@ -167,7 +160,7 @@ void GameEngine::updatePointingAt(const glm::mat4 &view) {
 	m_debugStr.clear();
 	auto playerPosition = m_player->position() + glm::vec3(
 			0.0f,
-			(float) m_player->height() - 0.75f - m_player->paddingY(),
+			(float) m_player->physics().height() - 0.75f - m_player->physics().paddingY(),
 			0.0f
 	);
 	auto chunk = m_voxelWorld->extendedChunk(VoxelLocation(
@@ -204,7 +197,7 @@ void GameEngine::updateDebugInfo() {
 			", Z=" << playerChunkLocation.z << ") (" <<
 			"in-chunk X=" << playerInChunkLocation.x << ", Y=" << playerInChunkLocation.y <<
 			", Z=" << playerInChunkLocation.z << ") lightLevel=" << (int) lightLevel;
-	ss << " yaw=" << m_player->yaw() << ", pitch=" << m_player->pitch() << "\n";
+	ss << " yaw=" << m_player->orientation().yaw << ", pitch=" << m_player->orientation().pitch << "\n";
 	if (m_voxelOutline->voxelDetected()) {
 		auto &l = m_voxelOutline->voxelLocation();
 		ss << "Pointing at X=" << l.x << ",Y=" << l.y << ",Z=" << l.z << ": " << m_voxelOutline->text();
@@ -343,15 +336,21 @@ void GameEngine::updatePlayerPosition() {
 	if (m_pressedKeys.count(KeyCode::CLIMB_DOWN)) {
 		moveDirection.y -= SPEED * delta;
 	}
-	m_player->move(moveDirection);
+	m_player->move(*m_voxelWorld, moveDirection);
 	
 	if (m_transport) {
-		m_transport->updatePlayerPosition(m_player->position(), m_player->yaw(), m_player->pitch(), 2);
+		m_transport->updatePlayerPosition(
+				m_player->position(),
+				m_player->orientation().yaw,
+				m_player->orientation().pitch,
+				2
+		);
 	}
 }
 
 void GameEngine::setPlayerPosition(const glm::vec3 &position) {
-	m_player->setPosition(position);
+	auto chunk = m_player->extendedMutableChunk(*m_voxelWorld, true);
+	m_player->setPosition(chunk, position);
 }
 
 void GameEngine::setTransport(std::unique_ptr<ClientTransport> transport) {

@@ -5,6 +5,7 @@
 #include <shared_mutex>
 #include "VoxelChunk.h"
 
+class Entity;
 class VoxelWorld;
 
 enum class VoxelChunkLightState {
@@ -26,10 +27,12 @@ class SharedVoxelChunk: public VoxelChunk {
 	bool m_unloading = false;
 	unsigned long m_updatedAt = 0;
 	long m_storedAt = 0;
+	std::unordered_set<Entity*> m_entities;
 	
 public:
 	SharedVoxelChunk(VoxelWorld &world, const VoxelChunkLocation &location): VoxelChunk(location), m_world(world) {
 	}
+	~SharedVoxelChunk();
 	
 	void setNeighbors(const std::unordered_map<VoxelChunkLocation, std::unique_ptr<SharedVoxelChunk>> &chunks);
 	void unsetNeighbors();
@@ -133,6 +136,20 @@ public:
 		m_unloading = unloading;
 	}
 	
+	[[nodiscard]] const std::unordered_set<Entity*> &entities() const {
+		return m_entities;
+	}
+	
+	void addEntity(Entity *entity) {
+		auto ok = m_entities.emplace(entity).second;
+		assert(ok);
+	}
+	
+	void removeEntity(Entity *entity) {
+		auto ok = m_entities.erase(entity) > 0;
+		assert(ok);
+	}
+	
 };
 
 class VoxelChunkRef {
@@ -151,6 +168,9 @@ public:
 	void unlock();
 	operator bool() const {
 		return m_chunk != nullptr;
+	}
+	[[nodiscard]] VoxelWorld &world() const {
+		return m_chunk->world();
 	}
 	[[nodiscard]] const VoxelChunkLocation &location() const {
 		return m_chunk->location();
@@ -172,6 +192,11 @@ public:
 	}
 	[[nodiscard]] unsigned int pendingVoxelCount() const {
 		return m_chunk->pendingLocations().size();
+	}
+	template<typename Callable> void forEachEntity(Callable &&callable) const {
+		for (auto entity : m_chunk->entities()) {
+			callable(const_cast<const Entity&>(*entity));
+		}
 	}
 
 	template<typename S> void serialize(S &s) const {
@@ -240,7 +265,15 @@ public:
 	void invalidateStorage() {
 		m_chunk->invalidateStorage();
 	}
-
+	
+	void addEntity(Entity *entity);
+	void removeEntity(Entity *entity);
+	template<typename Callable> void forEachEntity(Callable &&callable) const {
+		for (auto entity : m_chunk->entities()) {
+			callable(*entity);
+		}
+	}
+	
 	template<typename S> void serialize(S &s) {
 		s.object(*m_chunk);
 	}
@@ -265,6 +298,8 @@ public:
 	) const;
 	void extendedMarkDirty(const InChunkVoxelLocation &location, bool markPending = true);
 	void update(unsigned long time);
+	void extendedAddEntity(Entity *entity);
+	void extendedRemoveEntity(Entity *entity);
 	
 };
 
@@ -289,6 +324,7 @@ public:
 class VoxelWorld {
 	VoxelChunkLoader *m_chunkLoader = nullptr;
 	VoxelChunkListener *m_chunkListener;
+	std::unordered_set<Entity*> m_entities;
 	std::unordered_map<VoxelChunkLocation, std::unique_ptr<SharedVoxelChunk>> m_chunks;
 	std::mutex m_mutex;
 	
@@ -296,6 +332,9 @@ class VoxelWorld {
 	template<typename T> T createAndLoadChunk(const VoxelChunkLocation &location, std::unique_lock<std::mutex> &lock);
 	
 	friend class VoxelInvalidationNotifier;
+	friend class SharedVoxelChunk;
+	friend class VoxelChunkMutableRef;
+	friend class VoxelChunkExtendedMutableRef;
 	
 public:
 	enum class MissingChunkPolicy {

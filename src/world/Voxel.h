@@ -115,9 +115,9 @@ class VoxelTypeSerializationContext {
 
 public:
 	explicit VoxelTypeSerializationContext(VoxelTypeRegistry &registry);
-	int typeId(const VoxelTypeInterface &type) const;
-	VoxelTypeInterface &findTypeById(int id) const;
-	std::vector<std::string> names() const;
+	[[nodiscard]] int typeId(const VoxelTypeInterface &type) const;
+	[[nodiscard]] VoxelTypeInterface &findTypeById(int id) const;
+	[[nodiscard]] std::vector<std::string> names() const;
 	void setTypeId(int id, const std::string &name);
 	[[nodiscard]] int size() const {
 		return m_types.size();

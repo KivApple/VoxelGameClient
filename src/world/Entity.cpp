@@ -3,371 +3,234 @@
 #include "world/VoxelWorld.h"
 
 Entity::Entity(
-		VoxelWorld &world,
-		const glm::vec3 &position,
-		float yaw,
-		float pitch,
-		int width,
-		int height,
-		float padding,
-		float paddingY
-#ifndef HEADLESS
-		, Model *model
-#endif
-): m_world(world), m_position(position), m_yaw(yaw), m_pitch(pitch),
-	m_width(width), m_height(height), m_padding(padding), m_paddingY(paddingY)
-#ifndef HEADLESS
-	, m_model(model)
-#endif
-{
+		EntityTypeInterface &type,
+		const VoxelLocation &location,
+		const EntityOrientation &orientation
+): Entity(type, location.chunk(), location.inChunk().toVec3(), orientation) {
 }
 
-void Entity::setPosition(const glm::vec3 &position) {
-	m_position = position;
+Entity::Entity(
+		EntityTypeInterface &type,
+		const VoxelChunkLocation &chunkLocation,
+		const glm::vec3 &inChunkLocation,
+		const EntityOrientation &orientation
+): m_type(type), m_chunkLocation(chunkLocation), m_inChunkLocation(inChunkLocation), m_orientation(orientation) {
 }
 
-void Entity::adjustPosition(const glm::vec3 &dPosition) {
-	m_position += dPosition;
-}
-
-void Entity::setRotation(float yaw, float pitch) {
-	m_yaw = yaw;
-	m_pitch = pitch;
-}
-
-void Entity::adjustRotation(float dYaw, float dPitch) {
-	m_yaw += dYaw;
-	m_pitch += dPitch;
-	
-	while (m_yaw < -360.0f) {
-		m_yaw += 360.0f;
-	}
-	while (m_yaw > 360.0f) {
-		m_yaw -= 360.0f;
-	}
-	
-	if (m_pitch < -89.0f) {
-		m_pitch = -89.0f;
-	}
-	if (m_pitch > 89.0f) {
-		m_pitch = 89.0f;
-	}
+void Entity::applyMovementConstraint(const glm::vec3 &prevPosition, const VoxelChunkExtendedRef &chunk) {
+	physics().applyMovementConstraint(m_inChunkLocation, prevPosition, chunk);
 }
 
 glm::vec3 Entity::direction(bool usePitch) const {
 	glm::vec3 direction(0.0f);
-	direction.x = cos(glm::radians(m_yaw));
+	direction.x = cosf(glm::radians(m_orientation.yaw));
 	direction.y = 0.0f;
-	direction.z = sin(glm::radians(m_yaw));
+	direction.z = sinf(glm::radians(m_orientation.yaw));
 	if (usePitch) {
-		direction.x *= cos(glm::radians(m_pitch));
-		direction.y = sin(glm::radians(m_pitch));
-		direction.z *= cos(glm::radians(m_pitch));
+		direction.x *= cosf(glm::radians(m_orientation.pitch));
+		direction.y = sinf(glm::radians(m_orientation.pitch));
+		direction.z *= cosf(glm::radians(m_orientation.pitch));
 	}
 	return direction;
 }
 
 glm::vec3 Entity::upDirection() const {
-	return glm::vec3(0.0f, 1.0f, 0.0f);
+	return glm::vec3(0.0f, 1.0f, 0.0f); // TODO: Use orientation.roll
 }
 
-void Entity::move(const glm::vec3 &delta) {
-	auto direction = this->direction(false);
-	auto prevPosition = m_position;
-	adjustPosition(
-			(direction * delta.z + glm::normalize(glm::cross(direction, upDirection())) * delta.x) +
-			glm::vec3(0.0f, delta.y, 0.0f)
+glm::vec3 Entity::position() const {
+	return glm::vec3(
+			m_chunkLocation.x * VOXEL_CHUNK_SIZE,
+			m_chunkLocation.y * VOXEL_CHUNK_SIZE,
+			m_chunkLocation.z * VOXEL_CHUNK_SIZE
+	) + m_inChunkLocation;
+}
+
+VoxelChunkRef Entity::chunk(VoxelWorld &world, bool load) {
+	while (true) {
+		std::shared_lock<std::shared_mutex> sharedLock(m_chunkLocationMutex);
+		auto prevChunkLocation = m_chunkLocation;
+		sharedLock.unlock();
+		auto chunk = world.chunk(
+				prevChunkLocation,
+				load ? VoxelWorld::MissingChunkPolicy::LOAD : VoxelWorld::MissingChunkPolicy::NONE
+		);
+		if (chunk.location() != m_chunkLocation) continue;
+		return chunk;
+	}
+}
+
+VoxelChunkMutableRef Entity::mutableChunk(VoxelWorld &world, bool load) {
+	while (true) {
+		std::shared_lock<std::shared_mutex> sharedLock(m_chunkLocationMutex);
+		auto prevChunkLocation = m_chunkLocation;
+		sharedLock.unlock();
+		auto chunk = world.mutableChunk(
+				prevChunkLocation,
+				load ? VoxelWorld::MissingChunkPolicy::LOAD : VoxelWorld::MissingChunkPolicy::NONE
+		);
+		if (chunk.location() != m_chunkLocation) continue;
+		return chunk;
+	}
+}
+
+VoxelChunkExtendedMutableRef Entity::extendedMutableChunk(VoxelWorld &world, bool load) {
+	while (true) {
+		std::shared_lock<std::shared_mutex> sharedLock(m_chunkLocationMutex);
+		auto prevChunkLocation = m_chunkLocation;
+		sharedLock.unlock();
+		auto chunk = world.extendedMutableChunk(
+				prevChunkLocation,
+				load ? VoxelWorld::MissingChunkPolicy::LOAD : VoxelWorld::MissingChunkPolicy::NONE
+		);
+		if (chunk.location() != m_chunkLocation) continue;
+		return chunk;
+	}
+}
+
+void Entity::setPosition(VoxelChunkExtendedMutableRef &chunk, const glm::vec3 &position) {
+	VoxelLocation location(
+			(int) roundf(position.x),
+			(int) roundf(position.y),
+			(int) roundf(position.z)
 	);
-	auto chunk = m_world.extendedChunk({
-		(int) roundf(prevPosition.x) / VOXEL_CHUNK_SIZE,
-		(int) roundf(prevPosition.y) / VOXEL_CHUNK_SIZE,
-		(int) roundf(prevPosition.z) / VOXEL_CHUNK_SIZE
-	});
+	auto chunkLocation = location.chunk();
+	m_inChunkLocation = position - glm::vec3(
+			(float) (chunkLocation.x * VOXEL_CHUNK_SIZE),
+			(float) (chunkLocation.y * VOXEL_CHUNK_SIZE),
+			(float) (chunkLocation.z * VOXEL_CHUNK_SIZE)
+	);
+	if (chunkLocation != m_chunkLocation) {
+		chunk.removeEntity(this);
+		int dx = chunkLocation.x - m_chunkLocation.x;
+		int dy = chunkLocation.y - m_chunkLocation.y;
+		int dz = chunkLocation.z - m_chunkLocation.z;
+		{
+			std::unique_lock<std::shared_mutex> lock(m_chunkLocationMutex);
+			m_chunkLocation = chunkLocation;
+		}
+		if (abs(dx) <= 1 && abs(dy) <= 1 && abs(dz) <= 1 && chunk.hasNeighbor(dx, dy, dz)) {
+			chunk.extendedAddEntity(this);
+		} else {
+			auto &world = chunk.world();
+			chunk.unlock();
+			chunk = world.extendedMutableChunk(chunkLocation, VoxelWorld::MissingChunkPolicy::LOAD);
+			chunk.addEntity(this);
+		}
+	} else {
+		// TODO
+	}
+}
+
+void Entity::setRotation(float yaw, float pitch) {
+	m_orientation.yaw = yaw;
+	m_orientation.pitch = pitch;
+}
+
+void Entity::adjustRotation(float dYaw, float dPitch) {
+	m_orientation.yaw += dYaw;
+	m_orientation.pitch += dPitch;
+	
+	while (m_orientation.yaw < -360.0f) {
+		m_orientation.yaw += 360.0f;
+	}
+	while (m_orientation.yaw > 360.0f) {
+		m_orientation.yaw -= 360.0f;
+	}
+	
+	if (m_orientation.pitch < -89.0f) {
+		m_orientation.pitch = -89.0f;
+	}
+	if (m_orientation.pitch > 89.0f) {
+		m_orientation.pitch = 89.0f;
+	}
+}
+
+void Entity::move(VoxelWorld &world, const glm::vec3 &delta) {
+	std::shared_lock<std::shared_mutex> sharedLock(m_chunkLocationMutex);
+	auto prevChunkLocation = m_chunkLocation;
+	sharedLock.unlock();
+	auto chunk = world.extendedMutableChunk(prevChunkLocation);
 	if (!chunk) return;
-	applyMovementConstraint(m_position, prevPosition, m_width, m_height, m_padding, m_paddingY, chunk);
+	move(chunk, delta);
+}
+
+void Entity::move(VoxelChunkExtendedMutableRef &chunk, const glm::vec3 &delta) {
+	auto direction = this->direction(false);
+	auto prevPosition = m_inChunkLocation;
+	m_inChunkLocation += (direction * delta.z + glm::normalize(glm::cross(direction, upDirection())) * delta.x) +
+			glm::vec3(0.0f, delta.y, 0.0f);
+	applyMovementConstraint(prevPosition, chunk);
+	updateContainedChunk(chunk);
+}
+
+void Entity::update(VoxelChunkExtendedMutableRef &chunk) {
+	auto prevPosition = m_inChunkLocation;
+	m_type.invokeUpdate(chunk, *this);
+	applyMovementConstraint(prevPosition, chunk);
+	updateContainedChunk(chunk);
+}
+
+void Entity::updateContainedChunk(VoxelChunkExtendedMutableRef &chunk) {
+	InChunkVoxelLocation inChunkLocation(m_inChunkLocation);
+	if (
+			inChunkLocation.x >= 0 && inChunkLocation.x < VOXEL_CHUNK_SIZE &&
+			inChunkLocation.y >= 0 && inChunkLocation.y < VOXEL_CHUNK_SIZE &&
+			inChunkLocation.z >= 0 && inChunkLocation.z < VOXEL_CHUNK_SIZE
+	) return;
+	chunk.removeEntity(this);
+	std::unique_lock<std::shared_mutex> lock(m_chunkLocationMutex);
+	if (inChunkLocation.x < 0) {
+		m_chunkLocation.x--;
+		m_inChunkLocation.x += VOXEL_CHUNK_SIZE;
+	} else if (inChunkLocation.x >= VOXEL_CHUNK_SIZE) {
+		m_chunkLocation.x++;
+		m_inChunkLocation.x -= VOXEL_CHUNK_SIZE;
+	}
+	if (inChunkLocation.y < 0) {
+		m_chunkLocation.y--;
+		m_inChunkLocation.y += VOXEL_CHUNK_SIZE;
+	} else if (inChunkLocation.y >= VOXEL_CHUNK_SIZE) {
+		m_chunkLocation.y++;
+		m_inChunkLocation.y -= VOXEL_CHUNK_SIZE;
+	}
+	if (inChunkLocation.z < 0) {
+		m_chunkLocation.z--;
+		m_inChunkLocation.z += VOXEL_CHUNK_SIZE;
+	} else if (inChunkLocation.z >= VOXEL_CHUNK_SIZE) {
+		m_chunkLocation.z++;
+		m_inChunkLocation.z -= VOXEL_CHUNK_SIZE;
+	}
+	lock.unlock();
+	chunk.extendedAddEntity(this);
+}
+
+SimpleEntityType::SimpleEntityType(
+		const EntityPhysics &physics
+#ifndef HEADLESS
+		, const Model *model
+#endif
+): m_physics(physics)
+#ifndef HEADLESS
+, m_model(model)
+#endif
+{
+}
+
+const EntityPhysics &SimpleEntityType::physics(const Entity &entity, const State &state) {
+	return m_physics;
 }
 
 #ifndef HEADLESS
-void Entity::render(const glm::mat4 &view, const glm::mat4 &projection) const {
+void SimpleEntityType::render(
+		const Entity &entity,
+		const State &state,
+		const glm::mat4 &view,
+		const glm::mat4 &projection
+) {
 	if (m_model == nullptr) return;
 	glm::mat4 transform(1.0f);
-	transform = glm::translate(transform, m_position);
+	transform = glm::translate(transform, entity.position());
 	m_model->render(transform, view, projection);
 }
 #endif
-
-void Entity::constraintMovementAxis(
-		int dx, int dy, int dz,
-		float &a, float &b, float &c,
-		float prevA, float prevB, float prevC,
-		float paddingA, float paddingB, float paddingC, int start_, int end_
-) {
-	(void) prevB;
-	(void) b;
-	
-	if ((dx > 0) && (dy > start_) && (dy < end_) && (dz > 0)) {        //a c
-		if ((a > roundf(prevA) + paddingA) && (c > roundf(prevC) + paddingC)) {
-			if (abs(a - roundf(prevA)) < abs((c - roundf(prevC)))) {
-				a = roundf(prevA) + paddingA;
-			} else {
-				c = roundf(prevC) + paddingC;
-			}
-		}
-	} else if ((dx > 0) && (dy > start_) && (dy < end_) && (dz < 0)) {        //a -c
-		if ((a > roundf(prevA) + paddingA) && (c < roundf(prevC) - paddingC)) {
-			if (abs(a - roundf(prevA)) < abs((c - roundf(prevC)))) {
-				a = roundf(prevA) + paddingA;
-			} else {
-				c = roundf(prevC) - paddingC;
-			}
-		}
-	} else if ((dx < 0) && (dy > start_) && (dy < end_) && (dz > 0)) {        //-a c
-		if ((a < roundf(prevA) - paddingA) && (c > roundf(prevC) + paddingC)) {
-			if (abs(a - roundf(prevA)) < abs((c - roundf(prevC)))) {
-				a = roundf(prevA) - paddingA;
-			} else {
-				c = roundf(prevC) + paddingC;
-			}
-		}
-	} else if ((dx < 0) && (dy > start_) && (dy < end_) && (dz < 0)) {        //-a -c
-		if ((a < roundf(prevA) - paddingA) && (c < roundf(prevC) - paddingC)) {
-			if (abs(a - roundf(prevA)) < abs((c - roundf(prevC)))) {
-				a = roundf(prevA) - paddingA;
-			} else {
-				c = roundf(prevC) - paddingC;
-			}
-		}
-	}
-}
-
-void Entity::applyMovementConstraint(
-		glm::vec3 &position, const glm::vec3 &prevPosition,
-		int width, int height, float padding, float paddingY,
-		const VoxelChunkExtendedRef &chunk
-) const {
-	(void) paddingY;
-	
-	VoxelLocation chunkLocationZero(chunk.location(), {0, 0, 0});
-	
-	for (int dx = -width; dx <= width; dx++) {		//Здесь нужен пробег по всем плоскостям, без рёбер и без углов
-		for (int dy = -1; dy <= height; dy++) {
-			for (int dz = -width; dz <= width; dz++) {
-				if (!(dx == -width || dx == width
-					  || dz == -width || dz == width
-					  || dy == -1 || dy == height)) continue;
-				if (!chunk.extendedAt(
-						(int) lroundf(prevPosition.x - (float) chunkLocationZero.x + (float) dx),
-						(int) lroundf(prevPosition.y - (float) chunkLocationZero.y + (float) dy),
-						(int) lroundf(prevPosition.z - (float) chunkLocationZero.z + (float) dz)
-				).hasDensity()) {
-					continue;
-				}
-				if ((dx > 0) && (dy > -1) && (dy < height) && (dz > -width) && (dz < width)) {              //x
-					if (position.x > round(prevPosition.x) + padding) {
-						position.x = round(prevPosition.x) + padding;
-					}
-				} else if ((dx < 0) && (dy > -1) && (dy < height) && (dz > -width) && (dz < width)) {      //-x
-					if (position.x < round(prevPosition.x) - padding) {
-						position.x = round(prevPosition.x) - padding;
-					}
-				}  else if ((dy > 0) && (dx > -width) && (dx < width) && (dz > -width) && (dz < width)) {        //y
-					if (position.y > round(prevPosition.y) + paddingY) {
-						position.y = round(prevPosition.y) + paddingY;
-					}
-				}  else if ((dy < 0) && (dx > -width) && (dx < width) && (dz > -width) && (dz < width)) {        //-y
-					if (position.y < round(prevPosition.y) - paddingY) {
-						position.y = round(prevPosition.y) - paddingY;
-					}
-				}  else if ((dz > 0) && (dx > -width) && (dx < width) && (dy > -1) && (dy < height)) {        //z
-					if (position.z > round(prevPosition.z) + padding) {
-						position.z = round(prevPosition.z) + padding;
-					}
-				} else if ((dz < 0) && (dx > -width) && (dx < width) && (dy > -1) && (dy < height)) {        //-z
-					if (position.z < round(prevPosition.z) - padding) {
-						position.z = round(prevPosition.z) - padding;
-					}
-				}
-			}
-		}
-	}
-	for (int dx = -width; dx <= width; dx++) {			//Тут нужен пробег только по рёбрам (без без самих углов)
-		for (int dy = -1; dy <= height; dy++) {			//Переносить всё в один цикл нельзя!
-			for (int dz = -width; dz <= width; dz++) {
-				if (!(dx == -width || dx == width
-					  || dz == -width || dz == width
-					  || dy == -1 || dy == height)) continue;
-				if (!chunk.extendedAt(
-						(int) lroundf(prevPosition.x - (float) chunkLocationZero.x + (float) dx),
-						(int) lroundf(prevPosition.y - (float) chunkLocationZero.y + (float) dy),
-						(int) lroundf(prevPosition.z - (float) chunkLocationZero.z + (float) dz)
-				).hasDensity()) {
-					continue;
-				}
-				constraintMovementAxis(
-						dx, dy, dz,
-						position.x, position.y, position.z,
-						prevPosition.x, prevPosition.y, prevPosition.z,
-						padding, paddingY, padding,
-						-1, height
-				);
-				constraintMovementAxis(
-						dx, dz, dy,
-						position.x, position.z, position.y,
-						prevPosition.x, prevPosition.z, prevPosition.y,
-						padding, padding, paddingY,
-						-width, width
-				);
-				constraintMovementAxis(
-						dy, dx, dz,
-						position.y, position.x, position.z,
-						prevPosition.y, prevPosition.x, prevPosition.z,
-						paddingY, padding, padding,
-						-width, width
-				);
-			}
-		}
-	}
-	for (int dx = -width; dx <= width; dx += 2 * width) {			//Тут только по 8 углам, сделано
-		for (int dy = -1; dy <= height; dy += height + 1) {
-			for (int dz = -width; dz <= width; dz += 2 * width) {
-				//if (dx == 0 && dy == 0 && dz == 0) continue;
-				if (!chunk.extendedAt(
-					(int) lroundf(prevPosition.x - (float) chunkLocationZero.x + (float) dx),
-					(int) lroundf(prevPosition.y - (float) chunkLocationZero.y + (float) dy),
-					(int) lroundf(prevPosition.z - (float) chunkLocationZero.z + (float) dz)
-				).hasDensity()) {
-					continue;
-				}
-				if ((dx > 0) && (dy > 0) && (dz > 0)) {        //x y z
-					if ((position.x > roundf(prevPosition.x) + padding)
-						&& (position.y > roundf(prevPosition.y) + paddingY)
-						&& (position.z > roundf(prevPosition.z) + padding)) {
-						float delX = abs(position.x - roundf(prevPosition.x));
-						float delY = abs(position.y - roundf(prevPosition.y));
-						float delZ = abs(position.z - roundf(prevPosition.z));
-						//printf("%f %f %f\n", delX, delY, delZ);
-						if ((delX <= delY) && (delX <= delZ)) {
-							position.x = roundf(prevPosition.x) + padding;
-						} else if ((delY <= delX) && (delY <= delZ)) {
-							position.y = roundf(prevPosition.y) + paddingY;
-						} else if ((delZ <= delX) && (delZ <= delY)) {
-							position.z = roundf(prevPosition.z) + padding;
-						}
-					}
-				} else if ((dx > 0) && (dy > 0) && (dz < 0)) {        //x y -z
-					if ((position.x > roundf(prevPosition.x) + padding)
-						&& (position.y > roundf(prevPosition.y) + paddingY)
-						&& (position.z < roundf(prevPosition.z) - padding)) {
-						float delX = abs(position.x - roundf(prevPosition.x));
-						float delY = abs(position.y - roundf(prevPosition.y));
-						float delZ = abs(position.z - roundf(prevPosition.z));
-						//printf("%f %f %f\n", delX, delY, delZ);
-						if ((delX <= delY) && (delX <= delZ)) {
-							position.x = roundf(prevPosition.x) + padding;
-						} else if ((delY <= delX) && (delY <= delZ)) {
-							position.y = roundf(prevPosition.y) + paddingY;
-						} else if ((delZ <= delX) && (delZ <= delY)) {
-							position.z = roundf(prevPosition.z) - padding;
-						}
-					}
-				} else if ((dx > 0) && (dy < 0) && (dz > 0)) {        //x -y z
-					if ((position.x > roundf(prevPosition.x) + padding)
-						&& (position.y < roundf(prevPosition.y) - paddingY)
-						&& (position.z > roundf(prevPosition.z) + padding)) {
-						float delX = abs(position.x - roundf(prevPosition.x));
-						float delY = abs(position.y - roundf(prevPosition.y));
-						float delZ = abs(position.z - roundf(prevPosition.z));
-						//printf("%f %f %f\n", delX, delY, delZ);
-						if ((delX <= delY) && (delX <= delZ)) {
-							position.x = roundf(prevPosition.x) + padding;
-						} else if ((delY <= delX) && (delY <= delZ)) {
-							position.y = roundf(prevPosition.y) - paddingY;
-						} else if ((delZ <= delX) && (delZ <= delY)) {
-							position.z = roundf(prevPosition.z) + padding;
-						}
-					}
-				} else if ((dx < 0) && (dy > 0) && (dz > 0)) {        //-x y z
-					if ((position.x < roundf(prevPosition.x) - padding)
-						&& (position.y > roundf(prevPosition.y) + paddingY)
-						&& (position.z > roundf(prevPosition.z) + padding)) {
-						float delX = abs(position.x - roundf(prevPosition.x));
-						float delY = abs(position.y - roundf(prevPosition.y));
-						float delZ = abs(position.z - roundf(prevPosition.z));
-						//printf("%f %f %f\n", delX, delY, delZ);
-						if ((delX <= delY) && (delX <= delZ)) {
-							position.x = roundf(prevPosition.x) - padding;
-						} else if ((delY <= delX) && (delY <= delZ)) {
-							position.y = roundf(prevPosition.y) + paddingY;
-						} else if ((delZ <= delX) && (delZ <= delY)) {
-							position.z = roundf(prevPosition.z) + padding;
-						}
-					}
-				} else if ((dx > 0) && (dy < 0) && (dz < 0)) {        //x -y -z
-					if ((position.x > roundf(prevPosition.x) + padding)
-						&& (position.y < roundf(prevPosition.y) - paddingY)
-						&& (position.z < roundf(prevPosition.z) - padding)) {
-						float delX = abs(position.x - roundf(prevPosition.x));
-						float delY = abs(position.y - roundf(prevPosition.y));
-						float delZ = abs(position.z - roundf(prevPosition.z));
-						//printf("%f %f %f\n", delX, delY, delZ);
-						if ((delX <= delY) && (delX <= delZ)) {
-							position.x = roundf(prevPosition.x) + padding;
-						} else if ((delY <= delX) && (delY <= delZ)) {
-							position.y = roundf(prevPosition.y) - paddingY;
-						} else if ((delZ <= delX) && (delZ <= delY)) {
-							position.z = roundf(prevPosition.z) - padding;
-						}
-					}
-				} else if ((dx < 0) && (dy < 0) && (dz > 0)) {        //-x -y z
-					if ((position.x < roundf(prevPosition.x) - padding)
-						&& (position.y < roundf(prevPosition.y) - paddingY)
-						&& (position.z > roundf(prevPosition.z) + padding)) {
-						float delX = abs(position.x - roundf(prevPosition.x));
-						float delY = abs(position.y - roundf(prevPosition.y));
-						float delZ = abs(position.z - roundf(prevPosition.z));
-						//printf("%f %f %f\n", delX, delY, delZ);
-						if ((delX <= delY) && (delX <= delZ)) {
-							position.x = roundf(prevPosition.x) - padding;
-						} else if ((delY <= delX) && (delY <= delZ)) {
-							position.y = roundf(prevPosition.y) - paddingY;
-						} else if ((delZ <= delX) && (delZ <= delY)) {
-							position.z = roundf(prevPosition.z) + padding;
-						}
-					}
-				} else if ((dx < 0) && (dy > 0) && (dz < 0)) {        //-x y -z
-					if ((position.x < roundf(prevPosition.x) - padding)
-						&& (position.y > roundf(prevPosition.y) + paddingY)
-						&& (position.z < roundf(prevPosition.z) - padding)) {
-						float delX = abs(position.x - roundf(prevPosition.x));
-						float delY = abs(position.y - roundf(prevPosition.y));
-						float delZ = abs(position.z - roundf(prevPosition.z));
-						//printf("%f %f %f\n", delX, delY, delZ);
-						if ((delX <= delY) && (delX <= delZ)) {
-							position.x = roundf(prevPosition.x) - padding;
-						} else if ((delY <= delX) && (delY <= delZ)) {
-							position.y = roundf(prevPosition.y) + paddingY;
-						} else if ((delZ <= delX) && (delZ <= delY)) {
-							position.z = roundf(prevPosition.z) - padding;
-						}
-					}
-				} else if ((dx < 0) && (dy < 0) && (dz < 0)) {        //-x -y -z
-					if ((position.x < roundf(prevPosition.x) - padding)
-						&& (position.y < roundf(prevPosition.y) - paddingY)
-						&& (position.z < roundf(prevPosition.z) - padding)) {
-						float delX = abs(position.x - roundf(prevPosition.x));
-						float delY = abs(position.y - roundf(prevPosition.y));
-						float delZ = abs(position.z - roundf(prevPosition.z));
-						//printf("%f %f %f\n", delX, delY, delZ);
-						if ((delX <= delY) && (delX <= delZ)) {
-							position.x = roundf(prevPosition.x) - padding;
-						} else if ((delY <= delX) && (delY <= delZ)) {
-							position.y = roundf(prevPosition.y) - paddingY;
-						} else if ((delZ <= delX) && (delZ <= delY)) {
-							position.z = roundf(prevPosition.z) - padding;
-						}
-					}
-				}
-			}
-		}
-	}
-}

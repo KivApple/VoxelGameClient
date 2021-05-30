@@ -4,14 +4,9 @@
 #include "world/VoxelWorldUtils.h"
 
 ClientConnection::ClientConnection(ServerTransport &transport): m_transport(transport), m_player(
-		transport.engine()->voxelWorld(),
-		glm::vec3(),
-		0.0f,
-		0.0f,
-		1,
-		2,
-		0.25f,
-		0.05f
+		transport.engine()->playerEntityType().invokeNew(
+				VoxelLocation(0, 0, 0)
+		)
 ) {
 	m_logger = el::Loggers::getLogger("default");
 	m_inventory.resize(8);
@@ -21,6 +16,16 @@ ClientConnection::ClientConnection(ServerTransport &transport): m_transport(tran
 	m_inventory[3].setType(transport.engine()->voxelTypeRegistry().get("glass"));
 	m_inventory[4].setType(transport.engine()->voxelTypeRegistry().get("lava"));
 	m_inventory[5].setType(transport.engine()->voxelTypeRegistry().get("water"));
+	
+	m_player->mutableChunk(transport.engine()->voxelWorld(), true).addEntity(m_player);
+}
+
+ClientConnection::~ClientConnection() {
+	auto chunk = m_player->mutableChunk(transport().engine()->voxelWorld(), false);
+	if (chunk) {
+		chunk.removeEntity(m_player);
+		delete m_player;
+	}
 }
 
 void ClientConnection::updatePosition(const glm::vec3 &position, float yaw, float pitch, int viewRadius) {
@@ -29,10 +34,11 @@ void ClientConnection::updatePosition(const glm::vec3 &position, float yaw, floa
 			this, position.x, position.y, position.z, yaw, pitch, viewRadius
 	); */
 	std::unique_lock<std::shared_mutex> lock(m_positionMutex);
+	auto chunk = m_player->extendedMutableChunk(transport().engine()->voxelWorld(), true);
 	bool resetPosition = false;
 	if (m_positionValid) {
 		std::chrono::duration<float> dt = std::chrono::steady_clock::now() - m_lastPositionUpdatedAt;
-		auto delta = (position - m_player.position()) / dt.count();
+		auto delta = (position - m_player->position()) / dt.count();
 		static const float MAX_DELTA = 20.0f;
 		if (fabsf(delta.x) >= MAX_DELTA || fabsf(delta.y) >= MAX_DELTA || fabsf(delta.z) >= MAX_DELTA) {
 			logger().warn(
@@ -44,7 +50,7 @@ void ClientConnection::updatePosition(const glm::vec3 &position, float yaw, floa
 	}
 	bool chunkChanged = false;
 	if (!resetPosition) {
-		m_player.setPosition(position);
+		m_player->setPosition(chunk, position);
 		auto positionChunk = VoxelLocation(
 				(int) roundf(position.x),
 				(int) roundf(position.y),
@@ -55,7 +61,7 @@ void ClientConnection::updatePosition(const glm::vec3 &position, float yaw, floa
 			chunkChanged = true;
 		}
 	}
-	m_player.setRotation(yaw, pitch);
+	m_player->setRotation(yaw, pitch);
 	if (viewRadius > 3) {
 		logger().warn("[Client %v] Requested too large view radius. Value will be reduced to 3");
 		m_viewRadius = 3;
@@ -64,9 +70,10 @@ void ClientConnection::updatePosition(const glm::vec3 &position, float yaw, floa
 	}
 	m_lastPositionUpdatedAt = std::chrono::steady_clock::now();
 	m_positionValid = true;
-	auto newPosition = m_player.position();
+	auto newPosition = m_player->position();
 	auto radius = m_viewRadius;
 	auto positionChunk = m_positionChunk;
+	chunk.unlock();
 	lock.unlock();
 	if (resetPosition) {
 		setPosition(newPosition);
@@ -121,8 +128,8 @@ void ClientConnection::handleChunkChanged(const VoxelChunkLocation &location, in
 bool ClientConnection::setPendingChunk() {
 	glm::vec3 position;
 	{
-		std::shared_lock<std::shared_mutex> sharedLock(m_positionMutex);
-		position = m_player.position();
+		auto chunk = m_player->chunk(transport().engine()->voxelWorld(), false);
+		position = m_player->position();
 	}
 	VoxelChunkRef chunk;
 	do {
@@ -190,22 +197,13 @@ void ClientConnection::setActiveInventoryIndex(int active) {
 }
 
 void ClientConnection::digVoxel() {
-	glm::vec3 playerPosition;
-	glm::vec3 playerDirection;
-	{
-		std::shared_lock<std::shared_mutex> sharedLock(m_positionMutex);
-		playerPosition = m_player.position() + glm::vec3(
-				0.0f,
-				(float) m_player.height() - 0.75f - m_player.paddingY(),
-				0.0f
-		);
-		playerDirection = m_player.direction(true);
-	}
-	auto chunk = transport().engine()->voxelWorld().extendedMutableChunk(VoxelLocation(
-			(int) roundf(playerPosition.x),
-			(int) roundf(playerPosition.y),
-			(int) roundf(playerPosition.z)
-	).chunk());
+	auto chunk = m_player->extendedMutableChunk(transport().engine()->voxelWorld(), true);
+	auto playerPosition = m_player->position() + glm::vec3(
+			0.0f,
+			(float) m_player->physics().height() - 0.75f - m_player->physics().paddingY(),
+			0.0f
+	);
+	auto playerDirection = m_player->direction(true);
 	auto pointingAt = findPlayerPointingAt(chunk, playerPosition, playerDirection);
 	if (pointingAt.has_value()) {
 		auto &location = pointingAt->location;
@@ -218,22 +216,13 @@ void ClientConnection::digVoxel() {
 }
 
 void ClientConnection::placeVoxel() {
-	glm::vec3 playerPosition;
-	glm::vec3 playerDirection;
-	{
-		std::shared_lock<std::shared_mutex> sharedLock(m_positionMutex);
-		playerPosition = m_player.position() + glm::vec3(
-				0.0f,
-				(float) m_player.height() - 0.75f - m_player.paddingY(),
-				0.0f
-		);
-		playerDirection = m_player.direction(true);
-	}
-	auto chunk = transport().engine()->voxelWorld().extendedMutableChunk(VoxelLocation(
-			(int) roundf(playerPosition.x),
-			(int) roundf(playerPosition.y),
-			(int) roundf(playerPosition.z)
-	).chunk());
+	auto chunk = m_player->extendedMutableChunk(transport().engine()->voxelWorld(), true);
+	auto playerPosition = m_player->position() + glm::vec3(
+			0.0f,
+			(float) m_player->physics().height() - 0.75f - m_player->physics().paddingY(),
+			0.0f
+	);
+	auto playerDirection = m_player->direction(true);
 	auto pointingAt = findPlayerPointingAt(chunk, playerPosition, playerDirection);
 	if (pointingAt.has_value()) {
 		std::shared_lock<std::shared_mutex> lock(m_inventoryMutex);

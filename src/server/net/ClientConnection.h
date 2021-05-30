@@ -17,7 +17,7 @@ class ClientConnection {
 	ServerTransport &m_transport;
 	el::Logger *m_logger;
 	
-	Entity m_player;
+	Entity *m_player;
 	int m_viewRadius = 0;
 	VoxelChunkLocation m_positionChunk;
 	std::chrono::time_point<std::chrono::steady_clock> m_lastPositionUpdatedAt;
@@ -50,7 +50,7 @@ protected:
 
 public:
 	explicit ClientConnection(ServerTransport &transport);
-	virtual ~ClientConnection() = default;
+	virtual ~ClientConnection();
 	[[nodiscard]] ServerTransport &transport() const {
 		return m_transport;
 	}

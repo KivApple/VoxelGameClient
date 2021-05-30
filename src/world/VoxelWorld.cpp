@@ -3,6 +3,7 @@
 #include <vector>
 #include <easylogging++.h>
 #include "VoxelWorld.h"
+#include "Entity.h"
 
 static thread_local std::default_random_engine randomEngine;
 
@@ -52,6 +53,16 @@ public:
 };
 
 /* SharedVoxelChunk */
+
+SharedVoxelChunk::~SharedVoxelChunk() {
+	for (auto entity : m_entities) {
+		m_world.m_entities.erase(entity);
+		delete entity;
+	}
+	if (!m_entities.empty()) {
+		LOG(DEBUG) << "Unloaded " << m_entities.size() << " entities";
+	}
+}
 
 void SharedVoxelChunk::setNeighbors(
 		const std::unordered_map<VoxelChunkLocation, std::unique_ptr<SharedVoxelChunk>> &chunks
@@ -357,6 +368,17 @@ void VoxelChunkMutableRef::extendedMarkPending(const InChunkVoxelLocation &locat
 	}
 }
 
+void VoxelChunkMutableRef::addEntity(Entity *entity) {
+	m_chunk->world().m_entities.emplace(entity);
+	m_chunk->addEntity(entity);
+}
+
+void VoxelChunkMutableRef::removeEntity(Entity *entity) {
+	m_chunk->removeEntity(entity);
+	auto ok = m_chunk->world().m_entities.erase(entity);
+	assert(ok);
+}
+
 /* VoxelChunkExtendedMutableRef */
 
 VoxelChunkExtendedMutableRef::VoxelChunkExtendedMutableRef(
@@ -553,6 +575,26 @@ void VoxelChunkExtendedMutableRef::update(unsigned long time) {
 	}
 }
 
+void VoxelChunkExtendedMutableRef::extendedAddEntity(Entity *entity) {
+	m_chunk->world().m_entities.emplace(entity);
+	int dx = entity->m_chunkLocation.x - m_chunk->location().x;
+	int dy = entity->m_chunkLocation.y - m_chunk->location().y;
+	int dz = entity->m_chunkLocation.z - m_chunk->location().z;
+	assert(abs(dx) <= 1 && abs(dy) <= 1 && abs(dz) <= 1);
+	auto chunk = dx != 0 || dy != 0 || dz != 0 ? m_neighbors[(dx + 1) + (dy + 1) * 3 + (dz + 1) * 3 * 3] : m_chunk;
+	chunk->addEntity(entity);
+}
+
+void VoxelChunkExtendedMutableRef::extendedRemoveEntity(Entity *entity) {
+	int dx = entity->m_chunkLocation.x - m_chunk->location().x;
+	int dy = entity->m_chunkLocation.y - m_chunk->location().y;
+	int dz = entity->m_chunkLocation.z - m_chunk->location().z;
+	assert(abs(dx) <= 1 && abs(dy) <= 1 && abs(dz) <= 1);
+	auto chunk = dx != 0 || dy != 0 || dz != 0 ? m_neighbors[(dx + 1) + (dy + 1) * 3 + (dz + 1) * 3 * 3] : m_chunk;
+	chunk->removeEntity(entity);
+	m_chunk->world().m_entities.erase(entity);
+}
+
 /* VoxelWorld */
 
 VoxelWorld::VoxelWorld(VoxelChunkListener *chunkListener): m_chunkListener(chunkListener) {
@@ -581,7 +623,12 @@ template<typename T> T VoxelWorld::createChunk(const VoxelChunkLocation &locatio
 template<typename T> T VoxelWorld::createAndLoadChunk(const VoxelChunkLocation &location, std::unique_lock<std::mutex> &lock) {
 	auto chunk = createChunk<T>(location);
 	lock.unlock();
-	m_chunkLoader->load(chunk);
+	if (m_chunkLoader != nullptr) {
+		m_chunkLoader->load(chunk);
+	} else {
+		LOG(WARNING) << "Attempt to load chunk x=" << location.x << ",y=" << location.y << ",z=" << location.z <<
+			", but no chunk loader is set";
+	}
 	return chunk;
 }
 

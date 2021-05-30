@@ -15,6 +15,7 @@
 #include "world/VoxelTypes.h"
 #include "net/ServerTransport.h"
 #include "net/ClientConnection.h"
+#include "world/Player.h"
 
 class GameServerEngine: VoxelChunkListener {
 	AssetLoader m_assetLoader;
@@ -25,6 +26,7 @@ class GameServerEngine: VoxelChunkListener {
 	VoxelWorldStorage m_voxelWorldStorage;
 	VoxelLightComputer m_voxelLightComputer;
 	VoxelWorldUpdater m_voxelWorldUpdater;
+	PlayerEntityType m_playerEntityType;
 	std::vector<std::unique_ptr<ServerTransport>> m_transports;
 	std::unordered_map<ClientConnection*, std::unique_ptr<ClientConnection>> m_connections;
 	std::shared_mutex m_connectionsMutex;
@@ -50,6 +52,9 @@ public:
 	}
 	VoxelWorldUpdater &voxelWorldUpdater() {
 		return m_voxelWorldUpdater;
+	}
+	PlayerEntityType &playerEntityType() {
+		return m_playerEntityType;
 	}
 	
 	void registerConnection(std::unique_ptr<ClientConnection> connection);

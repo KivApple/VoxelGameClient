@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstddef>
+#include <cmath>
+#include <glm/vec3.hpp>
 
 static const int VOXEL_CHUNK_SIZE = 16;
 
@@ -42,6 +44,11 @@ struct InChunkVoxelLocation {
 	constexpr InChunkVoxelLocation(int x, int y, int z): x(x), y(y), z(z) {
 	}
 	
+	explicit constexpr InChunkVoxelLocation(
+			const glm::vec3 &v
+	): x(roundf(v.x)), y(roundf(v.y)), z(roundf(v.z)) {
+	}
+	
 	constexpr explicit InChunkVoxelLocation(const VoxelLocation &location);
 	
 	constexpr bool operator==(const InChunkVoxelLocation &location) const {
@@ -50,6 +57,10 @@ struct InChunkVoxelLocation {
 	
 	constexpr bool operator!=(const InChunkVoxelLocation &location) const {
 		return !(*this == location);
+	}
+	
+	[[nodiscard]] glm::vec3 toVec3() const {
+		return glm::vec3((float) x, (float) y, (float) z);
 	}
 	
 	template<typename S> void serialize(S &s) {

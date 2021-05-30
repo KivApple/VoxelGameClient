@@ -75,15 +75,15 @@ include_directories(src)
 
 set(
 		COMMON_ASSETS
-		--text assets/models/*.obj
+		--text 'assets/models/*.obj'
 )
 
 set(
 		CLIENT_ASSETS
-		--text assets/shaders/*/*.glsl
-		--binary assets/textures/*.png
-		--binary assets/fonts/*.png
-		--text assets/fonts/*.png.txt
+		--text 'assets/shaders/*/*.glsl'
+		--binary 'assets/textures/*.png'
+		--binary 'assets/fonts/*.png'
+		--text 'assets/fonts/*.png.txt'
 )
 
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/gen")
@@ -104,8 +104,8 @@ add_custom_target(
 set(
 		COMMON_SRC
 		src/world/Voxel.cpp src/world/VoxelChunk.cpp src/world/VoxelWorld.cpp src/world/VoxelTypeRegistry.cpp
-		src/world/VoxelTypes.cpp src/world/LiquidVoxelType.cpp
-		src/world/VoxelWorldUtils.cpp src/world/Entity.cpp
+		src/world/VoxelTypes.cpp src/world/LiquidVoxelType.cpp src/world/VoxelWorldUtils.cpp
+		src/world/Entity.cpp src/world/EntityPhysics.cpp src/world/Player.cpp
 		src/Asset.cpp
 )
 
