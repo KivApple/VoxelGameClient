@@ -135,6 +135,18 @@ public:
 	
 };
 
+template<typename Trait, typename State> concept entityTraitHasPhysics = requires (Trait &trait, const State &state) {
+	{ trait.physics(state) } -> std::convertible_to<const EntityPhysics&>;
+};
+template<typename Trait, typename State> concept entityTraitHasUpdate = requires (
+		Trait &trait,
+		Entity &entity,
+		State &state,
+		VoxelChunkExtendedMutableRef &chunk
+) {
+	{ trait.update(entity, state, chunk) } -> std::same_as<void>;
+};
+
 template<
         typename T,
         typename BaseState=EmptyEntityTypeTraitState,
@@ -181,28 +193,13 @@ public:
 	};
 
 private:
-	template<typename Trait> static constexpr auto traitHasPhysics(
-			Trait*,
-			const Entity *entity,
-			const State *state
-	) -> decltype(std::declval<Trait>().physics(*entity, *state), true) {
-		return true;
-	}
-	template<typename Trait> static constexpr auto traitHasPhysics(...) {
-		return false;
-	}
-	
 	template<typename Trait, typename ...RestTraits> const EntityPhysics &traitsPhysics(
 			const Entity &entity,
 			const State &state,
 			Trait *trait,
 			RestTraits... restTraits
 	) {
-		if constexpr (traitHasInit<Trait>(
-				(Trait*) 0,
-				(const Entity*) 0,
-				(const State*) 0
-		)) {
+		if constexpr (entityTraitHasPhysics<Trait, State>) {
 			auto physics = trait->physics(entity, state);
 			if (physics != nullptr) {
 				return *physics;
@@ -214,18 +211,6 @@ private:
 		return EntityPhysics::NONE;
 	}
 	
-	template<typename Trait> static constexpr auto traitHasUpdate(
-			Trait*,
-			Entity *entity,
-			State *state,
-			VoxelChunkExtendedMutableRef *chunk
-	) -> decltype(std::declval<Trait>().update(*entity, *state, *chunk), true) {
-		return true;
-	}
-	template<typename Trait> static constexpr auto traitHasUpdate(...) {
-		return false;
-	}
-	
 	template<typename Trait, typename ...RestTraits> void traitsUpdate(
 			Entity &entity,
 			State &state,
@@ -233,12 +218,7 @@ private:
 			Trait *trait,
 			RestTraits... restTraits
 	) {
-		if constexpr (traitHasUpdate<Trait>(
-				(Trait*) 0,
-				(Entity*) 0,
-				(State*) 0,
-				(VoxelChunkExtendedMutableRef*) 0
-		)) {
+		if constexpr (entityTraitHasUpdate<Trait, State>) {
 			trait->update(entity, state, chunk);
 		}
 		traitsUpdate(entity, state, chunk, restTraits...);
