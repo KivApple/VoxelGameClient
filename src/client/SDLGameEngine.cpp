@@ -14,30 +14,30 @@ extern "C" void SDLGameEngine_pointerLockChanged(bool locked) {
 #endif
 
 SDLGameEngine::SDLGameEngine(): m_keyMap({
-		{SDLK_UP, KeyCode::MOVE_FORWARD},
-		{SDLK_w, KeyCode::MOVE_FORWARD},
-		{SDLK_DOWN, KeyCode::MOVE_BACKWARD},
-		{SDLK_s, KeyCode::MOVE_BACKWARD},
-		{SDLK_LEFT, KeyCode::MOVE_LEFT},
-		{SDLK_a, KeyCode::MOVE_LEFT},
-		{SDLK_RIGHT, KeyCode::MOVE_RIGHT},
-		{SDLK_d, KeyCode::MOVE_RIGHT},
-		{SDLK_SPACE, KeyCode::JUMP},
-		{SDLK_LSHIFT, KeyCode::CLIMB_DOWN},
-		{SDLK_RSHIFT, KeyCode::CLIMB_DOWN},
-		{SDLK_F1, KeyCode::TOGGLE_DEBUG_INFO},
-		{SDLK_F2, KeyCode::RESET_PERFORMANCE_COUNTERS},
-		{SDLK_F12, KeyCode::SAVE_CHUNK_TEXTURE},
-		{SDLK_LCTRL, KeyCode::SPEEDUP},
-		{SDLK_RCTRL, KeyCode::SPEEDUP},
-		{SDLK_1, KeyCode::INVENTORY_1},
-		{SDLK_2, KeyCode::INVENTORY_2},
-		{SDLK_3, KeyCode::INVENTORY_3},
-		{SDLK_4, KeyCode::INVENTORY_4},
-		{SDLK_5, KeyCode::INVENTORY_5},
-		{SDLK_6, KeyCode::INVENTORY_6},
-		{SDLK_7, KeyCode::INVENTORY_7},
-		{SDLK_8, KeyCode::INVENTORY_8}
+		{SDL_SCANCODE_UP, KeyCode::MOVE_FORWARD},
+		{SDL_SCANCODE_W, KeyCode::MOVE_FORWARD},
+		{SDL_SCANCODE_DOWN, KeyCode::MOVE_BACKWARD},
+		{SDL_SCANCODE_S, KeyCode::MOVE_BACKWARD},
+		{SDL_SCANCODE_LEFT, KeyCode::MOVE_LEFT},
+		{SDL_SCANCODE_A, KeyCode::MOVE_LEFT},
+		{SDL_SCANCODE_RIGHT, KeyCode::MOVE_RIGHT},
+		{SDL_SCANCODE_D, KeyCode::MOVE_RIGHT},
+		{SDL_SCANCODE_SPACE, KeyCode::JUMP},
+		{SDL_SCANCODE_LSHIFT, KeyCode::CLIMB_DOWN},
+		{SDL_SCANCODE_RSHIFT, KeyCode::CLIMB_DOWN},
+		{SDL_SCANCODE_F1, KeyCode::TOGGLE_DEBUG_INFO},
+		{SDL_SCANCODE_F2, KeyCode::RESET_PERFORMANCE_COUNTERS},
+		{SDL_SCANCODE_F12, KeyCode::SAVE_CHUNK_TEXTURE},
+		{SDL_SCANCODE_LCTRL, KeyCode::SPEEDUP},
+		{SDL_SCANCODE_RCTRL, KeyCode::SPEEDUP},
+		{SDL_SCANCODE_1, KeyCode::INVENTORY_1},
+		{SDL_SCANCODE_2, KeyCode::INVENTORY_2},
+		{SDL_SCANCODE_3, KeyCode::INVENTORY_3},
+		{SDL_SCANCODE_4, KeyCode::INVENTORY_4},
+		{SDL_SCANCODE_5, KeyCode::INVENTORY_5},
+		{SDL_SCANCODE_6, KeyCode::INVENTORY_6},
+		{SDL_SCANCODE_7, KeyCode::INVENTORY_7},
+		{SDL_SCANCODE_8, KeyCode::INVENTORY_8}
 }) {
 }
 
@@ -101,21 +101,21 @@ void SDLGameEngine::handleWindowEvent(const SDL_WindowEvent &event) {
 }
 
 void SDLGameEngine::handleKeyDownEvent(const SDL_KeyboardEvent &event) {
-	auto it = m_keyMap.find(event.keysym.sym);
+	auto it = m_keyMap.find(event.keysym.scancode);
 	if (it != m_keyMap.end()) {
 		keyDown(it->second);
 	}
 	
-	switch (event.keysym.sym) {
-		case SDLK_ESCAPE:
+	switch (event.keysym.scancode) {
+		case SDL_SCANCODE_ESCAPE:
 			SDL_SetRelativeMouseMode(SDL_FALSE);
 			break;
-		case SDLK_F11:
+		case SDL_SCANCODE_F11:
 			m_isFullscreen = !m_isFullscreen;
 			SDL_SetWindowFullscreen(m_window, m_isFullscreen);
 			break;
 #ifdef __EMSCRIPTEN__
-		case SDLK_F5:
+		case SDL_SCANCODE_F5:
 			emscripten_reloadPage();
 			break;
 #endif
@@ -123,7 +123,7 @@ void SDLGameEngine::handleKeyDownEvent(const SDL_KeyboardEvent &event) {
 }
 
 void SDLGameEngine::handleKeyUpEvent(const SDL_KeyboardEvent &event) {
-	auto it = m_keyMap.find(event.keysym.sym);
+	auto it = m_keyMap.find(event.keysym.scancode);
 	if (it != m_keyMap.end()) {
 		keyUp(it->second);
 	}

@@ -13,7 +13,7 @@ class SDLGameEngine: public GameEngine {
 	SDL_Window *m_window = nullptr;
 	SDL_GLContext m_glContext = nullptr;
 	bool m_isFullscreen = false;
-	std::unordered_map<SDL_Keycode, KeyCode> m_keyMap;
+	std::unordered_map<SDL_Scancode, KeyCode> m_keyMap;
 	bool m_userInterfaceMouseLock = false;
 	std::unordered_set<SDL_FingerID> m_userInterfaceFingerLocks;
 	bool m_touchRotationStarted = false;
