@@ -239,30 +239,66 @@ public:
 	
 };
 
-template<typename ...Traits> struct traitsHaveVoxelInterface {
-	template<typename Trait, typename ...RestTraits> constexpr static bool performCheck(
-			Trait *trait,
-			RestTraits... restTraits
-	) {
-		if constexpr (std::is_base_of<VoxelTypeInterface, Trait>::value) {
-			return true;
-		}
-		return performCheck(restTraits...);
-	}
-	constexpr static bool performCheck() {
-		return false;
-	}
-	
-	static constexpr bool value = performCheck(static_cast<Traits*>(0)...);
-	
+template<typename Trait> concept traitHasHandleRegistration = requires (
+		Trait &trait, const std::string &name, VoxelTypeRegistry &registry
+) {
+	{ trait.handleRegistration(name, registry) } -> std::same_as<void>;
 };
+template<typename Trait> concept traitHasLink = requires (Trait &trait, VoxelTypeRegistry &registry) {
+	{ trait.link(registry) } -> std::same_as<void>;
+};
+template<typename Trait, typename State> concept traitHasToString = requires (Trait &trait, const State &state) {
+	{ trait.toString(state) } -> std::convertible_to<std::string>;
+};
+template<typename Trait, typename State> concept traitHasShaderProvider = requires (Trait &trait, const State &state) {
+	{ trait.shaderProvider(state) } -> std::convertible_to<const VoxelShaderProvider*>;
+};
+template<typename Trait, typename State> concept traitHasBuildVertexData = requires (
+		Trait &trait,
+		const VoxelChunkExtendedRef &chunk,
+		const InChunkVoxelLocation &location,
+		const State &state,
+		std::vector<VoxelVertexData> &data
+) {
+	{ trait.buildVertexData(chunk, location, state, data) } -> std::same_as<void>;
+};
+template<typename Trait, typename State> concept traitHasLightLevel = requires (Trait &trait, const State &state) {
+	{ trait.lightLevel(state) } -> std::convertible_to<VoxelLightLevel>;
+};
+template<typename Trait, typename State> concept traitHasHasDensity = requires (Trait &trait, const State &state) {
+	{ trait.hasDensity(state) } -> std::convertible_to<bool>;
+};
+template<typename Trait, typename State> concept traitHasUpdate = requires (
+		Trait &trait,
+		const VoxelChunkExtendedMutableRef &chunk,
+		const InChunkVoxelLocation &location,
+		Voxel &rawVoxel,
+		State &state,
+		unsigned long deltaTime,
+		std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
+) {
+	{ trait.update(chunk, location, rawVoxel, state, deltaTime, invalidatedLocations) } -> std::convertible_to<bool>;
+};
+template<typename Trait, typename State> concept traitHasSlowUpdate = requires (
+		Trait &trait,
+		const VoxelChunkExtendedMutableRef &chunk,
+		const InChunkVoxelLocation &location,
+		Voxel &rawVoxel,
+		State &state,
+		std::unordered_set<InChunkVoxelLocation> &invalidatedLocations
+) {
+	{ trait.slowUpdate(chunk, location, rawVoxel, state, invalidatedLocations) } -> std::same_as<void>;
+};
+
+template <typename ...Traits>
+constexpr auto traitsHaveVoxelInterface = false || (std::is_base_of_v<VoxelTypeInterface, Traits> || ...);
 
 template<
 		typename T,
 		typename BaseState=EmptyVoxelTypeTraitState,
 		typename ...Traits
 > class VoxelType: public std::conditional<
-		traitsHaveVoxelInterface<Traits...>::value,
+		traitsHaveVoxelInterface<Traits...>,
 		VoxelTypeTrait<>,
 		VoxelTypeInterface
 >::type, public Traits... {
@@ -328,28 +364,13 @@ private:
 	void traitsSetType(VoxelTypeInterface *type) {
 	}
 	
-	template<typename Trait> static constexpr auto traitHasHandleRegistration(
-			Trait*,
-			const std::string *name,
-			VoxelTypeRegistry *registry
-	) -> decltype(std::declval<Trait>().handleRegistration(*name, *registry), true) {
-		return true;
-	}
-	static constexpr auto traitHasHandleRegistration(...) {
-		return false;
-	}
-	
 	template<typename Trait, typename ...RestTraits> void traitsHandleRegistration(
 			const std::string &name,
 			VoxelTypeRegistry &registry,
 			Trait *trait,
 			RestTraits... restTraits
 	) {
-		if constexpr (traitHasHandleRegistration(
-				(Trait*) 0,
-				(const std::string*) 0,
-				(VoxelTypeRegistry*) 0
-		)) {
+		if constexpr (traitHasHandleRegistration<Trait>) {
 			trait->handleRegistration(name, registry);
 		}
 		traitsHandleRegistration(name, registry, restTraits...);
@@ -357,22 +378,12 @@ private:
 	void traitsHandleRegistration(const std::string &name, VoxelTypeRegistry &registry) {
 	}
 	
-	template<typename Trait> static constexpr auto traitHasLink(
-			Trait*,
-			VoxelTypeRegistry *registry
-	) -> decltype(std::declval<Trait>().link(*registry), true) {
-		return true;
-	}
-	static constexpr auto traitHasLink(...) {
-		return false;
-	}
-	
 	template<typename Trait, typename ...RestTraits> void traitsLink(
 			VoxelTypeRegistry &registry,
 			Trait *trait,
 			RestTraits... restTraits
 	) {
-		if constexpr (traitHasLink((Trait*) 0, (VoxelTypeRegistry*) 0)) {
+		if constexpr (traitHasLink<Trait>) {
 			trait->link(registry);
 		}
 		traitsLink(registry, restTraits...);
@@ -396,23 +407,13 @@ private:
 		return nullptr;
 	}
 	
-	template<typename Trait> static constexpr auto traitHasToString(
-			Trait*,
-			const State* voxel
-	) -> decltype(std::declval<Trait>().toString(*voxel), true) {
-		return true;
-	}
-	template<typename Trait> static constexpr auto traitHasToString(...) {
-		return false;
-	}
-	
 	template<typename Trait, typename ...RestTraits> void traitsToString(
 			const State &voxel,
 			std::string &result,
 			Trait *trait,
 			RestTraits... restTraits
 	) {
-		if constexpr (traitHasToString<Trait>((Trait*) 0, (const State*) 0)) {
+		if constexpr (traitHasToString<Trait, State>) {
 			result += trait->toString(voxel);
 		}
 		traitsToString(voxel, result, restTraits...);
@@ -420,41 +421,18 @@ private:
 	void traitsToString(const State &voxel, std::string &result) {
 	}
 	
-	template<typename Trait> static constexpr auto traitHasShaderProvider(
-			Trait*,
-			const State *voxel
-	) -> decltype(std::declval<Trait>().shaderProvider(*voxel), true) {
-		return true;
-	}
-	template<typename Trait> static constexpr auto traitHasShaderProvider(...) {
-		return false;
-	}
-	
 	template<typename Trait, typename ...RestTraits> const VoxelShaderProvider *traitsShaderProvider(
 			const State &voxel,
 			Trait *trait,
 			RestTraits... restTraits
 	) {
-		if constexpr (traitHasShaderProvider<Trait>((Trait*) 0, (const State*) 0)) {
+		if constexpr (traitHasShaderProvider<Trait, State>) {
 			return trait->shaderProvider(voxel);
 		}
 		return traitsShaderProvider(voxel, restTraits...);
 	}
 	const VoxelShaderProvider *traitsShaderProvider(const State &voxel) {
 		return nullptr;
-	}
-	
-	template<typename Trait> static constexpr auto traitHasBuildVertexData(
-			Trait*,
-			const VoxelChunkExtendedRef *chunk,
-			const InChunkVoxelLocation *location,
-			const State *voxel,
-			std::vector<VoxelVertexData> *data
-	) -> decltype(std::declval<Trait>().buildVertexData(*chunk, *location, *voxel, *data), true) {
-		return true;
-	}
-	template<typename Trait> static constexpr auto traitHasBuildVertexData(...) {
-		return false;
 	}
 	
 	template<typename Trait, typename ...RestTraits> void traitsBuildVertexData(
@@ -465,13 +443,7 @@ private:
 			Trait *trait,
 			RestTraits... restTraits
 	) {
-		if constexpr (traitHasBuildVertexData<Trait>(
-				(Trait*) 0,
-				(const VoxelChunkExtendedRef*) 0,
-				(const InChunkVoxelLocation*) 0,
-				(const State*) 0,
-				(std::vector<VoxelVertexData>*) 0
-		)) {
+		if constexpr (traitHasBuildVertexData<Trait, State>) {
 			trait->buildVertexData(chunk, location, voxel, data);
 		}
 		traitsBuildVertexData(chunk, location, voxel, data, restTraits...);
@@ -484,22 +456,12 @@ private:
 	) {
 	}
 	
-	template<typename Trait> static constexpr auto traitHasLightLevel(
-			Trait*,
-			State *voxel
-	) -> decltype(std::declval<Trait>().lightLevel(*voxel), true) {
-		return true;
-	}
-	template<typename Trait> static constexpr auto traitHasLightLevel(...) {
-		return false;
-	}
-	
 	template<typename Trait, typename ...RestTraits> VoxelLightLevel traitsLightLevel(
 			const State &voxel,
 			Trait *trait,
 			RestTraits... restTraits
 	) {
-		if constexpr (traitHasLightLevel<Trait>((Trait*) 0, (const State*) 0)) {
+		if constexpr (traitHasLightLevel<Trait, State>) {
 			return trait->lightLevel(voxel);
 		}
 		return traitsLightLevel(voxel, restTraits...);
@@ -508,50 +470,18 @@ private:
 		return 0;
 	}
 	
-	template<typename Trait> static constexpr auto traitHasHasDensity(
-			Trait*,
-			const State *voxel
-	) -> decltype(std::declval<Trait>().hasDensity(*voxel), true) {
-		return true;
-	}
-	template<typename Trait> static constexpr auto traitHasHasDensity(...) {
-		return false;
-	}
-	
 	template<typename Trait, typename ...RestTraits> bool traitsHasDensity(
 			const State &voxel,
 			Trait *trait,
 			RestTraits... restTraits
 	) {
-		if constexpr (traitHasHasDensity<Trait>((Trait*) 0, (const State*) 0)) {
+		if constexpr (traitHasHasDensity<Trait, State>) {
 			return trait->hasDensity(voxel);
 		}
 		return traitsHasDensity(voxel, restTraits...);
 	}
 	bool traitsHasDensity(const State &voxel) {
 		return true;
-	}
-	
-	template<typename Trait> static constexpr auto traitHasUpdate(
-			Trait*,
-			const VoxelChunkExtendedMutableRef *chunk,
-			const InChunkVoxelLocation *location,
-			Voxel *rawVoxel,
-			State *voxel,
-			unsigned long deltaTime,
-			std::unordered_set<InChunkVoxelLocation> *invalidatedLocations
-	) -> decltype(std::declval<Trait>().update(
-			*chunk,
-			*location,
-			*rawVoxel,
-			*voxel,
-			deltaTime,
-			*invalidatedLocations
-	), true) {
-		return true;
-	}
-	template<typename Trait> static constexpr auto traitHasUpdate(...) {
-		return false;
 	}
 	
 	template<typename Trait, typename ...RestTraits> bool traitsUpdate(
@@ -564,15 +494,7 @@ private:
 			Trait *trait,
 			RestTraits... restTraits
 	) {
-		if constexpr (traitHasUpdate<Trait>(
-				(Trait*) 0,
-				(const VoxelChunkExtendedMutableRef*) 0,
-				(const InChunkVoxelLocation*) 0,
-				(Voxel*) 0,
-				(State*) 0,
-				0,
-				(std::unordered_set<InChunkVoxelLocation>*) 0
-		)) {
+		if constexpr (traitHasUpdate<Trait, State>) {
 			auto a = trait->update(chunk, location, rawVoxel, voxel, deltaTime, invalidatedLocations);
 			if (rawVoxel.type != &type()) {
 				return true;
@@ -593,20 +515,6 @@ private:
 		return false;
 	}
 	
-	template<typename Trait> static constexpr auto traitHasSlowUpdate(
-			Trait *trait,
-			const VoxelChunkExtendedMutableRef *chunk,
-			const InChunkVoxelLocation *location,
-			Voxel *rawVoxel,
-			State *voxel,
-			std::unordered_set<InChunkVoxelLocation> *invalidatedLocations
-	) -> decltype(std::declval<Trait>().slowUpdate(*chunk, *location, *rawVoxel, *voxel, *invalidatedLocations), true) {
-		return true;
-	}
-	template<typename Trait> static constexpr auto traitHasSlowUpdate(...) {
-		return false;
-	}
-	
 	template<typename Trait, typename ...RestTraits> void traitsSlowUpdate(
 			const VoxelChunkExtendedMutableRef &chunk,
 			const InChunkVoxelLocation &location,
@@ -616,14 +524,7 @@ private:
 			Trait *trait,
 			RestTraits... restTraits
 	) {
-		if constexpr (traitHasSlowUpdate<Trait>(
-				(Trait*) 0,
-				(const VoxelChunkExtendedMutableRef*) 0,
-				(const InChunkVoxelLocation*) 0,
-				(Voxel*) 0,
-				(State*) 0,
-				(std::unordered_set<InChunkVoxelLocation>*) 0
-		)) {
+		if constexpr (traitHasSlowUpdate<Trait, State>) {
 			trait->slowUpdate(chunk, location, rawVoxel, voxel, invalidatedLocations);
 			if (rawVoxel.type != &type()) {
 				return;

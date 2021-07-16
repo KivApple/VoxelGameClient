@@ -44,7 +44,7 @@ struct InChunkVoxelLocation {
 	constexpr InChunkVoxelLocation(int x, int y, int z): x(x), y(y), z(z) {
 	}
 	
-	explicit constexpr InChunkVoxelLocation(
+	explicit InChunkVoxelLocation(
 			const glm::vec3 &v
 	): x(roundf(v.x)), y(roundf(v.y)), z(roundf(v.z)) {
 	}
